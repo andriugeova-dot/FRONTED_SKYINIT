@@ -12,6 +12,8 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/node": "^11.1.6",
+    "ag-grid-enterprise": "^36.2.0",
     "astro": "^7.3.3",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1"
