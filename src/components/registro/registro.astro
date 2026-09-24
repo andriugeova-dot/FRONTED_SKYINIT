@@ -1,0 +1,207 @@
+---
+import "./registro.css";
+---
+
+<!-- FONDO -->
+<div class="bg" aria-hidden="true">
+  <img
+    src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1920&q=80"
+    class="active"
+    alt=""
+  />
+  <img
+    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1920&q=80"
+    alt=""
+  />
+  <img
+    src="https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=1920&q=80"
+    alt=""
+  />
+</div>
+
+<!-- OVERLAY -->
+<div class="overlay" aria-hidden="true"></div>
+
+<!-- TEXTO -->
+<div class="left-content">
+  <h1>SkyInit</h1>
+  <p>Encuentra tu hogar ideal</p>
+</div>
+
+<!-- FORMULARIO -->
+<div class="form-wrapper">
+  <div class="form-box">
+    <h2>Crear cuenta</h2>
+
+    <form id="formRegistro">
+      <div class="input-group">
+        <input
+          type="text"
+          id="nombre"
+          name="Nombre"
+          class="form-control"
+          placeholder="Nombre completo"
+          autocomplete="name"
+          required
+        />
+      </div>
+
+      <div class="input-group">
+        <input
+          type="email"
+          id="correo"
+          name="Correo"
+          class="form-control"
+          placeholder="Correo electrónico"
+          autocomplete="email"
+          required
+        />
+      </div>
+
+      <div class="input-group">
+        <input
+          type="password"
+          id="password"
+          name="Password"
+          class="form-control"
+          placeholder="Contraseña"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+      </div>
+
+      <!-- SEGURIDAD -->
+      <div class="progress">
+        <div id="NivelSeguridad" class="progress-bar"></div>
+      </div>
+
+      <div class="input-group">
+        <input
+          type="password"
+          id="confirmar"
+          name="Confirmar"
+          class="form-control"
+          placeholder="Confirmar contraseña"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+      </div>
+
+      <div class="input-group">
+        <input
+          type="tel"
+          id="telefono"
+          name="Telefono"
+          class="form-control"
+          placeholder="Teléfono"
+          autocomplete="tel"
+          required
+        />
+      </div>
+
+      <div id="mensajeError" class="invalid-feedback d-none" role="alert"></div>
+      <div id="mensajeExito" class="valid-feedback d-none" role="status"></div>
+
+      <button type="submit" class="btn" id="btnRegistro">Registrarse</button>
+    </form>
+
+    <p class="extra">
+      ¿Ya tienes cuenta?
+      <a href="/login">Inicia sesión</a>
+    </p>
+  </div>
+</div>
+
+<script>
+  import { registroRequest, rutaPorRol } from "../../utils/api";
+
+  // Carrusel de fondo
+  const imgs = document.querySelectorAll(".bg img");
+  let i = 0;
+  setInterval(() => {
+    imgs[i].classList.remove("active");
+    i = (i + 1) % imgs.length;
+    imgs[i].classList.add("active");
+  }, 4000);
+
+  // Barra de seguridad de contraseña
+  const inputPass = document.getElementById("password") as HTMLInputElement;
+  const barra = document.getElementById("NivelSeguridad") as HTMLDivElement;
+
+  inputPass.addEventListener("input", () => {
+    const valor = inputPass.value;
+    let fuerza = 0;
+    if (valor.length >= 8) fuerza += 25;
+    if (/[A-Z]/.test(valor)) fuerza += 25;
+    if (/[0-9]/.test(valor)) fuerza += 25;
+    if (/[^A-Za-z0-9]/.test(valor)) fuerza += 25;
+
+    barra.style.width = fuerza + "%";
+    if (fuerza < 50) {
+      barra.className = "progress-bar bg-danger";
+    } else if (fuerza < 75) {
+      barra.className = "progress-bar bg-warning";
+    } else {
+      barra.className = "progress-bar bg-success";
+    }
+  });
+
+  // Submit → Astro /api/registro → Deno
+  const formulario = document.getElementById("formRegistro") as HTMLFormElement;
+  const mensajeError = document.getElementById("mensajeError") as HTMLDivElement;
+  const mensajeExito = document.getElementById("mensajeExito") as HTMLDivElement;
+  const btnRegistro = document.getElementById("btnRegistro") as HTMLButtonElement;
+
+  formulario.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    mensajeError.classList.add("d-none");
+    mensajeExito.classList.add("d-none");
+    btnRegistro.disabled = true;
+
+    const Nombre = (document.getElementById("nombre") as HTMLInputElement).value.trim();
+    const Correo = (document.getElementById("correo") as HTMLInputElement).value.trim();
+    const Password = (document.getElementById("password") as HTMLInputElement).value;
+    const Confirmar = (document.getElementById("confirmar") as HTMLInputElement).value;
+    const Telefono = (document.getElementById("telefono") as HTMLInputElement).value.trim();
+
+    if (Password !== Confirmar) {
+      mensajeError.textContent = "Las contraseñas no coinciden";
+      mensajeError.classList.remove("d-none");
+      btnRegistro.disabled = false;
+      return;
+    }
+
+    try {
+      const data = await registroRequest({
+        Nombre,
+        Correo,
+        Password,
+        Confirmar,
+        Telefono,
+      });
+
+      if (data.error) {
+        mensajeError.textContent = data.error;
+        mensajeError.classList.remove("d-none");
+        return;
+      }
+
+      mensajeExito.textContent = data.mensaje || "Cuenta creada correctamente";
+      mensajeExito.classList.remove("d-none");
+      formulario.reset();
+      barra.style.width = "0%";
+      barra.className = "progress-bar";
+
+      setTimeout(() => {
+        window.location.href = rutaPorRol(data.usuario?.rol ?? "Usuario");
+      }, 1200);
+    } catch {
+      mensajeError.textContent = "Error al conectar con el servidor";
+      mensajeError.classList.remove("d-none");
+    } finally {
+      btnRegistro.disabled = false;
+    }
+  });
+</script>
