@@ -1,437 +1,291 @@
+/* ========== SIDEBAR BASE ========== */
 .sidebar {
-
-        width: 250px;
-        height: 100vh;
-
-        position: fixed;
-        left: 0;
-        top: 0;
-
-        display: flex;
-        flex-direction: column;
-
-        padding: 25px 16px;
-
-        box-sizing: border-box;
-
-        z-index: 1000;
-
-        color: #ffffff;
-
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-        transition:
-            background 0.3s ease,
-            color 0.3s ease;
-    }
-    /* =====================================================
-       COLORES POR ROL
-    ===================================================== */
-    .sidebar.constructora {
-
-        --fondo: #253229;
-        --texto: #f5f1e8;
-        --texto-secundario: #b8b9ad;
-
-        --principal: #c8ad72;
-        --principal-suave: rgba(200, 173, 114, 0.18);
-
-        background: var(--fondo);
-
-    }
-
-
-    /*
-        ADMINISTRADOR
-        Azul oscuro
-    */
-
-    .sidebar.administrador {
-
-        --fondo: #202d3b;
-        --texto: #f2f5f8;
-        --texto-secundario: #aeb9c4;
-
-        --principal: #79a9d3;
-        --principal-suave: rgba(121, 169, 211, 0.18);
-
-        background: var(--fondo);
-
-    }
-
-
-    /*
-        SUPER ADMIN
-        Morado oscuro
-    */
-
-    .sidebar.superadmin {
-
-        --fondo: #252232;
-        --texto: #f5f2fa;
-        --texto-secundario: #b8b1c5;
-
-        --principal: #aa91d3;
-        --principal-suave: rgba(170, 145, 211, 0.18);
-
-        background: var(--fondo);
-
-    }
-
-
-    /*
-        AGENTE
-        Verde azulado
-    */
-
-    .sidebar.agente {
-
-        --fondo: #253331;
-        --texto: #f1f6f4;
-        --texto-secundario: #aebdb9;
-
-        --principal: #79aaa1;
-        --principal-suave: rgba(121, 170, 161, 0.18);
-
-        background: var(--fondo);
-
-    }
-
-
-    /* =====================================================
-       LOGO
-    ===================================================== */
-
-    .logo {
-
-        height: 100px;
-
-        display: flex;
-        align-items: center;
-
-        gap: 13px;
-
-        padding: 0 10px;
-
-        border-bottom:
-            1px solid rgba(255,255,255,0.08);
-
-        margin-bottom: 28px;
-
-    }
-
-
-    .logo-marca {
-
-        width: 46px;
-        height: 46px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border:
-            1.5px solid var(--principal);
-
-        border-radius: 13px;
-
-        color: var(--principal);
-
-        font-size: 12px;
-        font-weight: 700;
-
-        letter-spacing: 1px;
-
-    }
-
-
-    .logo-nombre {
-
-        display: flex;
-        flex-direction: column;
-
-        line-height: 1.1;
-
-    }
-
-
-    .logo-nombre span {
-
-        font-size: 9px;
-
-        letter-spacing: 3.5px;
-
-        color: var(--principal);
-
-    }
-
-
-    .logo-nombre strong {
-
-        margin-top: 5px;
-
-        font-family: Georgia, serif;
-
-        font-size: 19px;
-
-        letter-spacing: 1px;
-
-        color: var(--texto);
-
-    }
-
-
-    /* =====================================================
-       NAVEGACIÓN
-    ===================================================== */
-
-    .navegacion {
-
-        display: flex;
-        flex-direction: column;
-
-        gap: 6px;
-
-        flex: 1;
-
-    }
-
-
-    .nav-item {
-
-        height: 50px;
-
-        display: flex;
-        align-items: center;
-
-        gap: 15px;
-
-        padding: 0 15px;
-
-        border-radius: 11px;
-
-        color: var(--texto-secundario);
-
-        text-decoration: none;
-
-        font-size: 14px;
-
-        transition:
-            background 0.2s ease,
-            color 0.2s ease,
-            transform 0.2s ease;
-
-    }
-
-
-    .nav-item i {
-
-        width: 21px;
-
-        text-align: center;
-
-        font-size: 17px;
-
-    }
-
-
-    .nav-item:hover {
-
-        background:
-            rgba(255,255,255,0.06);
-
-        color: var(--texto);
-
-    }
-
-
-    .nav-item.activo {
-
-        background: var(--principal-suave);
-
-        color: var(--texto);
-
-        box-shadow:
-            inset 3px 0 0 var(--principal);
-
-    }
-
-
-    .nav-item.activo i {
-
-        color: var(--principal);
-
-    }
-
-
-    /* =====================================================
-       USUARIO
-    ===================================================== */
-
-    .usuario {
-
-        display: flex;
-        align-items: center;
-
-        gap: 11px;
-
-        padding: 12px;
-
-        border:
-            1px solid rgba(255,255,255,0.10);
-
-        border-radius: 13px;
-
-        background:
-            rgba(255,255,255,0.035);
-
-    }
-
-
-    .avatar {
-
-        width: 38px;
-        height: 38px;
-
-        flex-shrink: 0;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 50%;
-
-        background: var(--principal-suave);
-
-        border:
-            1px solid var(--principal);
-
-        color: var(--principal);
-
-        font-size: 11px;
-
-        font-weight: 700;
-
-    }
-
-
-    .usuario-info {
-
-        display: flex;
-        flex-direction: column;
-
-        min-width: 0;
-
-        flex: 1;
-
-    }
-
-
-    .usuario-info strong {
-
-        color: var(--texto);
-
-        font-size: 12px;
-
-        white-space: nowrap;
-
-        overflow: hidden;
-
-        text-overflow: ellipsis;
-
-    }
-
-
-    .usuario-info span {
-
-        color: var(--texto-secundario);
-
-        font-size: 10px;
-
-        margin-top: 3px;
-
-        white-space: nowrap;
-
-        overflow: hidden;
-
-        text-overflow: ellipsis;
-
-    }
-
-
-    .flecha {
-
-        color: var(--texto-secundario);
-
-        font-size: 11px;
-
-    }
-
-
-    /* =====================================================
-       RESPONSIVE
-    ===================================================== */
-
-    @media (max-width: 768px) {
-
-        .sidebar {
-
-            width: 75px;
-
-            padding:
-                20px 10px;
-
-        }
-
-
-        .logo {
-
-            justify-content: center;
-
-            padding: 0;
-
-        }
-
-
-        .logo-nombre {
-
-            display: none;
-
-        }
-
-
-        .nav-item {
-
-            justify-content: center;
-
-            padding: 0;
-
-        }
-
-
-        .nav-item span {
-
-            display: none;
-
-        }
-
-
-        .usuario {
-
-            justify-content: center;
-
-            padding: 10px 5px;
-
-        }
-
-
-        .usuario-info,
-        .flecha {
-
-            display: none;
-
-        }
-
-    }
+  width: 250px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 25px 16px;
+  box-sizing: border-box;
+  z-index: 1000;
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ========== COLORES POR ROL ========== */
+.sidebar.constructora {
+  --fondo: #253229;
+  --texto: #f5f1e8;
+  --texto-secundario: #b8b9ad;
+  --principal: #c8ad72;
+  --principal-suave: rgba(200, 173, 114, 0.18);
+  background: var(--fondo);
+}
+
+.sidebar.administrador {
+  --fondo: #202d3b;
+  --texto: #f2f5f8;
+  --texto-secundario: #aeb9c4;
+  --principal: #79a9d3;
+  --principal-suave: rgba(121, 169, 211, 0.18);
+  background: var(--fondo);
+}
+
+.sidebar.superadmin {
+  --fondo: #252232;
+  --texto: #f5f2fa;
+  --texto-secundario: #b8b1c5;
+  --principal: #aa91d3;
+  --principal-suave: rgba(170, 145, 211, 0.18);
+  background: var(--fondo);
+}
+
+.sidebar.agente {
+  --fondo: #0d3d40;
+  --texto: #e8f6f6;
+  --texto-secundario: #8eb8ba;
+  --principal: #2dd4bf;
+  --principal-suave: rgba(45, 212, 191, 0.18);
+  background: var(--fondo);
+}
+
+/* ========== LOGO ========== */
+.logo {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 0 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 28px;
+}
+
+.logo-marca {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--principal);
+  border-radius: 13px;
+  color: var(--principal);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.logo-nombre {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.logo-nombre span {
+  font-size: 9px;
+  letter-spacing: 3.5px;
+  color: var(--principal);
+}
+
+.logo-nombre strong {
+  margin-top: 5px;
+  font-family: Georgia, serif;
+  font-size: 19px;
+  letter-spacing: 1px;
+  color: var(--texto);
+}
+
+/* ========== NAV ========== */
+.navegacion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.nav-item {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 0 15px;
+  border-radius: 11px;
+  color: var(--texto-secundario);
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-item i {
+  width: 21px;
+  text-align: center;
+  font-size: 17px;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--texto);
+}
+
+.nav-item.activo {
+  background: var(--principal-suave);
+  color: var(--texto);
+  box-shadow: inset 3px 0 0 var(--principal);
+}
+
+.nav-item.activo i {
+  color: var(--principal);
+}
+
+/* ========== FOOTER / USUARIO ========== */
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.035);
+  min-width: 0;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--principal-suave);
+  border: 1px solid var(--principal);
+  color: var(--principal);
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.usuario-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.usuario-info strong {
+  color: var(--texto);
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.usuario-info span {
+  color: var(--texto-secundario);
+  font-size: 10px;
+  margin-top: 3px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  padding: 0 15px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--texto-secundario);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn-logout:hover {
+  background: rgba(255, 80, 80, 0.15);
+  color: #ffb4b4;
+}
+
+.btn-logout i {
+  font-size: 17px;
+  width: 21px;
+  text-align: center;
+}
+
+/* ========== CONTENIDO AL LADO DEL SIDEBAR ========== */
+.panel-main {
+  margin-left: 250px;
+  min-height: 100vh;
+  padding: 1.75rem 2rem;
+  box-sizing: border-box;
+  background: #f5f6f8;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 75px;
+    padding: 20px 10px;
+  }
+
+  .logo {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .logo-nombre {
+    display: none;
+  }
+
+  .nav-item {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .nav-item span {
+    display: none;
+  }
+
+  .usuario {
+    justify-content: center;
+    padding: 10px 5px;
+  }
+
+  .usuario-info {
+    display: none;
+  }
+
+  .btn-logout span {
+    display: none;
+  }
+
+  .panel-main {
+    margin-left: 75px;
+    padding: 1rem;
+  }
+}

@@ -1,0 +1,47 @@
+---
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.min.css";
+import  SideBar  from "../components/SideBar.astro";
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Astro Basics</title>
+	</head>
+	<body>
+		<SideBar />
+			<main class="panel-main">
+				<slot />
+			</main>
+	</body>
+</html>
+
+<style>
+	html,
+	body {
+		margin: 0;
+		width: 100%;
+		height: 100%;
+	}
+
+    .panel-main {
+    margin-left: 250px;
+    min-height: 100vh;
+    padding: 1.75rem 2rem;
+    box-sizing: border-box;
+    background: #f5f6f8;
+    }
+
+    @media (max-width: 768px) {
+        .panel-main {
+        margin-left: 75px; /* sidebar colapsado en tu CSS */
+        padding: 1rem;
+        }
+    }
+</style>
