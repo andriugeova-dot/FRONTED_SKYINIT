@@ -47,8 +47,8 @@
 			</div>
 		</section>
 
-		<!-- ▌GRID DE TARJETAS (se llena por JS con /api/servicios) ▐ -->
-		<section class="grid" id="serviciosGrid">
+		<!-- ▌SERVICIOS AGRUPADOS POR INMOBILIARIA (se llena por JS con /api/servicios) ▐ -->
+		<section class="contenedor" id="serviciosGrid">
 			<div class="empty-state">
 				<span>⏳</span>
 				Cargando servicios...
@@ -91,15 +91,22 @@
 		<div id="toastContainer"></div>
 
 		<script>
-			let usuarioAutenticado = false;
-			let nombreUsuario = '';
-			let fotoPerfil = '/img/default-avatar.svg';
+			import {
+				obtenerServiciosRequest,
+				solicitarServicioRequest,
+				type GrupoServiciosInmobiliaria,
+				type ServicioMantenimiento,
+			} from '../utils/api';
 
-			// ── Sesión ──────────────────────────────────────────
-// El 401 en /auth/perfil es NORMAL (no hay sesión), no es un error
+			let usuarioAutenticado = false;
+let nombreUsuario = '';
+let fotoPerfil = '/img/default-avatar.svg';
+
+// ── Sesión ──────────────────────────────────────────
+// El 401 en /api/perfil es NORMAL (no hay sesión), no es un error
 async function verificarSesion() {
     try {
-        const res = await fetch('/auth/perfil', { credentials: 'include' });
+        const res = await fetch('/api/perfil', { credentials: 'same-origin' });
         if (res.ok) {
             const data = await res.json();
             usuarioAutenticado = true;
@@ -113,187 +120,185 @@ async function verificarSesion() {
     renderUserMenu();
 }
 
-			function renderUserMenu() {
-				const nav = document.getElementById('navUser');
-				if (!nav) return;
+function renderUserMenu() {
+    const nav = document.getElementById('navUser');
+    if (!nav) return;
 
-				if (usuarioAutenticado) {
-					nav.innerHTML = `
-						<div class="user-profile">
-							<img src="${fotoPerfil}" alt="Perfil" class="profile-pic" id="profilePic" />
-							<div id="user-menu" class="user-menu">
-								<div class="user-menu-name">${nombreUsuario}</div>
-								<a href="/ajustes">⚙️ Ajustes</a>
-								<button type="button" id="btnLogout">🚪 Cerrar sesión</button>
-							</div>
-						</div>`;
+    if (usuarioAutenticado) {
+        nav.innerHTML = `
+            <div class="user-profile">
+                <img src="${fotoPerfil}" alt="Perfil" class="profile-pic" id="profilePic" />
+                <div id="user-menu" class="user-menu">
+                    <div class="user-menu-name">${nombreUsuario}</div>
+                    <a href="/ajustes">⚙️ Ajustes</a>
+                    <button type="button" id="btnLogout">🚪 Cerrar sesión</button>
+                </div>
+            </div>`;
 
-					document.getElementById('profilePic')?.addEventListener('click', () => {
-						document.getElementById('user-menu')?.classList.toggle('active');
-					});
+        document.getElementById('profilePic')?.addEventListener('click', () => {
+            document.getElementById('user-menu')?.classList.toggle('active');
+        });
 
-					document.getElementById('btnLogout')?.addEventListener('click', async () => {
-						await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-						location.reload();
-					});
-				} else {
-					nav.innerHTML = `<a href="/login" class="btn-registrar">Iniciar Sesión</a>`;
-				}
-			}
+        document.getElementById('btnLogout')?.addEventListener('click', async () => {
+            await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+            location.reload();
+        });
+    } else {
+        nav.innerHTML = `<a href="/login" class="btn-registrar">Iniciar Sesión</a>`;
+    }
+}
 
-			// ── Catálogo de servicios ───────────────────────────
-			function formatoPrecio(precio: string | number) {
-				return new Intl.NumberFormat('es-CO').format(Number(precio));
-			}
+// ── Catálogo de servicios ───────────────────────────
+function formatoPrecio(precio: string | number) {
+    return new Intl.NumberFormat('es-CO').format(Number(precio));
+}
 
-			async function cargarServicios() {
-				const grid = document.getElementById('serviciosGrid');
-				if (!grid) return;
+async function cargarServicios() {
+    const grid = document.getElementById('serviciosGrid');
+    if (!grid) return;
 
-				try {
-					const res = await fetch('/api/servicios', { credentials: 'include' });
-					if (!res.ok) throw new Error('No se pudieron cargar los servicios');
-					const json = await res.json();
-					const servicios = json.data ?? [];
+    try {
+        const res = await fetch('/api/servicios', { credentials: 'same-origin' });
+        if (!res.ok) throw new Error('No se pudieron cargar los servicios');
+        const json = await res.json();
+        const servicios = json.data ?? [];
 
-					if (!servicios.length) {
-						grid.innerHTML = `
-							<div class="empty-state">
-								<span>🛠️</span>
-								No hay servicios de mantenimiento disponibles por el momento.
-							</div>`;
-						return;
-					}
+        if (!servicios.length) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <span>🛠️</span>
+                    No hay servicios de mantenimiento disponibles por el momento.
+                </div>`;
+            return;
+        }
 
-					grid.innerHTML = servicios
-						.map(
-							(s: any) => `
-						<div class="card">
-							<div class="card-img-container">
-								${
-									s.imagen
-										? `<img src="${s.imagen}" alt="${s.nombre}">`
-										: `<div class="card-icon-placeholder">🛠️</div>`
-								}
-								<span class="badge-tipo">Disponible</span>
-							</div>
-							<div class="card-content">
-								<h3>${s.nombre}</h3>
-								<p>${s.descripcion}</p>
-								<p class="price-tag">$${formatoPrecio(s.precio)}</p>
-								${
-									usuarioAutenticado
-										? `<button type="button" class="btn-solicitar" data-id="${s.servicioID}" data-nombre="${s.nombre}">Solicitar</button>`
-										: `<a href="/login" class="btn-login-required">Inicia sesión para solicitar</a>`
-								}
-							</div>
-						</div>`
-						)
-						.join('');
+        grid.innerHTML = servicios
+            .map(
+                (s: any) => `
+            <div class="card">
+                <div class="card-img-container">
+                    ${
+                        s.imagen
+                            ? `<img src="${s.imagen}" alt="${s.nombre}">`
+                            : `<div class="card-icon-placeholder">🛠️</div>`
+                    }
+                    <span class="badge-tipo">Disponible</span>
+                </div>
+                <div class="card-content">
+                    <h3>${s.nombre}</h3>
+                    <p>${s.descripcion}</p>
+                    <p class="price-tag">$${formatoPrecio(s.precio)}</p>
+                    ${
+                        usuarioAutenticado
+                            ? `<button type="button" class="btn-solicitar" data-id="${s.servicioID}" data-nombre="${s.nombre}">Solicitar</button>`
+                            : `<a href="/login" class="btn-login-required">Inicia sesión para solicitar</a>`
+                    }
+                </div>
+            </div>`
+            )
+            .join('');
 
-					grid.querySelectorAll('.btn-solicitar').forEach((btn) => {
-						btn.addEventListener('click', () => {
-							const id = (btn as HTMLElement).dataset.id ?? '';
-							const nombre = (btn as HTMLElement).dataset.nombre ?? '';
-							abrirModalSolicitud(id, nombre);
-						});
-					});
-				} catch (e) {
-					grid.innerHTML = `
-						<div class="empty-state">
-							<span>⚠️</span>
-							Ocurrió un error al cargar los servicios. Intenta nuevamente.
-						</div>`;
-					console.error(e);
-				}
-			}
+        grid.querySelectorAll('.btn-solicitar').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const id = (btn as HTMLElement).dataset.id ?? '';
+                const nombre = (btn as HTMLElement).dataset.nombre ?? '';
+                abrirModalSolicitud(id, nombre);
+            });
+        });
+    } catch (e) {
+        grid.innerHTML = `
+            <div class="empty-state">
+                <span>⚠️</span>
+                Ocurrió un error al cargar los servicios. Intenta nuevamente.
+            </div>`;
+        console.error(e);
+    }
+}
 
-			// ── Modal ────────────────────────────────────────────
-			function abrirModalSolicitud(servicioId: string, nombre: string) {
-				(document.getElementById('modalServicioId') as HTMLInputElement).value = servicioId;
-				document.getElementById('modalServicioNombre')!.textContent = nombre;
-				document.getElementById('modalSolicitud')?.classList.add('active');
-			}
+// ── Modal ────────────────────────────────────────────
+function abrirModalSolicitud(servicioId: string, nombre: string) {
+    (document.getElementById('modalServicioId') as HTMLInputElement).value = servicioId;
+    document.getElementById('modalServicioNombre')!.textContent = nombre;
+    document.getElementById('modalSolicitud')?.classList.add('active');
+}
 
-			function cerrarModal(id: string) {
-				document.getElementById(id)?.classList.remove('active');
-			}
+function cerrarModal(id: string) {
+    document.getElementById(id)?.classList.remove('active');
+}
 
-			// ── Toast ────────────────────────────────────────────
-			function mostrarToast(mensaje: string, tipo: 'success' | 'error' = 'success') {
-				const cont = document.getElementById('toastContainer');
-				if (!cont) return;
-				const toast = document.createElement('div');
-				toast.className = `toast ${tipo}`;
-				toast.textContent = mensaje;
-				cont.appendChild(toast);
-				setTimeout(() => toast.remove(), 4500);
-			}
+// ── Toast ────────────────────────────────────────────
+function mostrarToast(mensaje: string, tipo: 'success' | 'error' = 'success') {
+    const cont = document.getElementById('toastContainer');
+    if (!cont) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${tipo}`;
+    toast.textContent = mensaje;
+    cont.appendChild(toast);
+    setTimeout(() => toast.remove(), 4500);
+}
 
-			// ── Init ─────────────────────────────────────────────
-			document.addEventListener('DOMContentLoaded', () => {
-				verificarSesion().then(cargarServicios);
+// ── Init ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    verificarSesion().then(cargarServicios);
 
-				document.getElementById('menuToggle')?.addEventListener('click', () => {
-					document.getElementById('menu')?.classList.toggle('active');
-				});
+    document.getElementById('menuToggle')?.addEventListener('click', () => {
+        document.getElementById('menu')?.classList.toggle('active');
+    });
 
-				document.querySelectorAll('.modal-overlay').forEach((overlay) => {
-					overlay.addEventListener('click', (e) => {
-						if (e.target === overlay) overlay.classList.remove('active');
-					});
-				});
+    document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.remove('active');
+        });
+    });
 
-				document.getElementById('btnCerrarModal')?.addEventListener('click', () =>
-					cerrarModal('modalSolicitud')
-				);
-				document.getElementById('btnCancelarModal')?.addEventListener('click', () =>
-					cerrarModal('modalSolicitud')
-				);
+    document.getElementById('btnCerrarModal')?.addEventListener('click', () =>
+        cerrarModal('modalSolicitud')
+    );
+    document.getElementById('btnCancelarModal')?.addEventListener('click', () =>
+        cerrarModal('modalSolicitud')
+    );
 
-				const form = document.getElementById('formSolicitud') as HTMLFormElement;
-				form?.addEventListener('submit', async (e) => {
-					e.preventDefault();
-					const servicioId = (document.getElementById('modalServicioId') as HTMLInputElement)
-						.value;
-					const notas = (document.getElementById('modalNotas') as HTMLTextAreaElement).value;
+    const form = document.getElementById('formSolicitud') as HTMLFormElement;
+    form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const servicioId = (document.getElementById('modalServicioId') as HTMLInputElement)
+            .value;
+        const notas = (document.getElementById('modalNotas') as HTMLTextAreaElement).value;
 
-					try {
-						// TODO backend: crear POST /api/servicios/solicitar (tabla serviciossolicitados
-						// ya existe en el esquema, falta el Controller/Model/Router para exponerla).
-						const res = await fetch('/api/servicios/solicitar', {
-							method: 'POST',
-							credentials: 'include',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({ servicioId: Number(servicioId), notas }),
-						});
-						const data = await res.json();
-						if (!res.ok) throw new Error(data.message ?? 'No se pudo enviar la solicitud');
+        try {
+            const res = await fetch('/api/servicios/solicitar', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ servicioId: Number(servicioId), notas }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message ?? 'No se pudo enviar la solicitud');
 
-						cerrarModal('modalSolicitud');
-						form.reset();
-						mostrarToast('Solicitud enviada correctamente ✅');
-					} catch (err: any) {
-						mostrarToast(err.message ?? 'Error al enviar la solicitud', 'error');
-					}
-				});
+            cerrarModal('modalSolicitud');
+            form.reset();
+            mostrarToast('Solicitud enviada correctamente ✅');
+        } catch (err: any) {
+            mostrarToast(err.message ?? 'Error al enviar la solicitud', 'error');
+        }
+    });
 
-				// Fondo rotativo del header
-				const images = [
-					'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789',
-					'https://images.unsplash.com/photo-1581141849291-1125c7b692b5',
-					'https://images.unsplash.com/photo-1599423300746-b62533397364',
-				];
-				let index = 0;
-				const header = document.getElementById('header');
-				function cambiarFondo() {
-					if (!header) return;
-					header.style.backgroundImage = `url(${images[index]})`;
-					index = (index + 1) % images.length;
-				}
-				cambiarFondo();
-				setInterval(cambiarFondo, 5000);
-			});
+    // Fondo rotativo del header
+    const images = [
+        'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789',
+        'https://images.unsplash.com/photo-1581141849291-1125c7b692b5',
+        'https://images.unsplash.com/photo-1599423300746-b62533397364',
+    ];
+    let index = 0;
+    const header = document.getElementById('header');
+    function cambiarFondo() {
+        if (!header) return;
+        header.style.backgroundImage = `url(${images[index]})`;
+        index = (index + 1) % images.length;
+    }
+    cambiarFondo();
+    setInterval(cambiarFondo, 5000);
+});
 		</script>
 	</body>
 </html>
@@ -613,6 +618,62 @@ nav a:hover {
 }
 
 /* ===========================================
+   GRUPOS DE SERVICIOS POR INMOBILIARIA
+   =========================================== */
+.grupo-inmobiliaria {
+    margin-bottom: 50px;
+}
+
+.grupo-inmobiliaria:last-child {
+    margin-bottom: 0;
+}
+
+.grupo-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 0 18px 0;
+    border-bottom: 2px solid var(--verde-claro);
+    margin-bottom: 25px;
+}
+
+.grupo-logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.grupo-logo-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+}
+
+.grupo-header-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.grupo-nombre {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--verde-oscuro);
+    margin: 0;
+}
+
+.grupo-count {
+    font-size: 0.85rem;
+    color: #888;
+    font-weight: 600;
+}
+
+/* ===========================================
    GRID DE SERVICIOS
    =========================================== */
 .grid {
@@ -622,6 +683,22 @@ nav a:hover {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 25px;
+}
+
+/* Cuando el grid va dentro de un grupo por inmobiliaria, el .contenedor
+   padre ya aporta el ancho maximo y el padding lateral */
+.grupo-inmobiliaria .grid {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+#serviciosGrid {
+    padding-bottom: 70px;
+}
+
+#serviciosGrid .empty-state {
+    margin: 20px 0 70px 0;
 }
 
 .card {
