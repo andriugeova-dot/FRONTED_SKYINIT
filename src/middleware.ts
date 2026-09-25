@@ -91,6 +91,6 @@ function rutaHomePorRol (rol: string | null): string {
       return "/constructora";
     case "Usuario":
     default:
-      return "/buscar";
+      return "/servicios";
   }
 }
