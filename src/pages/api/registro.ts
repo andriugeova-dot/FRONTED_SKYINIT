@@ -7,7 +7,7 @@ const TOKEN_MAX_AGE = 60 * 60 // 1 hora
 export const POST: APIRoute = async ({request}) => {
     try {
         const body = await request.json();
-        const {Nombre, Correo, Password, Confirmar, Telefono} = body;
+        const {Nombre, Correo, Password, Confirmar, Telefono, AceptoTerminos} = body;
 
         if (!Nombre || !Correo || !Password || !Confirmar) {
             return new Response (
@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({request}) => {
         const backendRes = await fetch (`${BACKEND_URL}/auth/registro`, {
             method: "POST",
             headers: {"Content-Type" : "application/json"},
-            body: JSON.stringify ({Nombre, Correo, Password, Confirmar, Telefono: Telefono ?? null,}),
+            body: JSON.stringify({Nombre, Correo, Password, Confirmar, Telefono: Telefono ?? null, AceptoTerminos})
         });
 
         const data = await backendRes.json();

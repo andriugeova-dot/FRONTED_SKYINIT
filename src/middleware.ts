@@ -11,6 +11,7 @@ const RUTAS_PROTEGIDAS = [
   "/agente",
   "/constructora",
   "/perfil",
+  "/superadmin",
 ];
 
 /**Solo SuoerAdmin */
@@ -26,7 +27,7 @@ const RUTA_AGENTE = ["/agente"];
 const RUTA_CONSTRUCTORA = ["/constructora"];
 
 /**Publicas */
-const RUTAS_PUBLICAS = ["/", "/login", "/registro"];
+const RUTAS_PUBLICAS = ["/", "/login", "/registro", "/terminos"];
 
 function empiezaCon(path: string, rutas: string[]): boolean {
     return rutas.some((r) => path === r || path.startsWith(r + "/"));
@@ -51,7 +52,7 @@ export const onRequest = defineMiddleware(({url, cookies, redirect}, next) => {
     }
 
     //Solo SuperAdmin
-    if (esSuperAdmin && rol !== "Administrador") {
+    if (esSuperAdmin && rol !== "SuperAdmin") {
         return redirect(rutaHomePorRol(rol));
     }
 

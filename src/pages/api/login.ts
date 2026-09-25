@@ -72,7 +72,7 @@ export const POST: APIRoute = async ({request}) => {
     } catch {
         return new Response (
             JSON.stringify({error: "Error al conectar con el servidor"}),
-            {status: 500, headers: {"Content-Type" : "appiclation/json"}}
+            {status: 500, headers: {"Content-Type": "application/json"}}
         );
     }
 };

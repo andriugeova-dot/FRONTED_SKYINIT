@@ -11,7 +11,26 @@ export type RegistroBody = {
     Password: string;
     Confirmar: string;
     Telefono?: string;
+    AceptoTerminos: boolean;
 };
+
+export type TerminosResponse = {
+    terminos?: {
+        version: string;
+        fechaActualizacion: string;
+        contenido: string;
+    };
+    error?: string;
+};
+
+/**Texto de terminos (publico) */
+export async function obtenerTerminosRequest(): Promise<TerminosResponse> {
+    const res = await fetch(`${API_BASE}/terminos`, {
+        method: "GET",
+        credentials: "same-origin",
+    });
+    return res.json();
+}
 
 export type AuthUsuario = {
     usuarioID: number;

@@ -115,7 +115,6 @@ import "./registro.css";
 </div>
 
 <script>
-  import { registroRequest, rutaPorRol } from "../../utils/api";
 
   // Carrusel de fondo
   const imgs = document.querySelectorAll(".bg img");
@@ -148,17 +147,15 @@ import "./registro.css";
     }
   });
 
-  // Submit → Astro /api/registro → Deno
+  // Submit → validar, guardar y ir a /terminos
   const formulario = document.getElementById("formRegistro") as HTMLFormElement;
   const mensajeError = document.getElementById("mensajeError") as HTMLDivElement;
   const mensajeExito = document.getElementById("mensajeExito") as HTMLDivElement;
-  const btnRegistro = document.getElementById("btnRegistro") as HTMLButtonElement;
 
-  formulario.addEventListener("submit", async (e) => {
+    formulario.addEventListener("submit", (e) => {
     e.preventDefault();
     mensajeError.classList.add("d-none");
     mensajeExito.classList.add("d-none");
-    btnRegistro.disabled = true;
 
     const Nombre = (document.getElementById("nombre") as HTMLInputElement).value.trim();
     const Correo = (document.getElementById("correo") as HTMLInputElement).value.trim();
@@ -169,39 +166,30 @@ import "./registro.css";
     if (Password !== Confirmar) {
       mensajeError.textContent = "Las contraseñas no coinciden";
       mensajeError.classList.remove("d-none");
-      btnRegistro.disabled = false;
       return;
     }
 
-    try {
-      const data = await registroRequest({
-        Nombre,
-        Correo,
-        Password,
-        Confirmar,
-        Telefono,
-      });
+    // Misma regla que Deno
+    const segura =
+      Password.length >= 8 &&
+      /[A-Z]/.test(Password) &&
+      /[a-z]/.test(Password) &&
+      /[0-9]/.test(Password) &&
+      /[^A-Za-z0-9]/.test(Password);
 
-      if (data.error) {
-        mensajeError.textContent = data.error;
-        mensajeError.classList.remove("d-none");
-        return;
-      }
-
-      mensajeExito.textContent = data.mensaje || "Cuenta creada correctamente";
-      mensajeExito.classList.remove("d-none");
-      formulario.reset();
-      barra.style.width = "0%";
-      barra.className = "progress-bar";
-
-      setTimeout(() => {
-        window.location.href = rutaPorRol(data.usuario?.rol ?? "Usuario");
-      }, 1200);
-    } catch {
-      mensajeError.textContent = "Error al conectar con el servidor";
+    if (!segura) {
+      mensajeError.textContent =
+        "La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial";
       mensajeError.classList.remove("d-none");
-    } finally {
-      btnRegistro.disabled = false;
+      return;
     }
+
+    // NO crear cuenta aquí: guardar y ir a términos
+    sessionStorage.setItem(
+      "skyinit_registro",
+      JSON.stringify({ Nombre, Correo, Password, Confirmar, Telefono })
+    );
+
+    window.location.href = "/terminos";
   });
 </script>
