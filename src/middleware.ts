@@ -3,15 +3,15 @@ import { isAuthenticatedSSR, getTokenSSR, obtenerRolDesdeToken } from "./utils/a
 
 /**Rutas que requeieren sesion activa */
 const RUTAS_PROTEGIDAS = [
-    "/buscar",
-    "/propiedad",
-    "/mis-solicitudes",
-    "/mantenimiento",
-    "/admin",
-    "/agente",
-    "/constructora",
-    "/superadmin", // ← añadir
-    "/perfil",
+"/buscar",
+  "/propiedad",
+  "/mis-solicitudes",
+  "/mantenimiento",
+  "/admin",
+  "/agente",
+  "/constructora",
+  "/superadmin",
+  "/perfil",
 ];
 
 /**Solo SuoerAdmin */
@@ -27,7 +27,7 @@ const RUTA_AGENTE = ["/agente"];
 const RUTA_CONSTRUCTORA = ["/constructora"];
 
 /**Publicas */
-const RUTAS_PUBLICAS = ["/", "/login", "/registro"];
+const RUTAS_PUBLICAS = ["/", "/login", "/registro", "/terminos"];
 
 function empiezaCon(path: string, rutas: string[]): boolean {
     return rutas.some((r) => path === r || path.startsWith(r + "/"));
