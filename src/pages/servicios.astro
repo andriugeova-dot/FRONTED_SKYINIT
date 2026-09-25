@@ -144,7 +144,7 @@ function renderUserMenu() {
             location.reload();
         });
     } else {
-        nav.innerHTML = `<a href="/login" class="btn-registrar">Iniciar Sesión</a>`;
+        nav.innerHTML = `<a href="/login/login" class="btn-registrar">Iniciar Sesión</a>`;
     }
 }
 
@@ -161,9 +161,10 @@ async function cargarServicios() {
         const res = await fetch('/api/servicios', { credentials: 'same-origin' });
         if (!res.ok) throw new Error('No se pudieron cargar los servicios');
         const json = await res.json();
-        const servicios = json.data ?? [];
+        const grupos: GrupoServiciosInmobiliaria[] = json.data ?? [];
 
-        if (!servicios.length) {
+        const totalServicios = grupos.reduce((acc, g) => acc + g.servicios.length, 0);
+        if (!totalServicios) {
             grid.innerHTML = `
                 <div class="empty-state">
                     <span>🛠️</span>
@@ -172,9 +173,8 @@ async function cargarServicios() {
             return;
         }
 
-        grid.innerHTML = servicios
-            .map(
-                (s: any) => `
+        grid.innerHTML = grupos
+            .map((grupo) => grupo.servicios.map((s) => `
             <div class="card">
                 <div class="card-img-container">
                     ${
@@ -190,13 +190,11 @@ async function cargarServicios() {
                     <p class="price-tag">$${formatoPrecio(s.precio)}</p>
                     ${
                         usuarioAutenticado
-                            ? `<button type="button" class="btn-solicitar" data-id="${s.servicioID}" data-nombre="${s.nombre}">Solicitar</button>`
-                            : `<a href="/login" class="btn-login-required">Inicia sesión para solicitar</a>`
+                        ? `<button type="button" class="btn-solicitar" data-id="${s.servicioID}" data-nombre="${s.nombre}">Solicitar</button>`
+                        : `<a href="/login/login?redirect=/servicios&solicitar=${s.servicioID}&nombre=${encodeURIComponent(s.nombre ?? '')}" class="btn-login-required">Inicia sesión para solicitar</a>`
                     }
                 </div>
-            </div>`
-            )
-            .join('');
+            </div>`).join('')).join('');
 
         grid.querySelectorAll('.btn-solicitar').forEach((btn) => {
             btn.addEventListener('click', () => {
@@ -226,7 +224,18 @@ function cerrarModal(id: string) {
     document.getElementById(id)?.classList.remove('active');
 }
 
-// ── Toast ────────────────────────────────────────────
+function abrirSolicitudPendiente() {
+    if (!usuarioAutenticado) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('solicitar');
+    if (!id) return;
+
+    const nombre = params.get('nombre') ?? '';
+    abrirModalSolicitud(id, nombre);
+    history.replaceState({}, '', '/servicios');
+}
+
 function mostrarToast(mensaje: string, tipo: 'success' | 'error' = 'success') {
     const cont = document.getElementById('toastContainer');
     if (!cont) return;
@@ -237,9 +246,11 @@ function mostrarToast(mensaje: string, tipo: 'success' | 'error' = 'success') {
     setTimeout(() => toast.remove(), 4500);
 }
 
-// ── Init ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    verificarSesion().then(cargarServicios);
+    verificarSesion().then(async () => {
+        await cargarServicios();
+        abrirSolicitudPendiente();
+    });
 
     document.getElementById('menuToggle')?.addEventListener('click', () => {
         document.getElementById('menu')?.classList.toggle('active');
@@ -261,12 +272,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('formSolicitud') as HTMLFormElement;
     form?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const servicioId = (document.getElementById('modalServicioId') as HTMLInputElement)
-            .value;
+        const servicioId = (document.getElementById('modalServicioId') as HTMLInputElement).value;
         const notas = (document.getElementById('modalNotas') as HTMLTextAreaElement).value;
 
         try {
-            const res = await fetch('/api/servicios/solicitar', {
+            const res = await fetch('/api/solicitar', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
@@ -283,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Fondo rotativo del header
     const images = [
         'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789',
         'https://images.unsplash.com/photo-1581141849291-1125c7b692b5',

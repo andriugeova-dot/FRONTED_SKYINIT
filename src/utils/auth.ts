@@ -40,7 +40,7 @@ export function obtenerUsuarioIdDesdeToken(token: string | null): number | null 
         const parts = token.split(".");
         if (parts.length < 2) return null;
 
-        const payloadBase64 = parts[1].replace(/-/g, "+").replace(/-/g, "/");
+        const payloadBase64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
         const payloadJson = atob (payloadBase64);
         const payload = JSON.parse(payloadJson) as {sub?: string};
 

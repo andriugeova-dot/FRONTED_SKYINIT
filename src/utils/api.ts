@@ -86,6 +86,7 @@ export type ServiciosResponse = {
 export type SolicitudServicioBody = {
     servicioId: number;
     notas?: string;
+    propiedadID?: number;
 };
 
 export type SolicitudServicioResponse = {
@@ -128,6 +129,6 @@ export function rutaPorRol(rol: string | null | undefined): string {
       return "/constructora";
     case "Usuario":
     default:
-      return "/buscar";
+      return "/servicios";
   }
 }
