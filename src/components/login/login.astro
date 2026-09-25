@@ -114,7 +114,18 @@ import "./login.css";
         return;
       }
 
-      window.location.href = rutaPorRol(data.usuario?.rol);
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get('redirect');
+      const solicitar = params.get('solicitar');
+
+      if (redirect === '/servicios' && solicitar) {
+        const nombre = params.get('nombre') ?? '';
+        const q = new URLSearchParams({ solicitar });
+        if (nombre) q.set('nombre', nombre);
+        window.location.href = `/servicios?${q.toString()}`;
+      } else {
+        window.location.href = rutaPorRol(data.usuario?.rol);
+      }
     } catch {
       mensajeError.textContent = "Error al conectar con el servidor";
       mensajeError.classList.remove("d-none");
