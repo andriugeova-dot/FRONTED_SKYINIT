@@ -78,6 +78,64 @@ export async function logoutRequest(): Promise<{mensaje?: string; error?: string
     return res.json();
 }
 
+// ── Servicios de mantenimiento ──────────────────────────
+
+export type ServicioMantenimiento = {
+    servicioID: number;
+    nombre: string;
+    descripcion: string;
+    precio: string;
+    estado: string;
+    imagen: string | null;
+};
+
+export type GrupoServiciosInmobiliaria = {
+    inmobiliariaID: number | null;
+    inmobiliaria: string;
+    inmobiliariaLogo: string | null;
+    servicios: ServicioMantenimiento[];
+};
+
+export type ServiciosResponse = {
+    ok: boolean;
+    data?: GrupoServiciosInmobiliaria[];
+    message?: string;
+};
+
+export type SolicitudServicioBody = {
+    servicioId: number;
+    notas?: string;
+    propiedadID?: number;
+};
+
+export type SolicitudServicioResponse = {
+    ok?: boolean;
+    success?: boolean;
+    message?: string;
+    error?: string;
+};
+
+/** Catalogo de servicios de mantenimiento, agrupado por inmobiliaria. GET /api/servicios */
+export async function obtenerServiciosRequest(): Promise<ServiciosResponse> {
+    const res = await fetch(`${API_BASE}/servicios`, {
+        credentials: "same-origin",
+    });
+    return res.json();
+}
+
+/** Solicitar un servicio de mantenimiento. POST /api/servicios/solicitar */
+export async function solicitarServicioRequest(
+    datos: SolicitudServicioBody
+): Promise<SolicitudServicioResponse> {
+    const res = await fetch(`${API_BASE}/servicios/solicitar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos),
+        credentials: "same-origin",
+    });
+    return res.json();
+}
+
 export function rutaPorRol(rol: string | null | undefined): string {
     switch (rol) {
     case "Administrador":
@@ -90,6 +148,6 @@ export function rutaPorRol(rol: string | null | undefined): string {
       return "/constructora";
     case "Usuario":
     default:
-      return "/buscar";
+      return "/servicios";
   }
 }

@@ -1,0 +1,264 @@
+---
+import {
+    getTokenSSR,
+    obtenerRolDesdeToken,
+    COOKIE_NAME,
+} from "../utils/auth";
+import "./SideBar.css";
+
+const token = getTokenSSR(Astro.cookies);
+const rol = obtenerRolDesdeToken(token) ?? "Usuario";
+const rutaActual = Astro.url.pathname;
+
+// ---------- helpers ----------
+function obtenerIniciales(nombre: string): string {
+    const p = nombre.trim().split(/\s+/).filter(Boolean);
+    if (p.length === 0) return "??";
+    if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+    return (p[0][0] + p[1][0]).toUpperCase();
+}
+
+function urlImagen(path: string | null | undefined): string | null {
+    if (!path) return null;
+    if (path.startsWith("http")) return path;
+    return `http://localhost:8001${path.startsWith("/") ? path : "/" + path}`;
+}
+
+function estaActivo(ruta: string): boolean {
+    if (rutaActual === ruta) return true;
+    // Rutas raíz del panel (/constructora, /admin…): solo exacta
+    const segmentos = ruta.split("/").filter(Boolean).length;
+    if (segmentos === 1) return false;
+    return rutaActual.startsWith(ruta + "/");
+}
+
+// ---------- datos de usuario / empresa ----------
+let nombreMostrar = rol;
+let subtitulo = "Panel";
+let foto: string | null = null;
+let iniciales = "??";
+
+async function cargarPerfil() {
+    if (!token) return;
+    const headers = { Cookie: `${COOKIE_NAME}=${token}` };
+
+  // Perfil genérico (nombre + foto de usuario)
+    try {
+        const res = await fetch("http://localhost:8001/auth/perfil", { headers });
+        if (res.ok) {
+        const json = await res.json();
+        const u = json.usuario ?? json.data ?? json;
+        if (u?.nombre) {
+            nombreMostrar = u.nombre;
+            iniciales = obtenerIniciales(u.nombre);
+        }
+        foto = urlImagen(u?.fotoPerfil ?? u?.FotoPerfil);
+        subtitulo = rol;
+        }
+    } catch {
+        /* defaults */
+    }
+
+  // Constructora: nombre y logo de la empresa
+    if (rol === "Constructora") {
+        try {
+        const res = await fetch(
+            "http://localhost:8001/panel/constructora/perfil",
+            { headers },
+        );
+        if (res.ok) {
+            const json = await res.json();
+            const c = json.data ?? json;
+            if (c?.nombre) {
+            nombreMostrar = c.nombre;
+            iniciales = obtenerIniciales(c.nombre);
+            }
+            if (c?.logo) foto = urlImagen(c.logo);
+            subtitulo = c?.ciudad ? c.ciudad : "Constructora";
+        }
+        } catch {
+        /* defaults */
+        }
+    }
+}
+
+await cargarPerfil();
+
+// ---------- menú por rol ----------
+const configuraciones: Record<
+    string,
+    {
+        nombre: string;
+        descripcion: string;
+        iniciales: string;
+        clase: string;
+        rutas: {
+            dashboard: string;
+            proyectos: string;
+            propiedades: string;
+            perfil: string;
+        };
+    }
+> = {
+    Constructora: {
+        nombre: nombreMostrar,
+        descripcion: subtitulo,
+        iniciales,
+        clase: "constructora",
+        rutas: {
+        dashboard: "/constructora",
+        proyectos: "/constructora/proyectos",
+        propiedades: "/constructora/propiedades",
+        perfil: "/constructora/perfil",
+        },
+    },
+    Administrador: {
+        nombre: nombreMostrar,
+        descripcion: subtitulo,
+        iniciales,
+        clase: "administrador",
+        rutas: {
+        dashboard: "/admin",
+        proyectos: "/admin/proyectos",
+        propiedades: "/admin/propiedades",
+        perfil: "/admin/perfil",
+        },
+    },
+    SuperAdmin: {
+        nombre: nombreMostrar,
+        descripcion: subtitulo,
+        iniciales,
+        clase: "superadmin",
+        rutas: {
+        dashboard: "/superadmin",
+        proyectos: "/superadmin/proyectos",
+        propiedades: "/superadmin/propiedades",
+        perfil: "/superadmin/perfil",
+        },
+    },
+    Agente: {
+        nombre: nombreMostrar,
+        descripcion: subtitulo,
+        iniciales,
+        clase: "agente",
+        rutas: {
+            dashboard: "/agente",
+            proyectos: "/agente/proyectos",
+            propiedades: "/agente/propiedades",
+            perfil: "/agente/perfil",
+            },
+        },
+};
+
+const configuracion =
+    configuraciones[rol] ?? {
+    nombre: nombreMostrar,
+    descripcion: subtitulo,
+    iniciales,
+    clase: "constructora",
+    rutas: {
+        dashboard: "/constructora",
+        proyectos: "/constructora/proyectos",
+        propiedades: "/constructora/propiedades",
+        perfil: "/constructora/perfil",
+    },
+};
+---
+
+<aside class={`sidebar ${configuracion.clase}`}>
+    <!-- LOGO -->
+    <div class="logo">
+        <div class="logo-marca">
+        <span>SI</span>
+        </div>
+        <div class="logo-nombre">
+        <span>SKYINIT</span>
+        <strong>Inmobiliaria</strong>
+        </div>
+    </div>
+
+    <!-- NAV -->
+    <nav class="navegacion">
+        <a
+        href={configuracion.rutas.dashboard}
+        class:list={{
+            "nav-item": true,
+            activo: estaActivo(configuracion.rutas.dashboard),
+        }}
+        >
+        <i class="bi bi-grid-1x2-fill"></i>
+        <span>Dashboard</span>
+        </a>
+
+        <a
+        href={configuracion.rutas.proyectos}
+        class:list={{
+            "nav-item": true,
+            activo: estaActivo(configuracion.rutas.proyectos),
+        }}
+        >
+        <i class="bi bi-buildings-fill"></i>
+        <span>Proyectos</span>
+        </a>
+
+        <a
+        href={configuracion.rutas.propiedades}
+        class:list={{
+            "nav-item": true,
+            activo: estaActivo(configuracion.rutas.propiedades),
+        }}
+        >
+        <i class="bi bi-house-fill"></i>
+        <span>Propiedades</span>
+        </a>
+
+        <a
+        href={configuracion.rutas.perfil}
+        class:list={{
+            "nav-item": true,
+            activo: estaActivo(configuracion.rutas.perfil),
+        }}
+        >
+        <i class="bi bi-person-fill"></i>
+        <span>Perfil</span>
+        </a>
+    </nav>
+
+    <!-- USUARIO + LOGOUT -->
+    <div class="sidebar-footer">
+        <div class="usuario">
+        <div class="avatar">
+            {
+            foto ? (
+                <img src={foto} alt="" class="avatar-img" />
+            ) : (
+                <span>{configuracion.iniciales}</span>
+            )
+            }
+        </div>
+        <div class="usuario-info">
+            <strong title={configuracion.nombre}>{configuracion.nombre}</strong>
+            <span title={configuracion.descripcion}>{configuracion.descripcion}</span>
+        </div>
+        </div>
+
+        <button type="button" class="btn-logout" id="btnLogout" title="Cerrar sesión">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Cerrar sesión</span>
+        </button>
+    </div>
+</aside>
+
+<script>
+document.getElementById("btnLogout")?.addEventListener("click", async () => {
+    try {
+        await fetch("/api/logout", {
+            method: "POST",
+            credentials: "same-origin",
+        });
+    } catch {
+      /* igual redirigimos */
+    }
+    window.location.href = "/login/login";
+});
+</script>
