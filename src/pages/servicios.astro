@@ -144,7 +144,7 @@ function renderUserMenu() {
             location.reload();
         });
     } else {
-        nav.innerHTML = `<a href="/login/login" class="btn-registrar">Iniciar Sesión</a>`;
+        nav.innerHTML = `<a href="/login" class="btn-registrar">Iniciar Sesión</a>`;
     }
 }
 
@@ -191,7 +191,7 @@ async function cargarServicios() {
                     ${
                         usuarioAutenticado
                         ? `<button type="button" class="btn-solicitar" data-id="${s.servicioID}" data-nombre="${s.nombre}">Solicitar</button>`
-                        : `<a href="/login/login?redirect=/servicios&solicitar=${s.servicioID}&nombre=${encodeURIComponent(s.nombre ?? '')}" class="btn-login-required">Inicia sesión para solicitar</a>`
+                        : `<a href="/login?redirect=/servicios&solicitar=${s.servicioID}&nombre=${encodeURIComponent(s.nombre ?? '')}" class="btn-login-required">Inicia sesión para solicitar</a>`
                     }
                 </div>
             </div>`).join('')).join('');
