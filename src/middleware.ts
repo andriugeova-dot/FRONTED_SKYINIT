@@ -3,14 +3,15 @@ import { isAuthenticatedSSR, getTokenSSR, obtenerRolDesdeToken } from "./utils/a
 
 /**Rutas que requeieren sesion activa */
 const RUTAS_PROTEGIDAS = [
-"/buscar",
-  "/propiedad",
-  "/mis-solicitudes",
-  "/mantenimiento",
-  "/admin",
-  "/agente",
-  "/constructora",
-  "/perfil",
+    "/buscar",
+    "/propiedad",
+    "/mis-solicitudes",
+    "/mantenimiento",
+    "/admin",
+    "/agente",
+    "/constructora",
+    "/superadmin", // ← añadir
+    "/perfil",
 ];
 
 /**Solo SuoerAdmin */
@@ -51,7 +52,7 @@ export const onRequest = defineMiddleware(({url, cookies, redirect}, next) => {
     }
 
     //Solo SuperAdmin
-    if (esSuperAdmin && rol !== "Administrador") {
+    if (esSuperAdmin && rol !== "SuperAdmin") {
         return redirect(rutaHomePorRol(rol));
     }
 

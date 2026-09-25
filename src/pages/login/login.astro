@@ -1,15 +1,10 @@
 ---
-import Login from "../../components/login/login.astro";
+
+import  Layout  from '../../layouts/Layout.astro';
+import Login from '../../components/login/login.astro';
+
 ---
 
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Iniciar sesión | SkyInit</title>
-  </head>
-  <body>
-    <Login />
-  </body>
-</html>
+<Layout>
+	<Login />
+</Layout>
