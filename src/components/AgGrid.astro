@@ -1,0 +1,145 @@
+---
+
+const {data,headers, acciones  = [], recurso = "fila"} = Astro.props;
+const lista  = btoa (JSON.stringify(data));
+const cabecera = btoa (JSON.stringify(headers));
+const accionesConfig = btoa(JSON.stringify(acciones));
+---
+
+<div class="container">
+<div class="ag-grid-instance"
+    style="height: 500px; width: 100%;"
+    data-datos={lista}
+    data-cabecera={cabecera}
+    data-acciones={accionesConfig}
+    data-recurso={recurso}
+    >
+</div>
+
+<script>
+    import {createGrid,ModuleRegistry, AllEnterpriseModule} from "ag-grid-enterprise";
+    ModuleRegistry.registerModules([AllEnterpriseModule]);
+
+    const gridElements = document.querySelectorAll('.ag-grid-instance');
+
+    gridElements.forEach((gridElement) => {
+        const el = gridElement as HTMLElement;
+
+        if (el.dataset.gridInitialized === "true") return;
+        el.dataset.gridInitialized = "true";
+
+        const ListaDatosBase64 = el.dataset.datos ?? '';
+        const Cabecera = el.dataset.cabecera ?? '';
+        const AccionesBase64 = el.dataset.acciones ?? '';
+        const recurso = el.dataset.recurso ?? 'fila';
+
+        const cabeceraTabla = JSON.parse(atob(Cabecera));
+        const accionesTabla = AccionesBase64 ? JSON.parse(atob(AccionesBase64)) : [];
+        let gridApi;
+
+        const columnasBase = cabeceraTabla.map((campo: string)=>({
+            field: campo,
+            headerName: campo.charAt(0).toUpperCase() + campo.slice(1),
+            sortable: true,
+            filter: true,
+            resizable: true,
+        }));
+
+        const columnaAcciones = accionesTabla.length > 0 ? [{
+            headerName: "Acciones",
+            field: "__acciones",
+            sortable: false,
+            filter: false,
+            resizable: false,
+            minWidth: 90 * accionesTabla.length,
+            cellRenderer: (params: any) => {
+                const contenedor = document.createElement("div");
+                contenedor.className = "d-flex gap-1";
+
+                accionesTabla.forEach((accion: { label: string; evento: string; clase?: string }) => {
+                    const boton = document.createElement("button");
+                    boton.type = "button";
+                    boton.className = accion.clase ?? "btn btn-sm btn-outline-primary";
+                    boton.textContent = accion.label;
+                    boton.addEventListener("click", () => {
+                        document.dispatchEvent(
+                            new CustomEvent(`${recurso}-${accion.evento}`, { detail: params.data })
+                        );
+                    });
+                    contenedor.appendChild(boton);
+                });
+
+                return contenedor;
+            },
+        }] : [];
+
+        const gridOptions = {
+            statusBar:{
+                            statusPanels:[{
+                            statusPanel:'agSelectedRowCountComponent',
+                            align:'left'
+                            },
+                            {
+                                statusPanel: 'agFilteredRowCountComponent',
+                                align:'left'
+                            },
+                            {
+                                statusPanel: 'agTotalRowCountComponent',
+                                align: 'center'
+                            },
+                            {
+                                statusPanel: 'agAggregationComponent',
+                                align: 'right'
+                            }
+                        ]
+                    },
+
+                    defaultColDef: {
+                            flex: 1,
+                            filter: true,
+                            floatingFilter:true,
+                            enableRowGroup:true,
+                            enableValue:true,
+                        },
+
+                    sideBar:{
+                        toolPanels:[{
+                            id: 'columns',
+                            labelDefault: 'Columnas',
+                            labelKey: 'columns',
+                            iconKey: 'columns',
+                            toolPanel: 'agColumnsToolPanel',
+                        },
+                        {
+                            id: 'filters',
+                            labelDefault: 'Filtros',
+                            labelKey: 'filters',
+                            iconKey: 'filters',
+                            toolPanel: 'agFiltersToolPanel',
+                        }
+                        ],
+                        defaultToolPanel: 'columns',
+                    },
+
+                    enableRangeSelection: true,
+
+                    rowData: JSON.parse(atob(ListaDatosBase64)),
+
+                    columnDefs: [...columnasBase, ...columnaAcciones],
+
+                    pagination: true,
+                    wrapText: true,
+                    autoHeight: true,
+
+                    onGridReady:(params:any)=>{
+                        gridApi= params.api;
+                    }
+        }
+
+        createGrid(el, gridOptions);
+    });
+</script>
+
+
+
+</div>
