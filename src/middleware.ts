@@ -10,8 +10,8 @@ const RUTAS_PROTEGIDAS = [
   "/admin",
   "/agente",
   "/constructora",
-  "/perfil",
   "/superadmin",
+  "/perfil",
 ];
 
 /**Solo SuoerAdmin */
