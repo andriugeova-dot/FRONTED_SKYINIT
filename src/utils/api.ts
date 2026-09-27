@@ -136,6 +136,45 @@ export async function solicitarServicioRequest(
     return res.json();
 }
 
+// ── Perfil público de inmobiliaria ──────────────────────
+
+export type ServicioDeInmobiliaria = {
+    servicioID: number;
+    nombre: string;
+    descripcion: string;
+    precio: string;
+    estado: string;
+    imagen: string | null;
+};
+
+export type InmobiliariaPublica = {
+    inmobiliariaID: number;
+    nombre: string;
+    logo: string | null;
+    descripcion: string | null;
+    contacto: string | null;
+    telefono: string | null;
+    correo: string | null;
+    ciudad: string | null;
+    servicios: ServicioDeInmobiliaria[];
+};
+
+export type InmobiliariaPublicaResponse = {
+    ok: boolean;
+    data?: InmobiliariaPublica;
+    message?: string;
+};
+
+/** Perfil público de una inmobiliaria (a quién se le solicita un servicio). GET /api/inmobiliarias/:id */
+export async function obtenerInmobiliariaPublicaRequest(
+    id: number | string
+): Promise<InmobiliariaPublicaResponse> {
+    const res = await fetch(`${API_BASE}/inmobiliarias/${id}`, {
+        credentials: "same-origin",
+    });
+    return res.json();
+}
+
 export function rutaPorRol(rol: string | null | undefined): string {
     switch (rol) {
     case "Administrador":
