@@ -41,11 +41,9 @@ import "./login.css";
 
       <!-- UI preparada; OAuth Google no está en el MVP actual -->
       <a
-        href="#"
+        href="http://localhost:8001/auth/google"
         class="btn google-btn"
         id="btnGoogle"
-        title="Próximamente"
-        aria-disabled="true"
       >
         <img
           src="https://developers.google.com/identity/images/g-logo.png"
@@ -89,10 +87,22 @@ import "./login.css";
   const mensajeError = document.getElementById("mensajeError") as HTMLDivElement;
   const btnLogin = document.getElementById("btnLogin") as HTMLButtonElement;
 
+  // ── Manejo de errores de OAuth
+  const params = new URLSearchParams(window.location.search);
+  const oauthError = params.get("error");
+  if (oauthError) {
+    const mensajes: Record<string, string> = {
+        oauth_cancelado:       "Cancelaste el inicio de sesión con Google.",
+        token_invalido:        "Error al obtener credenciales de Google.",
+        correo_no_verificado:  "Tu cuenta de Google no tiene correo verificado.",
+        cuenta_inactiva:       "Tu cuenta está inactiva.",
+        error_interno:         "Error interno. Intenta de nuevo.",
+    };
+    mensajeError.textContent = mensajes[oauthError] ?? "Error desconocido.";
+    mensajeError.classList.remove("d-none");
+}
+
   // Placeholders fuera de MVP: no navegan
-  document.getElementById("btnGoogle")?.addEventListener("click", (e) => {
-    e.preventDefault();
-  });
   document.getElementById("linkForgot")?.addEventListener("click", (e) => {
     e.preventDefault();
   });
