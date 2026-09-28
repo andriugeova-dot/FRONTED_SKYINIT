@@ -2,174 +2,178 @@
 import "./registro.css";
 ---
 
-<!-- FONDO -->
-<div class="bg" aria-hidden="true">
+<div class="auth-page">
+  <div class="bg-layer" aria-hidden="true">
   <img
-    src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1920&q=80"
-    class="active"
+    src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2000&q=80"
+    class="bg-img active"
     alt=""
   />
   <img
-    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1920&q=80"
+    src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=2000&q=80"
+    class="bg-img"
     alt=""
   />
   <img
-    src="https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=1920&q=80"
+    src="https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=2000&q=80"
+    class="bg-img"
     alt=""
   />
+  <div class="bg-overlay"></div>
 </div>
 
-<!-- OVERLAY -->
-<div class="overlay" aria-hidden="true"></div>
+  <header class="auth-header">
+    <div class="brand">
+      <h1>SkyInit</h1>
+      <p>Encuentra tu hogar ideal</p>
+    </div>
+  </header>
 
-<!-- TEXTO -->
-<div class="left-content">
-  <h1>SkyInit</h1>
-  <p>Encuentra tu hogar ideal</p>
+  <main class="auth-main">
+    <div class="glass-card card-enter-register">
+      <div class="card-title">
+        <h2>Crear cuenta</h2>
+        <p>Únete a SkyInit y encuentra tu propiedad ideal</p>
+      </div>
+
+      <form id="formRegistro" class="auth-form">
+        <div class="field">
+          <label for="reg-nombre">Nombre completo</label>
+          <input
+            id="reg-nombre"
+            type="text"
+            class="custom-input"
+            placeholder="Carlos Mendoza"
+            autocomplete="name"
+            required
+          />
+        </div>
+
+        <div class="field">
+          <label for="reg-correo">Correo electrónico</label>
+          <input
+            id="reg-correo"
+            type="email"
+            class="custom-input"
+            placeholder="ejemplo@email.com"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="reg-password">Contraseña</label>
+            <input
+              id="reg-password"
+              type="password"
+              class="custom-input"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              minlength="8"
+              required
+            />
+          </div>
+          <div class="field">
+            <label for="reg-confirmar">Confirmar</label>
+            <input
+              id="reg-confirmar"
+              type="password"
+              class="custom-input"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              minlength="8"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="progress">
+          <div id="NivelSeguridad" class="progress-bar"></div>
+        </div>
+
+        <div class="field">
+          <label for="reg-telefono">Teléfono</label>
+          <input
+            id="reg-telefono"
+            type="tel"
+            class="custom-input"
+            placeholder="+57 300 123 4567"
+            autocomplete="tel"
+          />
+        </div>
+
+        <div id="reg-error" class="msg-error d-none" role="alert"></div>
+
+        <button type="submit" id="btnRegistro" class="btn-brand">
+          Continuar a términos
+        </button>
+      </form>
+
+      <p class="auth-footer-links">
+        ¿Ya tienes cuenta?
+        <a href="/login">Inicia sesión</a>
+      </p>
+    </div>
+  </main>
+
+  <footer class="auth-footer">&copy; 2026 SkyInit. Todos los derechos reservados.</footer>
 </div>
 
-<!-- FORMULARIO -->
-<div class="form-wrapper">
-  <div class="form-box">
-    <h2>Crear cuenta</h2>
-
-    <form id="formRegistro">
-      <div class="input-group">
-        <input
-          type="text"
-          id="nombre"
-          name="Nombre"
-          class="form-control"
-          placeholder="Nombre completo"
-          autocomplete="name"
-          required
-        />
-      </div>
-
-      <div class="input-group">
-        <input
-          type="email"
-          id="correo"
-          name="Correo"
-          class="form-control"
-          placeholder="Correo electrónico"
-          autocomplete="email"
-          required
-        />
-      </div>
-
-      <div class="input-group">
-        <input
-          type="password"
-          id="password"
-          name="Password"
-          class="form-control"
-          placeholder="Contraseña"
-          autocomplete="new-password"
-          minlength="8"
-          required
-        />
-      </div>
-
-      <!-- SEGURIDAD -->
-      <div class="progress">
-        <div id="NivelSeguridad" class="progress-bar"></div>
-      </div>
-
-      <div class="input-group">
-        <input
-          type="password"
-          id="confirmar"
-          name="Confirmar"
-          class="form-control"
-          placeholder="Confirmar contraseña"
-          autocomplete="new-password"
-          minlength="8"
-          required
-        />
-      </div>
-
-      <div class="input-group">
-        <input
-          type="tel"
-          id="telefono"
-          name="Telefono"
-          class="form-control"
-          placeholder="Teléfono"
-          autocomplete="tel"
-          required
-        />
-      </div>
-
-      <div id="mensajeError" class="invalid-feedback d-none" role="alert"></div>
-      <div id="mensajeExito" class="valid-feedback d-none" role="status"></div>
-
-      <button type="submit" class="btn" id="btnRegistro">Registrarse</button>
-    </form>
-
-    <p class="extra">
-      ¿Ya tienes cuenta?
-      <a href="/login">Inicia sesión</a>
-    </p>
-  </div>
-</div>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
 
 <script>
-
-  // Carrusel de fondo
-  const imgs = document.querySelectorAll(".bg img");
+  // Fondos
+  const imgs = document.querySelectorAll(".bg-img");
   let i = 0;
   setInterval(() => {
     imgs[i].classList.remove("active");
     i = (i + 1) % imgs.length;
     imgs[i].classList.add("active");
-  }, 4000);
+  }, 7500);
 
-  // Barra de seguridad de contraseña
-  const inputPass = document.getElementById("password") as HTMLInputElement;
+  // Barra de seguridad
+  const inputPass = document.getElementById("reg-password") as HTMLInputElement;
   const barra = document.getElementById("NivelSeguridad") as HTMLDivElement;
 
   inputPass.addEventListener("input", () => {
-    const valor = inputPass.value;
-    let fuerza = 0;
-    if (valor.length >= 8) fuerza += 25;
-    if (/[A-Z]/.test(valor)) fuerza += 25;
-    if (/[0-9]/.test(valor)) fuerza += 25;
-    if (/[^A-Za-z0-9]/.test(valor)) fuerza += 25;
-
-    barra.style.width = fuerza + "%";
-    if (fuerza < 50) {
-      barra.className = "progress-bar bg-danger";
-    } else if (fuerza < 75) {
-      barra.className = "progress-bar bg-warning";
-    } else {
-      barra.className = "progress-bar bg-success";
-    }
+    const v = inputPass.value;
+    let f = 0;
+    if (v.length >= 8) f += 20;
+    if (/[A-Z]/.test(v)) f += 20;
+    if (/[a-z]/.test(v)) f += 20;
+    if (/[0-9]/.test(v)) f += 20;
+    if (/[^A-Za-z0-9]/.test(v)) f += 20;
+    barra.style.width = f + "%";
+    barra.className =
+      "progress-bar " + (f < 40 ? "bg-danger" : f < 80 ? "bg-warning" : "bg-success");
   });
 
-  // Submit → validar, guardar y ir a /terminos
-  const formulario = document.getElementById("formRegistro") as HTMLFormElement;
-  const mensajeError = document.getElementById("mensajeError") as HTMLDivElement;
-  const mensajeExito = document.getElementById("mensajeExito") as HTMLDivElement;
+  // Submit → sessionStorage → /terminos (NO crea cuenta aquí)
+  const form = document.getElementById("formRegistro") as HTMLFormElement;
+  const errorEl = document.getElementById("reg-error") as HTMLDivElement;
 
-    formulario.addEventListener("submit", (e) => {
+  form.addEventListener("submit", (e) => {
     e.preventDefault();
-    mensajeError.classList.add("d-none");
-    mensajeExito.classList.add("d-none");
+    errorEl.classList.add("d-none");
 
-    const Nombre = (document.getElementById("nombre") as HTMLInputElement).value.trim();
-    const Correo = (document.getElementById("correo") as HTMLInputElement).value.trim();
-    const Password = (document.getElementById("password") as HTMLInputElement).value;
-    const Confirmar = (document.getElementById("confirmar") as HTMLInputElement).value;
-    const Telefono = (document.getElementById("telefono") as HTMLInputElement).value.trim();
+    const Nombre = (document.getElementById("reg-nombre") as HTMLInputElement).value.trim();
+    const Correo = (document.getElementById("reg-correo") as HTMLInputElement).value.trim();
+    const Password = (document.getElementById("reg-password") as HTMLInputElement).value;
+    const Confirmar = (document.getElementById("reg-confirmar") as HTMLInputElement).value;
+    const Telefono = (document.getElementById("reg-telefono") as HTMLInputElement).value.trim();
 
     if (Password !== Confirmar) {
-      mensajeError.textContent = "Las contraseñas no coinciden";
-      mensajeError.classList.remove("d-none");
+      errorEl.textContent = "Las contraseñas no coinciden";
+      errorEl.classList.remove("d-none");
       return;
     }
 
-    // Misma regla que Deno
     const segura =
       Password.length >= 8 &&
       /[A-Z]/.test(Password) &&
@@ -178,13 +182,12 @@ import "./registro.css";
       /[^A-Za-z0-9]/.test(Password);
 
     if (!segura) {
-      mensajeError.textContent =
+      errorEl.textContent =
         "La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial";
-      mensajeError.classList.remove("d-none");
+      errorEl.classList.remove("d-none");
       return;
     }
 
-    // NO crear cuenta aquí: guardar y ir a términos
     sessionStorage.setItem(
       "skyinit_registro",
       JSON.stringify({ Nombre, Correo, Password, Confirmar, Telefono })
