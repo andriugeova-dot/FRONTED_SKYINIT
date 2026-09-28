@@ -4,7 +4,6 @@ import { isAuthenticatedSSR, getTokenSSR, obtenerRolDesdeToken } from "./utils/a
 /**Rutas que requeieren sesion activa */
 const RUTAS_PROTEGIDAS = [
 "/buscar",
-  "/propiedad",
   "/mis-solicitudes",
   "/mantenimiento",
   "/admin",
@@ -27,7 +26,7 @@ const RUTA_AGENTE = ["/agente"];
 const RUTA_CONSTRUCTORA = ["/constructora"];
 
 /**Publicas */
-const RUTAS_PUBLICAS = ["/", "/login", "/registro", "/terminos"];
+const RUTAS_PUBLICAS = ["/", "/login", "/registro", "/terminos", "/propiedades"];
 
 function empiezaCon(path: string, rutas: string[]): boolean {
     return rutas.some((r) => path === r || path.startsWith(r + "/"));
@@ -44,7 +43,7 @@ export const onRequest = defineMiddleware(({url, cookies, redirect}, next) => {
     const esAdmin = empiezaCon(path, RUTA_ADMINISTRADOR);
     const esAgente = empiezaCon(path, RUTA_AGENTE);
     const esConstructora = empiezaCon(path, RUTA_CONSTRUCTORA);
-    const esPublica = RUTAS_PUBLICAS.includes(path);
+    const esPublica = empiezaCon(path, RUTAS_PUBLICAS);
 
     //Sin sesion en ruta protegida
     if (esProtegida && !autenticado) {
@@ -72,7 +71,7 @@ export const onRequest = defineMiddleware(({url, cookies, redirect}, next) => {
     }
 
     // Ya autenticado en login/registro/home → ir a su panel
-    if (esPublica && autenticado) {
+    if (esPublica && autenticado && (path === "/" || path === "/login" || path === "/registro")) {
         return redirect(rutaHomePorRol(rol));
     }
 
