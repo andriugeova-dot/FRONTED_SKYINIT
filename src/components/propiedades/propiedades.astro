@@ -9,7 +9,8 @@ interface Propiedad {
     habitaciones: number | null;
     direccion: string;
     ciudad: string | null;
-    tipoOperacion: string;
+    tipoOperacion: string;  
+    imagenPrincipal: string | null;
 }
 
 interface Usuario {
@@ -43,6 +44,12 @@ function claseBadge(tipo: string) {
     if (t.includes("venta")) return "badge-venta";
     if (t.includes("arriendo")) return "badge-arriendo";
     return "badge-default";
+}
+
+const BACKEND_URL = "http://localhost:8001";
+function resolverImagenTarjeta(url: string | null) {
+    if (!url) return "/img/no-image.png";
+    return url.startsWith("/uploads") ? `${BACKEND_URL}${url}` : url;
 }
 ---
 <head>
@@ -128,7 +135,7 @@ function claseBadge(tipo: string) {
             propiedades.map((propiedad) => (
                 <div class="property-card">
                     <div class="property-image">
-                        <img src="/img/no-image.png" alt={propiedad.titulo} />
+                        <img src={resolverImagenTarjeta(propiedad.imagenPrincipal)} alt={propiedad.titulo} />
 
                         <span class={`badge-tipo ${claseBadge(propiedad.tipoOperacion)}`}>
                             {propiedad.tipoOperacion}
