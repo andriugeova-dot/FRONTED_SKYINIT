@@ -1,13 +1,32 @@
 ---
-import Servicios from './servicios.astro';
-import Layout from '../layouts/Layout.astro';
-import Login from '../components/login/login.astro';
-import Registro from '../components/registro/registro.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import Navbar from "../components/menu/Navbar.astro";
+import Hero from "../components/menu/Hero.astro";
+import Destacadas from "../components/menu/Destacadas.astro";
+import ServiciosHome from "../components/menu/ServiciosHome.astro";
+import ContactoCTA from "../components/menu/ContactoCTA.astro";
+import FooterMenu from "../components/menu/FooterMenu.astro";
+import "../components/menu/menu.css";
 ---
 
-<Layout>
-	<Login />
-</Layout>
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SkyInit — Encuentra tu hogar ideal</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header id="header">
+      <Navbar />
+      <Hero />
+    </header>
+    <Destacadas />
+    <ServiciosHome />
+    <ContactoCTA />
+    <FooterMenu />
+  </body>
+</html>
