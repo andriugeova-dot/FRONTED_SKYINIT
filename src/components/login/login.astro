@@ -69,7 +69,7 @@ import "./login.css";
 
       <div class="divider"><span>o continuar con</span></div>
 
-      <button type="button" id="btnGoogle" class="btn-google" title="Próximamente">
+      <button type="button" id="btnGoogle" class="btn-google">
         Continuar con Google
       </button>
 
@@ -125,12 +125,21 @@ import "./login.css";
         errorEl.classList.remove("d-none");
         return;
       }
-      window.location.href = rutaPorRol(data.usuario?.rol);
+      const rol = data.usuario?.rol ?? "Usuario";
+      window.location.href =
+      rol === "Usuario" ? "/" : rutaPorRol(rol);
     } catch {
       errorEl.textContent = "Error al conectar con el servidor";
       errorEl.classList.remove("d-none");
     } finally {
       btn.disabled = false;
     }
+  });
+  
+
+  // Google OAuth
+  const btnGoogle = document.getElementById("btnGoogle") as HTMLButtonElement;
+  btnGoogle.addEventListener("click", () => {
+    window.location.href = "http://localhost:8001/auth/google";
   });
 </script>

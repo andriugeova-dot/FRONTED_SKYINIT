@@ -1,0 +1,42 @@
+---
+import Proyectos from "../components/proyectos/proyectos.astro";
+import { getTokenSSR, COOKIE_NAME } from "../utils/auth";
+
+const BACKEND_URL = "http://127.0.0.1:8001";
+
+// Planificado | construccion | (todos) los unicos estados reales
+const estado = Astro.url.searchParams.get("estado") ?? "";
+
+const ESTADO_A_ID: Record<string, number> = {
+    planificado: 1,
+    construccion: 2,
+};
+
+const paramsBackend = new URLSearchParams();
+if (ESTADO_A_ID[estado]) paramsBackend.set("estadoProyectoID", String(ESTADO_A_ID[estado]));
+
+const respuestaProyectos = await fetch(`${BACKEND_URL}/proyectos${paramsBackend.toString() ?  `?${paramsBackend}` : ""}`);
+
+let proyectos = respuestaProyectos.ok ? await respuestaProyectos.json() : [];
+
+
+proyectos = proyectos.filter((p: any) => p.estadoProyectoID === 1 || p.estadoProyectoID === 2);
+
+const token = getTokenSSR(Astro.cookies);
+let usuario = null;
+
+if (token) {
+    const respuestaPerfil = await fetch(`${BACKEND_URL}/auth/perfil`, {
+        headers: {
+            Cookie: `${COOKIE_NAME}=${token}`,
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    if (respuestaPerfil.ok) {
+        const data = await respuestaPerfil.json();
+        usuario = data.usuario;
+    }
+}
+---
+
+<Proyectos proyectos={proyectos} usuario={usuario} estado={estado} />

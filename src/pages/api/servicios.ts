@@ -4,8 +4,6 @@ import { COOKIE_NAME, getTokenSSR } from "../../utils/auth";
 const BACKEND_URL = "http://localhost:8001";
 
 // El catalogo de servicios es publico: no debe exigir sesion.
-// Si hay token lo reenviamos igual (por si el backend algun dia lo usa
-// para personalizar la respuesta), pero su ausencia ya no bloquea la peticion.
 export const GET: APIRoute = async ({ cookies }) => {
     const token = getTokenSSR(cookies);
 
