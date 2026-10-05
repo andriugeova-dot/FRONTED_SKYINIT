@@ -178,7 +178,7 @@ function renderProveedorChip(inmobiliariaID: number | null, nombre: string, logo
                 : `<span class="proveedor-logo proveedor-logo--placeholder">${iniciales(nombre)}</span>`
         }
         <span class="proveedor-nombre">${nombreSeguro}</span>
-        ${inmobiliariaID ? `<span class="proveedor-flecha" aria-hidden="true">›</span>` : ''}
+        ${inmobiliariaID ? `<span class="proveedor-flecha" aria-hidden="true"></span>` : ''}
     `;
 
     if (!inmobiliariaID) {
