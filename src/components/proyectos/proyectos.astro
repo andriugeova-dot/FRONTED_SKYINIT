@@ -324,7 +324,7 @@ function resolverImagenTarjeta(url: string | null) {
             const { proyecto } = await response.json();
 
             (document.getElementById("modalProyectoNombre") as HTMLElement).textContent = proyecto.nombre;
-            (document.getElementById("modalProyectoImagen") as HTMLImageElement).src = resolverImagen(proyecto.imagenes?.[0]);
+            (document.getElementById("modalProyectoImagen") as HTMLImageElement).src = resolverImagen(proyecto.imagenes?.[0]?.url);
             (document.getElementById("modalProyectoDescripcion") as HTMLElement).textContent =
                 proyecto.descripcion ?? "Sin descripción disponible.";
 
