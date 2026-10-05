@@ -26,6 +26,8 @@ function rutaHomePorRol(rol: string | null): string {
       return "/agente";
     case "Constructora":
       return "/constructora";
+    case "Usuario":
+      return "/";
     default:
       return "/";
   }
@@ -51,10 +53,12 @@ export const onRequest = defineMiddleware(({ url, cookies, redirect }, next) => 
   if (esAdmin && rol !== "Administrador") return redirect(rutaHomePorRol(rol));
   if (esAgente && rol !== "Agente") return redirect(rutaHomePorRol(rol));
   if (esConstructora && rol !== "Constructora") return redirect(rutaHomePorRol(rol));
-  if (esInmobiliaria && rol !== "Administrador" && rol !== "SuperAdmin") {
-    return redirect(rutaHomePorRol(rol));
+  if (esInmobiliaria) {
+    if (rol !== "Administrador" && rol !== "SuperAdmin") {
+      return redirect(rutaHomePorRol(rol));
+    }
+    return redirect("/admin/servicios");
   }
-
   if (
     autenticado &&
     (path === "/login" || path === "/login/login" || path === "/registro")
