@@ -326,7 +326,7 @@ function resolverImagenTarjeta(url: string | null) {
                 const { propiedad } = await response.json();
 
                 (document.getElementById("modalTitulo") as HTMLElement).textContent = propiedad.titulo;
-                 (document.getElementById("modalImagen") as HTMLImageElement).src = resolverImagen(propiedad.imagenes?.[0]);
+                 (document.getElementById("modalImagen") as HTMLImageElement).src = resolverImagen(propiedad.imagenes?.[0]?.url);
                 (document.getElementById("modalDescripcion") as HTMLElement).textContent = propiedad.descripcion ?? "";
                 (document.getElementById("modalPrecio") as HTMLElement).textContent = formatoPesos.format(Number(propiedad.precio));
                 (document.getElementById("modalUbicacion") as HTMLElement).textContent =
