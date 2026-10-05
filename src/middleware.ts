@@ -1,9 +1,8 @@
 import { defineMiddleware } from "astro:middleware";
 import { isAuthenticatedSSR, getTokenSSR, obtenerRolDesdeToken } from "./utils/auth";
 
-/**Rutas que requeieren sesion activa */
 const RUTAS_PROTEGIDAS = [
-"/buscar",
+  "/buscar",
   "/mis-solicitudes",
   "/mantenimiento",
   "/admin",
@@ -11,77 +10,69 @@ const RUTAS_PROTEGIDAS = [
   "/constructora",
   "/superadmin",
   "/perfil",
+  "/usuario",
 ];
 
-/**Solo SuoerAdmin */
 const RUTA_SUPERADMIN = ["/superadmin"];
-
-/** Solo Administrador */
 const RUTA_ADMINISTRADOR = ["/admin"];
-
-/**Solo Agente*/
 const RUTA_AGENTE = ["/agente"];
-
-/**Solo Constructora */
 const RUTA_CONSTRUCTORA = ["/constructora"];
+const RUTA_USUARIO = ["/usuario"];
 
 /**Publicas */
 const RUTAS_PUBLICAS = ["/", "/login", "/registro", "/terminos", "/propiedades", "/proyectos"];
 
 function empiezaCon(path: string, rutas: string[]): boolean {
-    return rutas.some((r) => path === r || path.startsWith(r + "/"));
+  return rutas.some((r) => path === r || path.startsWith(r + "/"));
 }
 
-export const onRequest = defineMiddleware(({url, cookies, redirect}, next) => {
-    const path = url.pathname;
-    const autenticado = isAuthenticatedSSR(cookies);
-    const token = getTokenSSR(cookies);
-    const rol = obtenerRolDesdeToken(token);
+export const onRequest = defineMiddleware(({ url, cookies, redirect }, next) => {
+  const path = url.pathname;
+  const autenticado = isAuthenticatedSSR(cookies);
+  const token = getTokenSSR(cookies);
+  const rol = obtenerRolDesdeToken(token);
 
-    const esProtegida = empiezaCon(path, RUTAS_PROTEGIDAS);
-    const esSuperAdmin = empiezaCon(path, RUTA_SUPERADMIN)
-    const esAdmin = empiezaCon(path, RUTA_ADMINISTRADOR);
-    const esAgente = empiezaCon(path, RUTA_AGENTE);
-    const esConstructora = empiezaCon(path, RUTA_CONSTRUCTORA);
-    const esPublica = empiezaCon(path, RUTAS_PUBLICAS);
+  const esProtegida = empiezaCon(path, RUTAS_PROTEGIDAS);
+  const esSuperAdmin = empiezaCon(path, RUTA_SUPERADMIN);
+  const esAdmin = empiezaCon(path, RUTA_ADMINISTRADOR);
+  const esAgente = empiezaCon(path, RUTA_AGENTE);
+  const esConstructora = empiezaCon(path, RUTA_CONSTRUCTORA);
+  const esUsuario = empiezaCon(path, RUTA_USUARIO);
+  const esSoloInvitado = empiezaCon(path, RUTAS_SOLO_INVITADO);
 
-    //Sin sesion en ruta protegida
-    if (esProtegida && !autenticado) {
-        return redirect("/login");
-    }
+  if (esProtegida && !autenticado) {
+    return redirect("/login");
+  }
 
-    //Solo SuperAdmin
-    if (esSuperAdmin && rol !== "SuperAdmin") {
-        return redirect(rutaHomePorRol(rol));
-    }
+  if (esSuperAdmin && rol !== "SuperAdmin") {
+    return redirect(rutaHomePorRol(rol));
+  }
+  if (esAdmin && rol !== "Administrador") {
+    return redirect(rutaHomePorRol(rol));
+  }
+  if (esAgente && rol !== "Agente") {
+    return redirect(rutaHomePorRol(rol));
+  }
+  if (esConstructora && rol !== "Constructora") {
+    return redirect(rutaHomePorRol(rol));
+  }
+  if (esUsuario && rol !== "Usuario") {
+    return redirect(rutaHomePorRol(rol));
+  }
 
-    //Solo Administrador
-    if (esAdmin && rol !== "Administrador") {
-        return redirect(rutaHomePorRol(rol));
-    }
-
-    // Agente: solo Agente
-    if (esAgente && rol !== "Agente") {
-        return redirect(rutaHomePorRol(rol));
-    }
-
-    // Constructora: solo Constructora
-    if (esConstructora && rol !== "Constructora") {
-        return redirect(rutaHomePorRol(rol));
-    }
-
-    // Ya autenticado en login/registro/home → ir a su panel
-    if (esPublica && autenticado && (path === "/" || path === "/login" || path === "/registro")) {
-        return redirect(rutaHomePorRol(rol));
-    }
+  // Logueado en login/registro/términos → su home (Usuario → menú "/")
+  // NO redirigir "/" : el menú se ve con o sin sesión
+  if (esSoloInvitado && autenticado) {
+    return redirect(rutaHomePorRol(rol));
+  }
 
   return next();
 });
 
-function rutaHomePorRol (rol: string | null): string {
-    switch (rol) {
+function rutaHomePorRol(rol: string | null): string {
+  switch (rol) {
     case "Administrador":
-        return "/admin"
+      return "/admin";
     case "SuperAdmin":
       return "/superadmin";
     case "Agente":
@@ -89,7 +80,8 @@ function rutaHomePorRol (rol: string | null): string {
     case "Constructora":
       return "/constructora";
     case "Usuario":
+      return "/"; // menú
     default:
-      return "/servicios";
+      return "/";
   }
 }

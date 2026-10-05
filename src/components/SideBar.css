@@ -16,6 +16,17 @@
 }
 
 /* ========== COLORES POR ROL ========== */
+
+/* Usuario — azul marino moderno */
+.sidebar.usuario {
+  --fondo: #14532d;
+  --texto: #f0fdf4;
+  --texto-secundario: #a7f3d0;
+  --principal: #4ade80;
+  --principal-suave: rgba(74, 222, 128, 0.15);
+  background: var(--fondo);
+}
+
 .sidebar.constructora {
   --fondo: #253229;
   --texto: #f5f1e8;
@@ -235,6 +246,19 @@
   font-size: 17px;
   width: 21px;
   text-align: center;
+}
+
+/* ========== ENLACE "VOLVER AL MENÚ" (último ítem de Usuario) ========== */
+.sidebar.usuario .navegacion .nav-item:last-child {
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+  color: rgba(167, 243, 208, 0.7);
+}
+
+.sidebar.usuario .navegacion .nav-item:last-child:hover {
+  background: rgba(74, 222, 128, 0.08);
+  color: #a7f3d0;
 }
 
 /* ========== CONTENIDO AL LADO DEL SIDEBAR ========== */

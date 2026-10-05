@@ -1,0 +1,256 @@
+---
+// Componente: Solicitudes del usuario
+---
+
+<div class="solicitudes-page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-titulo"><i class="bi bi-file-earmark-text-fill"></i> Mis Solicitudes</h1>
+            <p class="page-desc">Solicitudes de mantenimiento e interacciones con propiedades.</p>
+        </div>
+        <a href="/servicios" class="btn-nueva-solicitud">
+            <i class="bi bi-plus-circle-fill"></i> Nueva solicitud
+        </a>
+    </div>
+
+    <div id="estadoCarga" class="estado-carga">
+        <div class="spinner"></div>
+        <span>Cargando solicitudes...</span>
+    </div>
+
+    <div id="sinSolicitudes" class="sin-resultados" style="display:none;">
+        <i class="bi bi-file-earmark-x"></i>
+        <p>No tienes solicitudes registradas aún.</p>
+        <a href="/servicios" class="btn-ir-servicios">
+            <i class="bi bi-tools"></i> Ver servicios disponibles
+        </a>
+    </div>
+
+    <div id="listaSolicitudes" class="lista-solicitudes"></div>
+</div>
+
+<style>
+.solicitudes-page { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.page-titulo {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.page-titulo i { color: #f59e0b; }
+.page-desc { margin: 0; font-size: 0.85rem; color: #6b7280; }
+
+.btn-nueva-solicitud {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #1a2e3b;
+    color: #fff;
+    text-decoration: none;
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+.btn-nueva-solicitud:hover { background: #0f4c6b; color: #fff; }
+
+/* Lista */
+.lista-solicitudes { display: flex; flex-direction: column; gap: 0.85rem; }
+
+.sol-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1.5px solid #e5e7eb;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    transition: box-shadow 0.2s;
+}
+.sol-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+
+.sol-icono {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #fffbeb;
+    color: #f59e0b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.sol-info { flex: 1; min-width: 0; }
+.sol-servicio {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 4px;
+}
+.sol-inmobiliaria {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sol-notas {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 350px;
+}
+
+.sol-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.sol-estado {
+    display: inline-flex;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.estado-pendiente  { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
+.estado-en-proceso { background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; }
+.estado-completado { background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; }
+.estado-cancelado  { background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; }
+.estado-default    { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
+
+.sol-fecha { font-size: 0.75rem; color: #9ca3af; }
+
+/* Estados */
+.estado-carga {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 3rem;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+.spinner {
+    width: 22px;
+    height: 22px;
+    border: 2.5px solid #e5e7eb;
+    border-top-color: #f59e0b;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sin-resultados {
+    text-align: center;
+    padding: 3rem;
+    color: #6b7280;
+    background: #fff;
+    border-radius: 14px;
+    border: 1.5px dashed #d1d5db;
+}
+.sin-resultados i { font-size: 3rem; color: #fcd34d; display: block; margin-bottom: 1rem; }
+.sin-resultados p { margin: 0 0 1.25rem; }
+.btn-ir-servicios {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #1a2e3b;
+    color: #fff;
+    text-decoration: none;
+    padding: 9px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.btn-ir-servicios:hover { background: #0f4c6b; color: #fff; }
+
+@media (max-width: 600px) {
+    .sol-card { flex-direction: column; }
+    .sol-meta { align-items: flex-start; }
+}
+</style>
+
+<script>
+const SOL_API = "/api/usuario/solicitudes";
+
+function formatFecha(fecha: string): string {
+    if (!fecha) return "";
+    return new Date(fecha).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function estadoClass(estado: string): string {
+    const e = (estado ?? "").toLowerCase();
+    if (e.includes("pendiente"))   return "estado-pendiente";
+    if (e.includes("proceso") || e.includes("progreso")) return "estado-en-proceso";
+    if (e.includes("complet") || e.includes("finaliz"))  return "estado-completado";
+    if (e.includes("cancel"))      return "estado-cancelado";
+    return "estado-default";
+}
+
+async function cargarSolicitudes() {
+    try {
+        const res = await fetch(SOL_API, { credentials: "same-origin" });
+        const data = await res.json();
+        const lista = data.solicitudes ?? [];
+        renderSolicitudes(lista);
+    } catch {
+        renderSolicitudes([]);
+    } finally {
+        document.getElementById("estadoCarga")!.style.display = "none";
+    }
+}
+
+function renderSolicitudes(lista: any[]) {
+    if (!lista.length) {
+        document.getElementById("sinSolicitudes")!.style.display = "block";
+        return;
+    }
+    const contenedor = document.getElementById("listaSolicitudes")!;
+    contenedor.innerHTML = lista.map(s => `
+        <div class="sol-card">
+            <div class="sol-icono"><i class="bi bi-tools"></i></div>
+            <div class="sol-info">
+                <p class="sol-servicio">${s.nombreServicio ?? s.servicio ?? "Servicio de mantenimiento"}</p>
+                <p class="sol-inmobiliaria">
+                    <i class="bi bi-building"></i>
+                    ${s.inmobiliaria ?? s.nombreInmobiliaria ?? "Inmobiliaria"}
+                </p>
+                ${s.notas ? `<p class="sol-notas">"${s.notas}"</p>` : ""}
+            </div>
+            <div class="sol-meta">
+                <span class="sol-estado ${estadoClass(s.estadoReparacion ?? s.estado ?? "")}">
+                    ${s.estadoReparacion ?? s.estado ?? "Pendiente"}
+                </span>
+                <span class="sol-fecha">${formatFecha(s.fechaSolicitud ?? "")}</span>
+            </div>
+        </div>
+    `).join("");
+}
+
+cargarSolicitudes();
+</script>
