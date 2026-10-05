@@ -11,6 +11,7 @@ const RUTAS_PROTEGIDAS = [
   "/superadmin",
   "/perfil",
   "/inmobiliaria",
+  "/usuario",
 ];
 
 const RUTA_SUPERADMIN = ["/superadmin"];
@@ -18,8 +19,10 @@ const RUTA_ADMINISTRADOR = ["/admin"];
 const RUTA_AGENTE = ["/agente"];
 const RUTA_CONSTRUCTORA = ["/constructora"];
 const RUTA_INMOBILIARIA = ["/inmobiliaria"];
+const RUTA_USUARIO = ["/usuario"];
 
-const RUTAS_PUBLICAS = ["/", "/login", "/registro", "/terminos", "/propiedades", "/servicios"];
+/**Publicas */
+const RUTAS_PUBLICAS = ["/", "/login", "/registro", "/terminos", "/propiedades", "/servicios", "/proyectos"];
 
 function empiezaCon(path: string, rutas: string[]): boolean {
   return rutas.some((r) => path === r || path.startsWith(r + "/"));
@@ -29,6 +32,52 @@ function rutaHomePorRol(rol: string | null): string {
   switch (rol) {
     case "Administrador":
       return "/inmobiliaria/servicio";
+export const onRequest = defineMiddleware(({ url, cookies, redirect }, next) => {
+  const path = url.pathname;
+  const autenticado = isAuthenticatedSSR(cookies);
+  const token = getTokenSSR(cookies);
+  const rol = obtenerRolDesdeToken(token);
+  const esProtegida = empiezaCon(path, RUTAS_PROTEGIDAS);
+  const esSuperAdmin = empiezaCon(path, RUTA_SUPERADMIN);
+  const esAdmin = empiezaCon(path, RUTA_ADMINISTRADOR);
+  const esAgente = empiezaCon(path, RUTA_AGENTE);
+  const esConstructora = empiezaCon(path, RUTA_CONSTRUCTORA);
+  const esUsuario = empiezaCon(path, RUTA_USUARIO);
+  const esSoloInvitado = empiezaCon(path, RUTAS_SOLO_INVITADO);
+
+  if (esProtegida && !autenticado) {
+    return redirect("/login");
+  }
+
+  if (esSuperAdmin && rol !== "SuperAdmin") {
+    return redirect(rutaHomePorRol(rol));
+  }
+  if (esAdmin && rol !== "Administrador") {
+    return redirect(rutaHomePorRol(rol));
+  }
+  if (esAgente && rol !== "Agente") {
+    return redirect(rutaHomePorRol(rol));
+  }
+  if (esConstructora && rol !== "Constructora") {
+    return redirect(rutaHomePorRol(rol));
+  }
+  if (esUsuario && rol !== "Usuario") {
+    return redirect(rutaHomePorRol(rol));
+  }
+
+  // Logueado en login/registro/términos → su home (Usuario → menú "/")
+  // NO redirigir "/" : el menú se ve con o sin sesión
+  if (esSoloInvitado && autenticado) {
+    return redirect(rutaHomePorRol(rol));
+  }
+
+  return next();
+});
+
+function rutaHomePorRol(rol: string | null): string {
+  switch (rol) {
+    case "Administrador":
+      return "/admin";
     case "SuperAdmin":
       return "/superadmin";
     case "Agente":
@@ -36,8 +85,9 @@ function rutaHomePorRol(rol: string | null): string {
     case "Constructora":
       return "/constructora";
     case "Usuario":
+      return "/"; // menú
     default:
-      return "/servicios";
+      return "/";
   }
 }
 
@@ -88,3 +138,4 @@ export const onRequest = defineMiddleware(({ url, cookies, redirect }, next) => 
 
   return next();
 });
+}

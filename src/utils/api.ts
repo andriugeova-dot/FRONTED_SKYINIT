@@ -176,17 +176,17 @@ export async function obtenerInmobiliariaPublicaRequest(
 }
 
 export function rutaPorRol(rol: string | null | undefined): string {
-    switch (rol) {
+  switch (rol) {
     case "Administrador":
-        return "/admin";
+      return "/admin";
     case "SuperAdmin":
-        return "/superadmin"
+      return "/superadmin";
     case "Agente":
       return "/agente";
     case "Constructora":
       return "/constructora";
     case "Usuario":
     default:
-      return "/servicios";
+      return "/"; // menú
   }
 }
