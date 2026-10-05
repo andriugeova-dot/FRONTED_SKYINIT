@@ -1,0 +1,32 @@
+---
+import Navbar from "../components/menu/Navbar.astro";
+import Hero from "../components/menu/Hero.astro";
+import Destacadas from "../components/menu/Destacadas.astro";
+import ServiciosHome from "../components/menu/ServiciosHome.astro";
+import ContactoCTA from "../components/menu/ContactoCTA.astro";
+import FooterMenu from "../components/menu/FooterMenu.astro";
+import "../components/menu/menu.css";
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SkyInit — Encuentra tu hogar ideal</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header id="header">
+      <Navbar />
+      <Hero />
+    </header>
+    <Destacadas />
+    <ServiciosHome />
+    <ContactoCTA />
+    <FooterMenu />
+  </body>
+</html>

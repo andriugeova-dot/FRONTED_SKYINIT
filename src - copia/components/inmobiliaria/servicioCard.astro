@@ -5,26 +5,16 @@ interface Props {
     Nombre: string;
     Descripcion: string;
     Precio: string | number;
-    Estado: "Activo" | "Inactivo";
+    Estado: 'Activo' | 'Inactivo';
     Imagen?: string | null;
   };
 }
 
 const { servicio } = Astro.props;
 
-const BACKEND_PUBLIC = "http://localhost:8001";
-const raw = (servicio.Imagen ?? "").trim();
-const imagenUrl = !raw
-  ? "/img/servicios-placeholder.webp"
-  : raw.startsWith("http") || raw.startsWith("data:")
-    ? raw
-    : raw.startsWith("/uploads/")
-      ? `${BACKEND_PUBLIC}${raw}`
-      : raw;
-
-const precioFormateado = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
+const precioFormateado = new Intl.NumberFormat('es-CO', {
+  style: 'currency',
+  currency: 'COP',
   maximumFractionDigits: 0,
 }).format(Number(servicio.Precio));
 ---
@@ -32,7 +22,7 @@ const precioFormateado = new Intl.NumberFormat("es-CO", {
 <div class="service-card" data-id={servicio.ServicioID}>
   <div class="service-img-wrapper">
     <img src={imagenUrl} alt={`Fotografía del servicio ${servicio.Nombre}`} loading="lazy" />
-    <span class={`badge-status ${servicio.Estado === "Activo" ? "badge-activo" : "badge-inactivo"}`}>
+    <span class={`badge-status ${servicio.Estado === 'Activo' ? 'badge-activo' : 'badge-inactivo'}`}>
       {servicio.Estado}
     </span>
   </div>
@@ -44,25 +34,25 @@ const precioFormateado = new Intl.NumberFormat("es-CO", {
   </div>
 
   <div class="service-actions">
-    <button
-      class="btn btn-sm btn-outline-primary flex-grow-1 btn-editar"
+    <button 
+      class="btn btn-sm btn-outline-primary flex-grow-1 btn-editar" 
       data-id={servicio.ServicioID}
       aria-label={`Editar servicio ${servicio.Nombre}`}
     >
       <i class="bi bi-pencil me-1"></i> Editar
     </button>
 
-    <button
-      class="btn btn-sm btn-outline-secondary btn-estado"
-      data-id={servicio.ServicioID}
+    <button 
+      class="btn btn-sm btn-outline-secondary btn-estado" 
+      data-id={servicio.ServicioID} 
       data-estado={servicio.Estado}
-      aria-label={`${servicio.Estado === "Activo" ? "Desactivar" : "Activar"} servicio ${servicio.Nombre}`}
+      aria-label={`${servicio.Estado === 'Activo' ? 'Desactivar' : 'Activar'} servicio ${servicio.Nombre}`}
     >
-      {servicio.Estado === "Activo" ? "Desactivar" : "Activar"}
+      {servicio.Estado === 'Activo' ? 'Desactivar' : 'Activar'}
     </button>
 
-    <button
-      class="btn btn-sm btn-outline-danger btn-eliminar"
+    <button 
+      class="btn btn-sm btn-outline-danger btn-eliminar" 
       data-id={servicio.ServicioID}
       data-nombre={servicio.Nombre}
       aria-label={`Eliminar servicio ${servicio.Nombre}`}

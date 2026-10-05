@@ -1,0 +1,39 @@
+<div class="panel-body">
+  <div class="topbar-panel">
+    <h1>Panel inmobiliaria</h1>
+    <p>Administra los servicios de mantenimiento de tu inmobiliaria.</p>
+  </div>
+
+  <section class="card">
+    <h2>Accesos rápidos</h2>
+    <div class="accesos-grid">
+      <a href="/admin/servicios" class="acceso-btn">🛠️ Servicios de mantenimiento</a>
+    </div>
+  </section>
+</div>
+
+<style>
+  .panel-body { display: flex; flex-direction: column; gap: 1.5rem; }
+  .topbar-panel h1 { margin: 0 0 0.25rem; font-size: 1.6rem; }
+  .topbar-panel p { margin: 0; color: #6b7280; }
+  .card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+  }
+  .card h2 { font-size: 1.1rem; margin: 0 0 1rem; }
+  .accesos-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .acceso-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #202d3b;
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .acceso-btn:hover { background: #2e4458; color: #fff; }
+</style>

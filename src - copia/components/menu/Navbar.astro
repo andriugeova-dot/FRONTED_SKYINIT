@@ -1,0 +1,91 @@
+---
+import { isAuthenticatedSSR, getTokenSSR, COOKIE_NAME } from "../../utils/auth";
+
+const autenticado = isAuthenticatedSSR(Astro.cookies);
+const token = getTokenSSR(Astro.cookies);
+
+let nombre = "Usuario";
+let foto: string | null = null;
+
+if (token) {
+  try {
+    const res = await fetch("http://localhost:8001/auth/perfil", {
+      headers: { Cookie: `${COOKIE_NAME}=${token}` },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const u = json.usuario ?? json;
+      nombre = u.nombre ?? "Usuario";
+      if (u.fotoPerfil) {
+        foto = u.fotoPerfil.startsWith("http")
+          ? u.fotoPerfil
+          : `http://localhost:8001${u.fotoPerfil.startsWith("/") ? u.fotoPerfil : "/" + u.fotoPerfil}`;
+      }
+    }
+  } catch { /* defaults */ }
+}
+
+const iniciales = nombre
+  .split(/\s+/)
+  .map((p: string) => p[0])
+  .join("")
+  .slice(0, 2)
+  .toUpperCase();
+---
+
+<div class="topbar">
+  <span class="logo">SkyInit</span>
+
+  <button type="button" class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
+
+  <nav id="menu">
+    <a href="/">Inicio</a>
+    <a href="/propiedades">Propiedades</a>
+    <a href="/proyectos">Proyectos</a>
+    <a href="/servicios">Servicios</a>
+    <a href="/constructoras">Constructoras</a>
+
+    {autenticado ? (
+      <div class="user-profile">
+        {foto ? (
+          <img src={foto} alt="Perfil" class="profile-pic" id="btnUserMenu" />
+        ) : (
+          <button type="button" class="profile-pic profile-iniciales" id="btnUserMenu">
+            {iniciales}
+          </button>
+        )}
+        <div id="user-menu" class="user-menu">
+          <div class="user-menu-name">{nombre}</div>
+          <a href="/usuario">⚙️ Ajustes</a>
+          <button type="button" id="btnLogout">🚪 Cerrar sesión</button>
+        </div>
+      </div>
+    ) : (
+      <a href="/login" class="btn-registrar">Iniciar Sesión</a>
+    )}
+  </nav>
+</div>
+
+<script>
+  import { logoutRequest } from "../../utils/api";
+
+  // Toggle menú móvil
+  document.getElementById("menuToggle")?.addEventListener("click", () => {
+    document.getElementById("menu")?.classList.toggle("active");
+  });
+
+  // Toggle menú usuario
+  document.getElementById("btnUserMenu")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.getElementById("user-menu")?.classList.toggle("active");
+  });
+
+  document.addEventListener("click", () => {
+    document.getElementById("user-menu")?.classList.remove("active");
+  });
+
+  // Logout
+  document.getElementById("btnLogout")?.addEventListener("click", async () => {
+    try { await logoutRequest(); } finally { window.location.href = "/"; }
+  });
+</script>

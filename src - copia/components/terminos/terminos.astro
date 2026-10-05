@@ -1,0 +1,131 @@
+---
+import "./terminos.css";
+---
+
+<div class="terminos-page">
+  <div class="terminos-card">
+    <h1>Términos y condiciones</h1>
+    <p class="meta" id="metaTerminos">Cargando…</p>
+
+    <div class="contenido" id="contenidoTerminos">
+      <p class="cargando">Obteniendo documento…</p>
+    </div>
+
+    <label class="check-row">
+      <input type="checkbox" id="chkAcepto" />
+      <span>He leído y acepto los términos y condiciones de SkyInit</span>
+    </label>
+
+    <div id="mensajeError" class="error d-none" role="alert"></div>
+    <div id="mensajeExito" class="exito d-none" role="status"></div>
+
+    <div class="acciones">
+      <button type="button" class="btn btn-secondary" id="btnCancelar">
+        No acepto
+      </button>
+      <button type="button" class="btn btn-primary" id="btnAceptar" disabled>
+        Aceptar y crear cuenta
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { obtenerTerminosRequest, registroRequest, rutaPorRol } from "../../utils/api";
+
+  const meta = document.getElementById("metaTerminos") as HTMLParagraphElement;
+  const contenido = document.getElementById("contenidoTerminos") as HTMLDivElement;
+  const chk = document.getElementById("chkAcepto") as HTMLInputElement;
+  const btnAceptar = document.getElementById("btnAceptar") as HTMLButtonElement;
+  const btnCancelar = document.getElementById("btnCancelar") as HTMLButtonElement;
+  const mensajeError = document.getElementById("mensajeError") as HTMLDivElement;
+  const mensajeExito = document.getElementById("mensajeExito") as HTMLDivElement;
+
+  // Sin datos del formulario → no se puede estar aquí
+  const raw = sessionStorage.getItem("skyinit_registro");
+  if (!raw) {
+    window.location.href = "/registro";
+  }
+
+  chk.addEventListener("change", () => {
+    btnAceptar.disabled = !chk.checked;
+  });
+
+  btnCancelar.addEventListener("click", () => {
+    sessionStorage.removeItem("skyinit_registro");
+    window.location.href = "/registro";
+  });
+
+  // Cargar texto de términos
+  (async () => {
+    try {
+      const data = await obtenerTerminosRequest();
+      if (data.error || !data.terminos) {
+        meta.textContent = "";
+        contenido.innerHTML = `<p class="error-inline">${data.error || "No se pudieron cargar los términos"}</p>`;
+        return;
+      }
+
+      const t = data.terminos;
+      meta.textContent = `Versión ${t.version} · Actualizado ${t.fechaActualizacion}`;
+      // Texto plano del backend → respetar saltos de línea
+      contenido.textContent = t.contenido;
+    } catch {
+      meta.textContent = "";
+      contenido.innerHTML = `<p class="error-inline">Error al conectar con el servidor</p>`;
+    }
+  })();
+
+  btnAceptar.addEventListener("click", async () => {
+    mensajeError.classList.add("d-none");
+    mensajeExito.classList.add("d-none");
+
+    if (!chk.checked) {
+      mensajeError.textContent = "Debes aceptar los términos y condiciones";
+      mensajeError.classList.remove("d-none");
+      return;
+    }
+
+    const stored = sessionStorage.getItem("skyinit_registro");
+    if (!stored) {
+      window.location.href = "/registro";
+      return;
+    }
+
+    const datos = JSON.parse(stored) as {
+      Nombre: string;
+      Correo: string;
+      Password: string;
+      Confirmar: string;
+      Telefono?: string;
+    };
+
+    btnAceptar.disabled = true;
+
+    try {
+      const data = await registroRequest({
+        ...datos,
+        AceptoTerminos: true,
+      });
+
+      if (data.error) {
+        mensajeError.textContent = data.error;
+        mensajeError.classList.remove("d-none");
+        btnAceptar.disabled = false;
+        return;
+      }
+
+      sessionStorage.removeItem("skyinit_registro");
+      mensajeExito.textContent = data.mensaje || "Cuenta creada correctamente";
+      mensajeExito.classList.remove("d-none");
+
+      setTimeout(() => {
+        window.location.href = rutaPorRol(data.usuario?.rol ?? "Usuario");
+      }, 1000);
+    } catch {
+      mensajeError.textContent = "Error al conectar con el servidor";
+      mensajeError.classList.remove("d-none");
+      btnAceptar.disabled = false;
+    }
+  });
+</script>s

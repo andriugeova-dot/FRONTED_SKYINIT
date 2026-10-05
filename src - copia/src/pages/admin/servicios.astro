@@ -145,7 +145,6 @@ const inactivosCount = serviciosIniciales.filter((s) => s.Estado === "Inactivo")
 <script define:vars={{ initialServices: serviciosIniciales }}>
   document.addEventListener("DOMContentLoaded", () => {
     const API = "/api/inmobiliarias/servicios";
-    const BACKEND_PUBLIC = "http://localhost:8001";
     let listadoServicios = initialServices || [];
     const bsModalForm = new bootstrap.Modal(document.getElementById("modalServicio"));
     const bsModalConfirm = new bootstrap.Modal(document.getElementById("modalConfirmar"));
@@ -162,14 +161,6 @@ const inactivosCount = serviciosIniciales.filter((s) => s.Estado === "Inactivo")
     const imagenInput = document.getElementById("imagenInput");
     const imgPreview = document.getElementById("imgPreview");
     let currentBase64Image = "";
-
-    function urlImagenServicio(ruta) {
-      if (!ruta || String(ruta).trim() === "") return "/img/servicios-placeholder.webp";
-      const r = String(ruta).trim();
-      if (r.startsWith("http") || r.startsWith("data:")) return r;
-      if (r.startsWith("/uploads/")) return `${BACKEND_PUBLIC}${r}`;
-      return r;
-    }
 
     function showToast(message, isSuccess = true) {
       const toastEl = document.getElementById("toastFeedback");
@@ -223,7 +214,7 @@ const inactivosCount = serviciosIniciales.filter((s) => s.Estado === "Inactivo")
       servicios.forEach((s) => {
         const card = document.createElement("div");
         card.className = "service-card";
-        const imgUrl = urlImagenServicio(s.Imagen);
+        const imgUrl = s.Imagen && s.Imagen.trim() !== "" ? s.Imagen : "/img/servicios-placeholder.webp";
         card.innerHTML = `
           <div class="service-img-wrapper">
             <img src="${imgUrl}" alt="" loading="lazy">
@@ -293,9 +284,7 @@ const inactivosCount = serviciosIniciales.filter((s) => s.Estado === "Inactivo")
         document.getElementById("precio").value = servicio.Precio;
         document.getElementById("estado").value = servicio.Estado;
         document.getElementById("descripcion").value = servicio.Descripcion;
-        imagenInput.value = "";
-        currentBase64Image = "";
-        imgPreview.src = urlImagenServicio(servicio.Imagen);
+        imgPreview.src = servicio.Imagen || "/img/servicios-placeholder.webp";
         document.getElementById("modalServicioLabel").textContent = "Editar servicio de mantenimiento";
         bsModalForm.show();
       }
@@ -306,67 +295,22 @@ const inactivosCount = serviciosIniciales.filter((s) => s.Estado === "Inactivo")
     formServicio.addEventListener("submit", async (e) => {
       e.preventDefault();
       document.querySelectorAll(".field-error").forEach((el) => (el.textContent = ""));
-
       const id = document.getElementById("servicioId").value;
       const nombre = document.getElementById("nombre").value.trim();
       const precio = parseFloat(document.getElementById("precio").value);
       const estado = document.getElementById("estado").value;
       const descripcion = document.getElementById("descripcion").value.trim();
-      const isEdit = Boolean(id);
-
       let hasError = false;
-      if (nombre.length < 3 || nombre.length > 150) {
-        document.getElementById("error-nombre").textContent = "El nombre debe tener entre 3 y 150 caracteres.";
-        hasError = true;
-      }
-      if (isNaN(precio) || precio <= 0) {
-        document.getElementById("error-precio").textContent = "El precio debe ser un número mayor a 0.";
-        hasError = true;
-      }
-      if (descripcion.length < 20) {
-        document.getElementById("error-descripcion").textContent = "La descripción debe tener al menos 20 caracteres.";
-        hasError = true;
-      }
+      if (nombre.length < 3 || nombre.length > 150) { document.getElementById("error-nombre").textContent = "El nombre debe tener entre 3 y 150 caracteres."; hasError = true; }
+      if (isNaN(precio) || precio <= 0) { document.getElementById("error-precio").textContent = "El precio debe ser un número mayor a 0."; hasError = true; }
+      if (descripcion.length < 20) { document.getElementById("error-descripcion").textContent = "La descripción debe tener al menos 20 caracteres."; hasError = true; }
       if (hasError) return;
-
+      const payload = { Nombre: nombre, Precio: precio, Estado: estado, Descripcion: descripcion, Imagen: currentBase64Image || null };
+      const isEdit = Boolean(id);
       const btnSubmit = document.getElementById("btnGuardarServicio");
       const spinner = document.getElementById("spinnerGuardar");
-      btnSubmit.disabled = true;
-      spinner.classList.remove("d-none");
-
+      btnSubmit.disabled = true; spinner.classList.remove("d-none");
       try {
-        let imagenUrl = null;
-        if (isEdit) {
-          const actual = listadoServicios.find((s) => String(s.ServicioID) === String(id));
-          imagenUrl = actual?.Imagen || null;
-        }
-
-        const file = imagenInput?.files?.[0];
-        if (file) {
-          const fd = new FormData();
-          fd.append("imagen", file);
-          const up = await fetch("/api/inmobiliarias/servicios/imagen", {
-            method: "POST",
-            credentials: "same-origin",
-            body: fd,
-          });
-          const upJson = await up.json();
-          if (!up.ok || !upJson.ok) {
-            document.getElementById("error-imagen").textContent =
-              upJson.message || "No se pudo subir la imagen.";
-            return;
-          }
-          imagenUrl = upJson.data?.url ?? null;
-        }
-
-        const payload = {
-          Nombre: nombre,
-          Precio: precio,
-          Estado: estado,
-          Descripcion: descripcion,
-          Imagen: imagenUrl,
-        };
-
         const res = await fetch(isEdit ? `${API}/${id}` : API, {
           method: isEdit ? "PUT" : "POST",
           credentials: "same-origin",
@@ -383,15 +327,9 @@ const inactivosCount = serviciosIniciales.filter((s) => s.Estado === "Inactivo")
             const errEl = document.getElementById(`error-${field.toLowerCase()}`);
             if (errEl) errEl.textContent = json.errors[field];
           });
-        } else {
-          showToast(json.message || "Ocurrió un error al guardar.", false);
-        }
-      } catch {
-        showToast("Error de conexión al guardar el servicio.", false);
-      } finally {
-        btnSubmit.disabled = false;
-        spinner.classList.add("d-none");
-      }
+        } else showToast(json.message || "Ocurrió un error al guardar.", false);
+      } catch { showToast("Error de conexión al guardar el servicio.", false); }
+      finally { btnSubmit.disabled = false; spinner.classList.add("d-none"); }
     });
 
     async function cambiarEstadoServicio(id, nuevoEstado) {

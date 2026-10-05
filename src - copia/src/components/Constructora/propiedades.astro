@@ -1,0 +1,236 @@
+---
+import "./propiedades.css"; // o propiedades.css con los mismos estilos
+---
+
+<div class="page">
+    <header class="page-header">
+        <div>
+        <h1>Propiedades</h1>
+        <p>Gestiona Tus Propiedades</p>
+        </div>
+    </header>
+    <div id="grid-propiedades" class="ag-theme-quartz grid-box"></div>
+</div>
+
+<div id="modal-foto" class="sky-modal" hidden>
+    <div class="sky-modal-backdrop" data-cerrar="foto"></div>
+    <div class="sky-modal-card">
+        <h3>Fotos de la propiedad</h3>
+        <div id="galeria-fotos" class="galeria"></div>
+        <label>Agregar otra foto</label>
+        <input type="file" id="input-foto" accept="image/*" />
+        <div class="modal-actions">
+        <button type="button" class="btn-outline" data-cerrar="foto">Cerrar</button>
+        <button type="button" class="btn-primary" id="btn-subir-foto">Subir</button>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-quartz.css" />
+<script is:inline src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.min.noStyle.js"></script>
+
+<script is:inline>
+    (function () {
+        var BACKEND_PUBLIC = "http://localhost:8001";
+        var propiedadActiva = null;
+        var gridApi = null;
+
+        function abrirModal() {
+        var el = document.getElementById("modal-foto");
+        if (el) el.hidden = false;
+        }
+        function cerrarModal() {
+        var el = document.getElementById("modal-foto");
+        if (el) el.hidden = true;
+        }
+
+        function urlImg(path) {
+        if (!path) return null;
+        if (String(path).indexOf("http") === 0) return path;
+        return BACKEND_PUBLIC + (String(path).charAt(0) === "/" ? path : "/" + path);
+        }
+
+        function fotoRenderer(params) {
+        var data = params.data || {};
+        var n = 0;
+        if (typeof data.totalImagenes === "number") n = data.totalImagenes;
+        else if (data.imagenUrl) n = 1;
+
+        if (n <= 0) return '<span class="foto-count">0 fotos</span>';
+
+        var url = urlImg(data.imagenUrl);
+        if (url) {
+            return (
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<img class="thumb" src="' + url + '" alt="" />' +
+            '<span class="foto-count tiene">' + n + (n === 1 ? " foto" : " fotos") + "</span>" +
+            "</div>"
+            );
+        }
+        return '<span class="foto-count tiene">' + n + (n === 1 ? " foto" : " fotos") + "</span>";
+        }
+
+        function accionesRenderer(params) {
+        var id = params.data && params.data.propiedadID;
+        if (!id) return "";
+        return (
+            '<button type="button" class="btn-sm btn-foto" data-sky-accion="foto" data-sky-id="' +
+            id +
+            '">Foto</button>'
+        );
+        }
+
+        function pintarGaleria(imagenes) {
+        var g = document.getElementById("galeria-fotos");
+        if (!g) return;
+        g.innerHTML = "";
+        var lista = (imagenes || []).map(function (item) {
+            if (typeof item === "string") return { imagenID: null, url: item };
+            return { imagenID: item.imagenID, url: item.url };
+        });
+        if (!lista.length) {
+            g.innerHTML = '<span class="vacio">Sin fotos aún. Sube la primera.</span>';
+            return;
+        }
+        lista.forEach(function (item) {
+            var src = urlImg(item.url);
+            if (!src) return;
+            var wrap = document.createElement("div");
+            wrap.className = "galeria-item";
+            var img = document.createElement("img");
+            img.src = src;
+            wrap.appendChild(img);
+            if (item.imagenID != null) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "btn-borrar-img";
+            btn.textContent = "×";
+            btn.setAttribute("data-sky-del-img", String(item.imagenID));
+            wrap.appendChild(btn);
+            }
+            g.appendChild(wrap);
+        });
+        }
+
+        function cargarGaleria(id) {
+        return fetch("/api/panel/constructora/propiedad_detalle?id=" + id, {
+            credentials: "same-origin",
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+            var imgs = (json.data && json.data.imagenes) || [];
+            pintarGaleria(imgs);
+            var t = document.querySelector("#modal-foto h3");
+            if (t) t.textContent = "Fotos de la propiedad (" + imgs.length + ")";
+            })
+            .catch(function () { pintarGaleria([]); });
+        }
+
+        function cargar() {
+        fetch("/api/panel/constructora/propiedades", { credentials: "same-origin" })
+            .then(function (r) { return r.text(); })
+            .then(function (text) {
+            var json = JSON.parse(text);
+            var rows = Array.isArray(json.data) ? json.data : [];
+            if (gridApi) gridApi.setGridOption("rowData", rows);
+            })
+            .catch(function (e) { console.error(e); });
+        }
+
+        document.addEventListener(
+        "click",
+        function (e) {
+            var t = e.target;
+            if (!t || !t.closest) return;
+
+            if (t.closest("[data-cerrar]")) {
+            cerrarModal();
+            return;
+            }
+
+            var del = t.closest("[data-sky-del-img]");
+            if (del) {
+            e.preventDefault();
+            e.stopPropagation();
+            var imagenId = del.getAttribute("data-sky-del-img");
+            if (!propiedadActiva || !imagenId) return;
+            if (!confirm("¿Eliminar esta foto?")) return;
+            fetch(
+                "/api/panel/constructora/propiedad_imagen_delete?id=" +
+                propiedadActiva +
+                "&imagenId=" +
+                imagenId,
+                { method: "DELETE", credentials: "same-origin" }
+            )
+                .then(function (res) {
+                if (!res.ok) throw new Error("Error");
+                return cargarGaleria(propiedadActiva).then(cargar);
+                })
+                .catch(function () { alert("No se pudo eliminar"); });
+            return;
+            }
+
+            var btn = t.closest("[data-sky-accion]");
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            propiedadActiva = Number(btn.getAttribute("data-sky-id"));
+            document.getElementById("input-foto").value = "";
+            pintarGaleria([]);
+            abrirModal();
+            cargarGaleria(propiedadActiva);
+        },
+        true
+        );
+
+        document.getElementById("btn-subir-foto").addEventListener("click", function () {
+        if (!propiedadActiva) return;
+        var file = document.getElementById("input-foto").files &&
+            document.getElementById("input-foto").files[0];
+        if (!file) {
+            alert("Elige una imagen");
+            return;
+        }
+        var fd = new FormData();
+        fd.append("imagen", file);
+        fetch("/api/panel/constructora/propiedad_imagen?id=" + propiedadActiva, {
+            method: "POST",
+            body: fd,
+            credentials: "same-origin",
+        })
+            .then(function (res) {
+            if (!res.ok) throw new Error("fail");
+            document.getElementById("input-foto").value = "";
+            return cargarGaleria(propiedadActiva).then(cargar);
+            })
+            .catch(function () { alert("No se pudo subir la foto"); });
+        });
+
+        function init() {
+        var gridDiv = document.getElementById("grid-propiedades");
+        if (!gridDiv || typeof agGrid === "undefined") return;
+        gridApi = agGrid.createGrid(gridDiv, {
+            columnDefs: [
+            { headerName: "Foto", field: "imagenUrl", width: 140, cellRenderer: fotoRenderer, sortable: false, filter: false },
+            { headerName: "Título", field: "titulo", flex: 1, minWidth: 160 },
+            { headerName: "Precio", field: "precio", width: 120 },
+            { headerName: "Ciudad", field: "ciudad", width: 120 },
+            { headerName: "Estado", field: "estado", width: 120 },
+            { headerName: "Tipo", field: "tipoOperacion", width: 120 },
+            { headerName: "Acciones", width: 100, cellRenderer: accionesRenderer, sortable: false, filter: false },
+            ],
+            defaultColDef: { resizable: true, sortable: true },
+            rowHeight: 56,
+            rowData: [],
+        });
+        cargar();
+        }
+
+        if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+        } else {
+        init();
+        }
+    })();
+</script>

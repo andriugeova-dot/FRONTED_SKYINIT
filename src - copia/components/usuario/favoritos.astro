@@ -1,0 +1,229 @@
+---
+// Componente: Favoritos del usuario — diseño con borde verde izquierdo
+---
+
+<div class="panel-body">
+
+    <div class="topbar-panel">
+        <h1>Mis Propiedades Favoritas</h1>
+        <p>Aquí puedes ver y gestionar tus favoritos.</p>
+    </div>
+
+    <div id="estadoCarga" class="estado-carga">
+        <div class="spinner"></div>
+        <span>Cargando favoritos...</span>
+    </div>
+
+    <p id="sinFavoritos" class="sin-favoritos" style="display:none;">
+        Todavía no has guardado ninguna propiedad como favorita.
+    </p>
+
+    <section id="listaFavoritos" class="favorite-list"></section>
+
+</div>
+
+<style>
+* { box-sizing: border-box; }
+
+.panel-body {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    background: #F8F6F0;
+    min-height: 100%;
+}
+
+/* TOPBAR */
+.topbar-panel { margin-bottom: 5px; }
+.topbar-panel h1 {
+    color: #14532d;
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 6px;
+}
+.topbar-panel p { color: #666; margin: 0; font-size: 15px; }
+
+/* LISTA */
+.favorite-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.favorite-item {
+    display: flex;
+    gap: 20px;
+    background: #fff;
+    border-left: 5px solid #22c55e;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,.08);
+    transition: transform .3s;
+}
+.favorite-item:hover { transform: translateX(5px); }
+
+.favorite-image img {
+    width: 160px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background: #e5e7eb;
+}
+.favorite-image .img-placeholder {
+    width: 160px;
+    height: 120px;
+    background: #f1f8f4;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #a7f3d0;
+    flex-shrink: 0;
+}
+
+.favorite-info { flex: 1; min-width: 0; }
+.favorite-info h4 {
+    margin: 0 0 10px;
+    font-size: 20px;
+    color: #14532d;
+    font-weight: 700;
+}
+.favorite-info p {
+    margin-bottom: 6px;
+    color: #555;
+    font-size: 14px;
+}
+.favorite-info .precio {
+    font-size: 16px;
+    font-weight: 700;
+    color: #14532d;
+}
+
+.btn-quitar {
+    border: none;
+    background: #2e8b57;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: .3s;
+    align-self: flex-start;
+    margin-top: 8px;
+    font-size: 14px;
+}
+.btn-quitar:hover { background: #14532d; }
+
+/* ESTADOS */
+.estado-carga {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 3rem;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+.spinner {
+    width: 22px;
+    height: 22px;
+    border: 2.5px solid #e5e7eb;
+    border-top-color: #22c55e;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sin-favoritos {
+    font-style: italic;
+    color: #666;
+    text-align: center;
+    margin-top: 20px;
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 5px 15px rgba(0,0,0,.06);
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+    .favorite-item {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .favorite-image img,
+    .favorite-image .img-placeholder { width: 100%; height: 180px; }
+}
+</style>
+
+<script>
+const FAV_API = "/api/usuario/favoritos";
+
+function formatPrecio(precio: string | number): string {
+    const n = Number(precio);
+    if (isNaN(n)) return String(precio);
+    return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
+}
+
+async function cargarFavoritos() {
+    try {
+        const res = await fetch(FAV_API, { credentials: "same-origin" });
+        const data = await res.json();
+        const lista = data.favoritos ?? data.data ?? [];
+        renderFavoritos(lista);
+    } catch {
+        renderFavoritos([]);
+    } finally {
+        document.getElementById("estadoCarga")!.style.display = "none";
+    }
+}
+
+function renderFavoritos(lista: any[]) {
+    if (!lista.length) {
+        document.getElementById("sinFavoritos")!.style.display = "block";
+        return;
+    }
+
+    const contenedor = document.getElementById("listaFavoritos")!;
+    contenedor.innerHTML = lista.map(f => {
+        const p = f.propiedad ?? f;
+        const imgSrc = p.imagenes?.[0]
+            ? (p.imagenes[0].startsWith("http") ? p.imagenes[0] : `http://localhost:8001${p.imagenes[0]}`)
+            : null;
+        const imgHtml = imgSrc
+            ? `<div class="favorite-image"><img src="${imgSrc}" alt="${p.titulo ?? ""}" /></div>`
+            : `<div class="favorite-image"><div class="img-placeholder">🏠</div></div>`;
+
+        return `
+        <div class="favorite-item">
+            ${imgHtml}
+            <div class="favorite-info">
+                <h4>${p.titulo ?? "Sin título"}</h4>
+                <p>📍 ${p.ciudad ?? p.direccion ?? "Sin ciudad"}</p>
+                <p class="precio">${formatPrecio(p.precio ?? 0)}</p>
+                <button class="btn-quitar" data-prop="${p.propiedadID}">✕ Quitar</button>
+            </div>
+        </div>`;
+    }).join("");
+
+    contenedor.querySelectorAll(".btn-quitar").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const propID = (btn as HTMLElement).dataset.prop;
+            if (!propID) return;
+            const res = await fetch(`${FAV_API}/${propID}`, { method: "DELETE", credentials: "same-origin" }).catch(() => null);
+            if (res?.ok) {
+                (btn as HTMLElement).closest(".favorite-item")?.remove();
+                if (!document.querySelectorAll(".favorite-item").length) {
+                    document.getElementById("sinFavoritos")!.style.display = "block";
+                }
+            }
+        });
+    });
+}
+
+cargarFavoritos();
+</script>

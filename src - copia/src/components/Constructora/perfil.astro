@@ -1,0 +1,319 @@
+---
+---
+
+<div class="perfil-page">
+    <h1>Perfil Constructora</h1>
+
+
+    <div id="alerta" class="alerta d-none" role="alert"></div>
+
+    <div class="perfil-grid">
+        <!-- LOGO -->
+        <section class="card logo-card">
+        <h2>Logo</h2>
+        <div class="logo-preview">
+            <img id="logoImg" src="" alt="Logo" class="d-none" />
+            <div id="logoPlaceholder" class="logo-placeholder">Sin logo</div>
+        </div>
+        <label class="btn-file">
+            Elegir imagen
+            <input type="file" id="inputLogo" accept="image/jpeg,image/png,image/webp" hidden />
+        </label>
+        <button type="button" class="btn btn-primary" id="btnSubirLogo" disabled>
+            Subir logo
+        </button>
+        <p class="hint">JPG, PNG o WebP · máx. 5 MB</p>
+        </section>
+
+        <!-- DATOS -->
+        <section class="card">
+        <h2>Datos</h2>
+        <form id="formPerfil">
+            <div class="campo">
+            <label for="nombre">Nombre *</label>
+            <input type="text" id="nombre" name="nombre" required />
+            </div>
+            <div class="campo">
+            <label for="descripcion">Descripción *</label>
+            <textarea id="descripcion" name="descripcion" rows="3" required></textarea>
+            </div>
+            <div class="fila">
+            <div class="campo">
+                <label for="contacto">Contacto</label>
+                <input type="text" id="contacto" name="contacto" />
+            </div>
+            <div class="campo">
+                <label for="telefono">Teléfono</label>
+                <input type="text" id="telefono" name="telefono" />
+            </div>
+            </div>
+            <div class="fila">
+            <div class="campo">
+                <label for="correo">Correo</label>
+                <input type="email" id="correo" name="correo" disabled />
+            </div>
+            <div class="campo">
+                <label for="ciudad">Ciudad</label>
+                <input type="text" id="ciudad" name="ciudad" disabled />
+            </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="btnGuardar">
+            Guardar cambios
+            </button>
+        </form>
+        </section>
+    </div>
+</div>
+
+    <style>
+    .perfil-page h1 {
+        margin: 0 0 0.25rem;
+        font-size: 1.5rem;
+    }
+    .sub {
+        color: #6b7280;
+        margin-bottom: 1.5rem;
+    }
+    .perfil-grid {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 1.25rem;
+        align-items: start;
+    }
+    @media (max-width: 800px) {
+        .perfil-grid {
+        grid-template-columns: 1fr;
+        }
+    }
+    .card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+    .card h2 {
+        font-size: 1rem;
+        margin: 0 0 1rem;
+    }
+    .logo-preview {
+        width: 140px;
+        height: 140px;
+        border-radius: 16px;
+        border: 2px dashed #d1d5db;
+        margin: 0 auto 1rem;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f9fafb;
+    }
+    .logo-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .logo-placeholder {
+        color: #9ca3af;
+        font-size: 0.85rem;
+    }
+    .logo-card {
+        text-align: center;
+    }
+    .btn-file {
+        display: inline-block;
+        margin-bottom: 0.5rem;
+        padding: 0.4rem 0.9rem;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        cursor: pointer;
+        font-size: 0.9rem;
+        background: #fff;
+    }
+    .btn {
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+    .btn-primary {
+        background: #253229;
+        color: #f5f1e8;
+    }
+    .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .hint {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-top: 0.5rem;
+    }
+    .campo {
+        margin-bottom: 0.85rem;
+    }
+    .campo label {
+        display: block;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+        color: #374151;
+    }
+    .campo input,
+    .campo textarea {
+        width: 100%;
+        padding: 0.5rem 0.65rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        box-sizing: border-box;
+    }
+    .campo input:disabled {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+    .fila {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    .alerta {
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    .alerta.ok {
+        background: #ecfdf5;
+        color: #065f46;
+    }
+    .alerta.error {
+        background: #fef2f2;
+        color: #991b1b;
+    }
+    .d-none {
+        display: none !important;
+    }
+</style>
+
+<script>
+    const BACKEND_PUBLIC = "http://localhost:8001";
+
+    const alerta = document.getElementById("alerta") as HTMLDivElement;
+    const logoImg = document.getElementById("logoImg") as HTMLImageElement;
+    const logoPlaceholder = document.getElementById("logoPlaceholder") as HTMLDivElement;
+    const inputLogo = document.getElementById("inputLogo") as HTMLInputElement;
+    const btnSubirLogo = document.getElementById("btnSubirLogo") as HTMLButtonElement;
+    const form = document.getElementById("formPerfil") as HTMLFormElement;
+
+    function mostrarAlerta(msg: string, ok: boolean) {
+        alerta.textContent = msg;
+        alerta.classList.remove("d-none", "ok", "error");
+        alerta.classList.add(ok ? "ok" : "error");
+    }
+
+    function urlLogo(path: string | null | undefined): string | null {
+        if (!path) return null;
+        if (path.startsWith("http")) return path;
+        return `${BACKEND_PUBLIC}${path.startsWith("/") ? path : "/" + path}`;
+    }
+
+    function pintarLogo(path: string | null) {
+        const src = urlLogo(path);
+        if (src) {
+        logoImg.src = src;
+        logoImg.classList.remove("d-none");
+        logoPlaceholder.classList.add("d-none");
+        } else {
+        logoImg.classList.add("d-none");
+        logoPlaceholder.classList.remove("d-none");
+        }
+    }
+
+    async function cargarPerfil() {
+        try {
+        const res = await fetch("/api/panel/constructora/perfil");
+        const json = await res.json();
+        if (!res.ok) {
+            mostrarAlerta(json.error || json.message || "No se pudo cargar el perfil", false);
+            return;
+        }
+        const d = json.data ?? json;
+        (document.getElementById("nombre") as HTMLInputElement).value = d.nombre ?? "";
+        (document.getElementById("descripcion") as HTMLTextAreaElement).value =
+            d.descripcion ?? "";
+        (document.getElementById("contacto") as HTMLInputElement).value = d.contacto ?? "";
+        (document.getElementById("telefono") as HTMLInputElement).value = d.telefono ?? "";
+        (document.getElementById("correo") as HTMLInputElement).value = d.correo ?? "";
+        (document.getElementById("ciudad") as HTMLInputElement).value = d.ciudad ?? "";
+        pintarLogo(d.logo ?? d.Logo ?? null);
+        } catch {
+        mostrarAlerta("Error de conexión al cargar el perfil", false);
+        }
+    }
+
+    inputLogo.addEventListener("change", () => {
+        btnSubirLogo.disabled = !inputLogo.files?.length;
+        const file = inputLogo.files?.[0];
+        if (file) {
+        const preview = URL.createObjectURL(file);
+        logoImg.src = preview;
+        logoImg.classList.remove("d-none");
+        logoPlaceholder.classList.add("d-none");
+        }
+    });
+
+    btnSubirLogo.addEventListener("click", async () => {
+        const file = inputLogo.files?.[0];
+        if (!file) return;
+
+        const fd = new FormData();
+        fd.append("logo", file); // nombre del campo que espera Deno
+
+        btnSubirLogo.disabled = true;
+        try {
+        const res = await fetch("/api/panel/constructora/logo", {
+            method: "POST",
+            body: fd,
+        });
+        const json = await res.json();
+        if (!res.ok) {
+            mostrarAlerta(json.error || json.message || "Error al subir el logo", false);
+            return;
+        }
+        mostrarAlerta("Logo actualizado. Recarga para verlo en el menú.", true);
+        if (json.url) pintarLogo(json.url);
+        inputLogo.value = "";
+        } catch {
+        mostrarAlerta("Error de conexión al subir el logo", false);
+        } finally {
+        btnSubirLogo.disabled = !inputLogo.files?.length;
+        }
+    });
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const body = {
+        nombre: (document.getElementById("nombre") as HTMLInputElement).value.trim(),
+        descripcion: (document.getElementById("descripcion") as HTMLTextAreaElement).value.trim(),
+        contacto: (document.getElementById("contacto") as HTMLInputElement).value.trim(),
+        telefono: (document.getElementById("telefono") as HTMLInputElement).value.trim(),
+        };
+
+        try {
+        const res = await fetch("/api/panel/constructora/perfil", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+            mostrarAlerta(json.error || json.message || "Error al guardar", false);
+            return;
+        }
+        mostrarAlerta("Datos guardados correctamente", true);
+        } catch {
+        mostrarAlerta("Error de conexión al guardar", false);
+        }
+    });
+
+    cargarPerfil();
+</script>
