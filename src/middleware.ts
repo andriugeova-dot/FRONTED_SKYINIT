@@ -19,8 +19,8 @@ const RUTA_AGENTE = ["/agente"];
 const RUTA_CONSTRUCTORA = ["/constructora"];
 const RUTA_USUARIO = ["/usuario"];
 
-/** Solo estas, si hay sesión, no se quedan aquí */
-const RUTAS_SOLO_INVITADO = ["/login", "/registro", "/terminos"];
+/**Publicas */
+const RUTAS_PUBLICAS = ["/", "/login", "/registro", "/terminos", "/propiedades", "/proyectos"];
 
 function empiezaCon(path: string, rutas: string[]): boolean {
   return rutas.some((r) => path === r || path.startsWith(r + "/"));
