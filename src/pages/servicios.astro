@@ -1,5 +1,5 @@
 ---
-// src/pages/servicios.astro
+
 
 ---
 
@@ -103,7 +103,6 @@ let nombreUsuario = '';
 let fotoPerfil = '/img/default-avatar.svg';
 
 // ── Sesión ──────────────────────────────────────────
-// El 401 en /api/perfil es NORMAL (no hay sesión), no es un error
 async function verificarSesion() {
     try {
         const res = await fetch('/api/perfil', { credentials: 'same-origin' });
@@ -113,9 +112,8 @@ async function verificarSesion() {
             nombreUsuario = data.usuario?.nombre ?? '';
             fotoPerfil = data.usuario?.fotoPerfil || '/img/default-avatar.svg';
         }
-        // 401 → simplemente no hay sesión, usuarioAutenticado queda false
     } catch {
-        // Error de red real
+
     }
     renderUserMenu();
 }
@@ -818,8 +816,6 @@ a.grupo-header:hover .grupo-ver-mas {
     gap: 25px;
 }
 
-/* Cuando el grid va dentro de un grupo por inmobiliaria, el .contenedor
-   padre ya aporta el ancho maximo y el padding lateral */
 .grupo-inmobiliaria .grid {
     max-width: none;
     margin: 0;

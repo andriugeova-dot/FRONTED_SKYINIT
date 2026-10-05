@@ -3,8 +3,7 @@ import { COOKIE_NAME, getTokenSSR } from "../../utils/auth";
 
 const BACKEND_URL = "http://localhost:8001";
 
-// POST /api/servicios/solicitar -> reenvia al backend POST /api/servicios/solicitar
-// Requiere sesion activa (igual que hace falta estar logueado para ver el boton "Solicitar").
+// Requiere sesion activa
 export const POST: APIRoute = async ({ request, cookies }) => {
     const token = getTokenSSR(cookies);
 
