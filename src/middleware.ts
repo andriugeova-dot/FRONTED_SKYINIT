@@ -22,7 +22,7 @@ const RUTA_INMOBILIARIA = ["/inmobiliaria"];
 const RUTA_USUARIO = ["/usuario"];
 
 /**Publicas */
-const RUTAS_PUBLICAS = ["/", "/login", "/registro", "/terminos", "/propiedades", "/servicios", "/proyectos"];
+const RUTAS_PUBLICAS = ["/", "/login", "/registro", "/terminos", "/propiedades", "/servicios", "/proyectos", "/recuperar-password","/restablecer-password",];
 
 function empiezaCon(path: string, rutas: string[]): boolean {
   return rutas.some((r) => path === r || path.startsWith(r + "/"));
