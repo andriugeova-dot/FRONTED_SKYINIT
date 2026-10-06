@@ -1,5 +1,6 @@
 ---
 import { isAuthenticatedSSR, getTokenSSR, COOKIE_NAME } from "../../utils/auth";
+import "./menu.css";
 
 const autenticado = isAuthenticatedSSR(Astro.cookies);
 const token = getTokenSSR(Astro.cookies);
