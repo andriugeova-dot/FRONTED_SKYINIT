@@ -1,0 +1,172 @@
+---
+interface ConstructoraItem {
+    constructoraID: number;
+    nombre: string;
+    descripcion?: string | null;
+    ciudad?: string | null;
+    telefono?: string | null;
+    correo?: string | null;
+    logo?: string | null;
+    inmobiliariaNombre?: string | null;
+    inmobiliariaCiudad?: string | null;
+}
+interface Grupo {
+    nombre: string;
+    ciudad: string | null;
+    items: ConstructoraItem[];
+}
+const { grupos = [] } = Astro.props as { grupos: Grupo[] };
+const BACKEND = "http://localhost:8001";
+
+function logoUrl(logo: string | null | undefined) {
+    if (!logo) return null;
+    if (logo.startsWith("http")) return logo;
+    if (logo.startsWith("/")) return `${BACKEND}${logo}`;
+    // rutas antiguas sin / (solo nombre de archivo)
+    return `${BACKEND}/uploads/constructoras/${encodeURIComponent(logo)}`;
+}
+---
+
+<section class="resultados-section">
+    <div class="contenedor">
+        {
+        grupos.length === 0 ? (
+            <p class="sin-resultados">No hay constructoras activas por ahora.</p>
+        ) : (
+            grupos.map((g) => (
+            <div class="grupo-bloque">
+                <h2 class="grupo-titulo">
+                {g.nombre}
+                {g.ciudad ? <span> · {g.ciudad}</span> : null}
+                </h2>
+                <div class="properties">
+                {g.items.map((c) => {
+                    const src = logoUrl(c.logo);
+                    return (
+                    <article class="property-card card-constructora">
+                        <div class="property-image">
+                        {src ? (
+                            <img src={src} alt={c.nombre} loading="lazy" />
+                        ) : (
+                            <div class="img-placeholder">
+                            {(c.nombre || "C").slice(0, 2).toUpperCase()}
+                            </div>
+                        )}
+                        </div>
+                        <div class="property-info">
+                        <h3>{c.nombre}</h3>
+                        {c.ciudad && <p class="ciudad">{c.ciudad}</p>}
+                        {c.descripcion && <p class="desc">{c.descripcion}</p>}
+                        {(c.telefono || c.correo) && (
+                            <p class="contacto">
+                            {[c.telefono, c.correo].filter(Boolean).join(" · ")}
+                            </p>
+                        )}
+                        </div>
+                    </article>
+                    );
+                })}
+                </div>
+            </div>
+            ))
+        )
+        }
+    </div>
+</section>
+
+<style>
+    :root {
+        --verde: #2e8b57;
+        --verde-dark: #1f5f3d;
+    }
+
+    .resultados-section {
+        background: #f9fcf3;
+        min-height: 70vh;
+        padding-top: 40px;
+        padding-bottom: 48px;
+    }
+    .contenedor {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .grupo-bloque {
+        margin-bottom: 28px;
+    }
+    .grupo-titulo {
+        margin: 0 30px 16px;
+        font-size: 1.15rem;
+        color: #1f5f3d;
+        border-bottom: 2px solid #c8ad72;
+        padding-bottom: 8px;
+    }
+    .grupo-titulo span {
+        font-weight: 500;
+        color: #6c757d;
+    }
+    .properties {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        padding: 0 30px 16px;
+    }
+    .card-constructora {
+        background: #fff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card-constructora:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+    }
+    .property-image {
+        height: 160px;
+        background: #e8f0ea;
+    }
+    .property-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .img-placeholder {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--verde-dark);
+    }
+    .property-info {
+        padding: 16px 18px 20px;
+    }
+    .property-info h3 {
+        margin: 0 0 6px;
+        font-size: 1.1rem;
+        color: #1a1a1a;
+    }
+    .ciudad {
+        margin: 0;
+        color: var(--verde);
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    .desc {
+        margin: 10px 0 0;
+        font-size: 0.9rem;
+        color: #555;
+        line-height: 1.4;
+    }
+    .contacto {
+        margin: 10px 0 0;
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .sin-resultados {
+        text-align: center;
+        color: #666;
+        padding: 40px;
+    }
+</style>

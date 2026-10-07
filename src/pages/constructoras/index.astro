@@ -1,0 +1,57 @@
+---
+import Navbar from "../../components/menu/Navbar.astro";
+import Hero from "../../components/menu/Hero.astro";
+import FooterMenu from "../../components/menu/FooterMenu.astro";
+import Constructoras from "../../components/ConstructorasUsuario/constructoras.astro";
+import "../../components/menu/menu.css";
+
+const BACKEND = "http://127.0.0.1:8001";
+
+let lista: any[] = [];
+try {
+    const res = await fetch(`${BACKEND}/api/constructoras`);
+    if (res.ok) {
+        const json = await res.json();
+        lista = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+    }
+} catch {
+    lista = [];
+}
+
+const map = new Map<string, { nombre: string; ciudad: string | null; items: any[] }>();
+
+for (const c of lista) {
+    const key = c.inmobiliariaID != null ? String(c.inmobiliariaID) : "sin";
+    const nombre = c.inmobiliariaNombre ?? "Otras constructoras";
+    if (!map.has(key)) {
+        map.set(key, { nombre, ciudad: c.inmobiliariaCiudad ?? null, items: [] });
+    }
+    map.get(key)!.items.push(c);
+}
+
+const grupos = Array.from(map.values());
+---
+
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Constructoras - SkyInit</title>
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+    </head>
+    <body>
+        <header id="header">
+            <Navbar />
+            <Hero
+                eyebrow="Aliados"
+                title="Constructoras"
+                subtitle="Constructoras activas vinculadas a nuestras inmobiliarias"
+            />
+        </header>
+
+        <Constructoras grupos={grupos} />
+
+        <FooterMenu />
+    </body>
+</html>

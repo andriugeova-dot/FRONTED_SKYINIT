@@ -1,9 +1,21 @@
+---
+interface Props {
+  eyebrow?: string;
+  title?: string; // puede traer HTML, ej: 'Encuentra tu <em>hogar ideal</em>'
+  subtitle?: string;
+}
+
+const {
+  eyebrow = "Especialistas en bienes raíces.",
+  title = "Encuentra tu <em>hogar ideal</em> con SkyInit",
+  subtitle = "Compra, vende o arrienda con el respaldo de nuestros expertos.",
+} = Astro.props;
+---
+
 <div class="hero-inner">
-  <div class="hero-eyebrow">Especialistas en bienes raíces.</div>
-  <h1>Encuentra tu <em>hogar ideal</em> con SkyInit</h1>
-  <p class="hero-sub">
-    Compra, vende o arrienda con el respaldo de nuestros expertos.
-  </p>
+  <div class="hero-eyebrow">{eyebrow}</div>
+  <h1 set:html={title} />
+  <p class="hero-sub">{subtitle}</p>
 </div>
 
 <script>
