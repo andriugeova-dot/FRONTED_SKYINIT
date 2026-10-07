@@ -1,0 +1,47 @@
+/* Barra de avance */
+.proy-progress {
+    margin: 0 0 0.75rem;
+}
+
+.proy-progress-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: var(--p-muted);
+    margin-bottom: 4px;
+}
+
+.proy-progress-top strong {
+    color: #111827;
+}
+
+.proy-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.proy-bar span {
+    display: block;
+    height: 100%;
+    background: var(--p-acc);
+    border-radius: 999px;
+}
+
+/* Una sola columna en el bloque de constructora */
+.prop-meta.una-col {
+    grid-template-columns: 1fr;
+}
+
+/* Nota bajo el campo de imagen */
+.campo-nota {
+    margin: 0.25rem 0 0;
+    font-size: 0.78rem;
+    color: var(--p-muted);
+}
+
+.form-grid input[type="file"] {
+    background: #fff;
+    padding: 0.4rem;
+}
