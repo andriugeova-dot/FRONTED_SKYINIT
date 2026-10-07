@@ -1,0 +1,864 @@
+---
+import "./propiedades.css";
+import { COOKIE_NAME, getTokenSSR } from "../../utils/auth";
+
+const BACKEND = import.meta.env.BACKEND_URL ?? "http://localhost:8001";
+const BACKEND_PUBLIC = import.meta.env.PUBLIC_BACKEND_URL ?? BACKEND;
+
+const token = getTokenSSR(Astro.cookies);
+
+type FilaPropiedad = {
+    propiedadID: number;
+    titulo: string;
+    precio: string | number;
+    ciudad: string | null;
+    estado: string;
+    tipoOperacion: string;
+    habitaciones: number | null;
+    direccion: string;
+    descripcion?: string | null;
+    tipoOperacionID?: number;
+    destacada?: boolean;
+    agenteID?: number | null;
+    agenteNombre?: string | null;
+    constructoraID?: number | null;
+    constructoraNombre?: string | null;
+    imagenPrincipal?: string | null;
+};
+
+type Opcion = { id: number; nombre: string };
+
+let filas: FilaPropiedad[] = [];
+let agentes: Opcion[] = [];
+let constructoras: Opcion[] = [];
+let errorCarga: string | null = null;
+
+if (token) {
+    // El backend lee el JWT desde la cookie
+    const auth = { Cookie: `${COOKIE_NAME}=${token}`, Accept: "application/json" };
+    try {
+        const [resProps, resAgentes, resConstr] = await Promise.all([
+            fetch(`${BACKEND}/api/propiedades/admin/listado`, { headers: auth }),
+            fetch(`${BACKEND}/api/propiedades/admin/agentes`, { headers: auth }),
+            fetch(`${BACKEND}/constructoras`, { headers: auth }),
+        ]);
+
+        if (resProps.ok) {
+            const data = await resProps.json();
+            const lista = Array.isArray(data) ? data : (data.propiedades ?? data.data ?? []);
+            filas = (lista as Record<string, any>[]).map((p) => ({
+                propiedadID: Number(p.propiedadID),
+                titulo: String(p.titulo ?? ""),
+                precio: p.precio ?? "",
+                ciudad: p.ciudad ?? null,
+                estado: String(p.estado ?? "Disponible"),
+                tipoOperacion: String(p.tipoOperacion ?? ""),
+                habitaciones: p.habitaciones ?? null,
+                direccion: String(p.direccion ?? ""),
+                descripcion: p.descripcion ?? null,
+                tipoOperacionID: Number(p.tipoOperacionID) || undefined,
+                destacada: Boolean(p.destacada),
+                agenteID: p.agenteID ?? null,
+                agenteNombre: p.agenteNombre ?? null,
+                constructoraID: p.constructoraID ?? null,
+                constructoraNombre: p.constructoraNombre ?? null,
+                imagenPrincipal: p.imagenPrincipal ?? null,
+            }));
+        } else {
+            errorCarga = `No se pudieron cargar las propiedades (${resProps.status})`;
+        }
+
+        if (resAgentes.ok) {
+            const a = await resAgentes.json();
+            agentes = (Array.isArray(a) ? a : (a.data ?? [])).map((x: any) => ({
+                id: Number(x.usuarioID),
+                nombre: String(x.nombre),
+            }));
+        }
+
+        if (resConstr.ok) {
+            const c = await resConstr.json();
+            constructoras = (c.data ?? []).map((x: any) => ({
+                id: Number(x.constructoraID),
+                nombre: x.estado && x.estado !== "Activo" ? `${x.nombre} (${x.estado})` : String(x.nombre),
+            }));
+        }
+    } catch {
+        errorCarga = "No se pudo conectar con el backend";
+    }
+} else {
+    errorCarga = "Sesión no válida";
+}
+
+// ---------- Helpers de presentación ----------
+const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+const textoBusqueda = (p: FilaPropiedad) =>
+    norm([p.titulo, p.ciudad, p.direccion, p.agenteNombre, p.constructoraNombre].filter(Boolean).join(" "));
+
+const formatoPrecio = (v: string | number) => {
+    const n = Number(v);
+    return Number.isFinite(n)
+        ? new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n)
+        : "—";
+};
+
+const urlImg = (path?: string | null) => {
+    if (!path) return null;
+    if (/^https?:\/\//i.test(path)) return path;
+    return BACKEND_PUBLIC.replace(/\/$/, "") + (path.startsWith("/") ? path : "/" + path);
+};
+
+const claseEstado = (e: string) =>
+    e === "Disponible" ? "est-disponible"
+    : e === "Reservada" ? "est-reservada"
+    : e === "En mantenimiento" ? "est-mantenimiento"
+    : "est-fuera";
+
+// Resumen
+const total = filas.length;
+const disponibles = filas.filter((f) => f.estado === "Disponible").length;
+const reservadas = filas.filter((f) => f.estado === "Reservada").length;
+const otras = total - disponibles - reservadas;
+
+// Tipos de operación presentes (para el filtro)
+const tipos = [...new Set(filas.map((f) => f.tipoOperacion).filter(Boolean))];
+
+// Datos completos para el cliente ("<" escapado para no romper el <script>)
+const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
+---
+
+<div class="page" data-backend={BACKEND_PUBLIC}>
+    <header class="page-header">
+        <div>
+            <h1>Propiedades</h1>
+            <p>Gestiona todas las propiedades de la plataforma.</p>
+        </div>
+        <button type="button" class="btn-nueva" id="btn-nueva-propiedad">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva propiedad
+        </button>
+    </header>
+
+    {errorCarga && (
+        <div class="alert-error" role="alert">{errorCarga}</div>
+    )}
+
+    <section class="stats" aria-label="Resumen">
+        <div class="stat-card">
+            <div class="stat-title">Total</div>
+            <div class="stat-value">{total}</div>
+        </div>
+        <div class="stat-card stat-ok">
+            <div class="stat-title">Disponibles</div>
+            <div class="stat-value">{disponibles}</div>
+        </div>
+        <div class="stat-card stat-warn">
+            <div class="stat-title">Reservadas</div>
+            <div class="stat-value">{reservadas}</div>
+        </div>
+        <div class="stat-card stat-gray">
+            <div class="stat-title">Otras</div>
+            <div class="stat-value">{otras}</div>
+        </div>
+    </section>
+
+    <section class="filtros" aria-label="Filtros">
+        <div class="filtro-busqueda">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" id="filtro-buscar" placeholder="Buscar por título, ciudad, dirección, agente o constructora..." />
+        </div>
+        <select id="filtro-estado" aria-label="Filtrar por estado">
+            <option value="">Todos los estados</option>
+            <option value="Disponible">Disponible</option>
+            <option value="Reservada">Reservada</option>
+            <option value="En mantenimiento">En mantenimiento</option>
+            <option value="Fuera del mercado">Fuera del mercado</option>
+        </select>
+        <select id="filtro-tipo" aria-label="Filtrar por tipo de operación">
+            <option value="">Todas las operaciones</option>
+            {tipos.map((t) => <option value={t}>{t}</option>)}
+        </select>
+    </section>
+
+    <p class="contador" id="contador" aria-live="polite">
+        {total} {total === 1 ? "propiedad" : "propiedades"}
+    </p>
+
+    {total === 0 && !errorCarga && (
+        <div class="estado-vacio">
+            <i class="bi bi-house-add" aria-hidden="true"></i>
+            <h3>No hay propiedades registradas</h3>
+            <p>Crea la primera con “Nueva propiedad”.</p>
+        </div>
+    )}
+
+    <div class="estado-vacio" id="sin-resultados" hidden>
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <h3>Sin resultados</h3>
+        <p>Prueba con otra búsqueda o cambia los filtros.</p>
+    </div>
+
+    <div class="prop-grid" id="grid-propiedades">
+        {filas.map((p) => (
+            <article
+                class="prop-card"
+                data-id={p.propiedadID}
+                data-estado={p.estado}
+                data-tipo={p.tipoOperacion}
+                data-busqueda={textoBusqueda(p)}
+            >
+                <div class="prop-img">
+                    {urlImg(p.imagenPrincipal) ? (
+                        <img src={urlImg(p.imagenPrincipal)!} alt={`Foto de ${p.titulo}`} loading="lazy" />
+                    ) : (
+                        <div class="prop-img-vacia">
+                            <i class="bi bi-house-door" aria-hidden="true"></i>
+                            <span>Sin fotos</span>
+                        </div>
+                    )}
+                    <span class={`prop-badge ${claseEstado(p.estado)}`}>{p.estado}</span>
+                    {p.destacada && (
+                        <span class="prop-destacada" title="Destacada">
+                            <i class="bi bi-star-fill" aria-hidden="true"></i> Destacada
+                        </span>
+                    )}
+                </div>
+
+                <div class="prop-body">
+                    <h3 class="prop-title">{p.titulo}</h3>
+                    <p class="prop-loc">
+                        <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                        {[p.direccion, p.ciudad].filter(Boolean).join(", ")}
+                    </p>
+                    <div class="prop-price">{formatoPrecio(p.precio)}</div>
+
+                    <div class="prop-chips">
+                        {p.tipoOperacion && <span class="chip">{p.tipoOperacion}</span>}
+                        {p.habitaciones != null && (
+                            <span class="chip"><i class="bi bi-door-open" aria-hidden="true"></i> {p.habitaciones} hab.</span>
+                        )}
+                    </div>
+
+                    <dl class="prop-meta">
+                        <div>
+                            <dt>Agente</dt>
+                            <dd>{p.agenteNombre ?? "Sin asignar"}</dd>
+                        </div>
+                        <div>
+                            <dt>Constructora</dt>
+                            <dd>{p.constructoraNombre ?? "Sin asignar"}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div class="prop-actions">
+                    <button type="button" class="btn btn-sm btn-outline-primary flex-grow-1" data-accion="editar" data-id={p.propiedadID} aria-label={`Editar ${p.titulo}`}>
+                        <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-accion="fotos" data-id={p.propiedadID} aria-label={`Fotos de ${p.titulo}`}>
+                        <i class="bi bi-images" aria-hidden="true"></i> Fotos
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-accion="eliminar" data-id={p.propiedadID} aria-label={`Eliminar ${p.titulo}`}>
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </article>
+        ))}
+    </div>
+</div>
+
+<script is:inline type="application/json" id="propiedades-data" set:html={filasJson} />
+
+<!-- Modal crear / editar -->
+<div id="modal-propiedad" class="sky-modal" hidden>
+    <div class="sky-modal-backdrop" data-cerrar="propiedad"></div>
+    <div class="sky-modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+        <h3 id="modal-titulo">Nueva propiedad</h3>
+        <div id="form-error" class="alert-error" role="alert" hidden></div>
+        <form id="form-propiedad" class="form-grid" novalidate>
+            <input type="hidden" id="campo-id" value="" />
+
+            <div class="full">
+                <label for="campo-titulo">Título *</label>
+                <input type="text" id="campo-titulo" required maxlength="150" />
+            </div>
+
+            <div class="full">
+                <label for="campo-descripcion">Descripción</label>
+                <textarea id="campo-descripcion" rows="3"></textarea>
+            </div>
+
+            <div>
+                <label for="campo-precio">Precio *</label>
+                <input type="number" id="campo-precio" required min="0" step="0.01" />
+            </div>
+
+            <div>
+                <label for="campo-tipo">Tipo de operación *</label>
+                <select id="campo-tipo" required>
+                    <option value="1">Venta</option>
+                    <option value="2">Arriendo</option>
+                    <option value="3">Empeño</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="campo-habitaciones">Habitaciones</label>
+                <input type="number" id="campo-habitaciones" min="0" step="1" />
+            </div>
+
+            <div>
+                <label for="campo-ciudad">Ciudad</label>
+                <input type="text" id="campo-ciudad" maxlength="100" />
+            </div>
+
+            <div class="full">
+                <label for="campo-direccion">Dirección *</label>
+                <input type="text" id="campo-direccion" required maxlength="255" />
+            </div>
+
+            <div>
+                <label for="campo-estado">Estado</label>
+                <select id="campo-estado">
+                    <option value="Disponible">Disponible</option>
+                    <option value="Reservada">Reservada</option>
+                    <option value="En mantenimiento">En mantenimiento</option>
+                    <option value="Fuera del mercado">Fuera del mercado</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="campo-destacada">Destacada</label>
+                <select id="campo-destacada">
+                    <option value="false">No</option>
+                    <option value="true">Sí</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="campo-agente">Agente encargado</label>
+                <select id="campo-agente">
+                    <option value="">Sin agente</option>
+                    {agentes.map((a) => <option value={a.id}>{a.nombre}</option>)}
+                </select>
+            </div>
+
+            <div>
+                <label for="campo-constructora">Constructora</label>
+                <select id="campo-constructora">
+                    <option value="">Sin constructora</option>
+                    {constructoras.map((c) => <option value={c.id}>{c.nombre}</option>)}
+                </select>
+            </div>
+        </form>
+        <div class="modal-actions">
+            <button type="button" class="btn-outline" data-cerrar="propiedad">Cancelar</button>
+            <button type="button" class="btn-primary" id="btn-guardar-propiedad">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal fotos -->
+<div id="modal-fotos" class="sky-modal" hidden>
+    <div class="sky-modal-backdrop" data-cerrar="fotos"></div>
+    <div class="sky-modal-card" role="dialog" aria-modal="true" aria-labelledby="titulo-fotos">
+        <h3 id="titulo-fotos">Fotos de la propiedad</h3>
+        <div id="fotos-error" class="alert-error" role="alert" hidden></div>
+        <div id="galeria-fotos" class="galeria"></div>
+        <label for="input-foto">Agregar imagen</label>
+        <input type="file" id="input-foto" accept="image/jpeg,image/png,image/webp" />
+        <div class="modal-actions">
+            <button type="button" class="btn-outline" data-cerrar="fotos">Cerrar</button>
+            <button type="button" class="btn-primary" id="btn-subir-foto">Subir</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal confirmar eliminar (propiedad o foto). -->
+<div id="modal-eliminar" class="sky-modal" hidden>
+    <div class="sky-modal-backdrop" data-cerrar="eliminar"></div>
+    <div class="sky-modal-card" role="alertdialog" aria-modal="true" aria-labelledby="titulo-eliminar" aria-describedby="texto-eliminar">
+        <h3 id="titulo-eliminar">Eliminar propiedad</h3>
+        <p id="texto-eliminar">¿Seguro que deseas eliminar esta propiedad?</p>
+        <div id="eliminar-error" class="alert-error" role="alert" hidden></div>
+        <div class="modal-actions">
+            <button type="button" class="btn-outline" data-cerrar="eliminar">Cancelar</button>
+            <button type="button" class="btn-danger" id="btn-confirmar-eliminar">Eliminar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    type Prop = {
+        propiedadID: number;
+        titulo?: string;
+        descripcion?: string | null;
+        precio?: string | number;
+        tipoOperacion?: string;
+        tipoOperacionID?: number;
+        habitaciones?: number | null;
+        ciudad?: string | null;
+        direccion?: string;
+        estado?: string;
+        destacada?: boolean;
+        agenteID?: number | null;
+        constructoraID?: number | null;
+    };
+
+    type Imagen = { imagenID: number | null; url: string };
+
+    type Pendiente =
+        | { tipo: "propiedad"; id: number }
+        | { tipo: "foto"; propiedadId: number; imagenId: string };
+
+    const API = "/api/inmobiliarias/propiedades";
+    const MAX_FOTO_BYTES = 5 * 1024 * 1024;
+
+    const root = document.querySelector<HTMLElement>(".page");
+    const BACKEND_PUBLIC = (root?.dataset.backend ?? "").replace(/\/$/, "");
+
+    // ---------- Datos completos ----------
+    const propiedades = new Map<number, Prop>();
+    try {
+        const raw = document.getElementById("propiedades-data")?.textContent ?? "[]";
+        (JSON.parse(raw) as Prop[]).forEach((p) => propiedades.set(p.propiedadID, p));
+    } catch {
+        /* sin datos precargados */
+    }
+
+    // ---------- Helpers de DOM ----------
+    function get<T extends HTMLElement>(id: string): T {
+        const node = document.getElementById(id);
+        if (!node) throw new Error(`Falta el elemento #${id}`);
+        return node as T;
+    }
+
+    const modales = {
+        propiedad: get<HTMLElement>("modal-propiedad"),
+        fotos: get<HTMLElement>("modal-fotos"),
+        eliminar: get<HTMLElement>("modal-eliminar"),
+    };
+    type NombreModal = keyof typeof modales;
+
+    const form = get<HTMLFormElement>("form-propiedad");
+    const campo = {
+        id: get<HTMLInputElement>("campo-id"),
+        titulo: get<HTMLInputElement>("campo-titulo"),
+        descripcion: get<HTMLTextAreaElement>("campo-descripcion"),
+        precio: get<HTMLInputElement>("campo-precio"),
+        tipo: get<HTMLSelectElement>("campo-tipo"),
+        habitaciones: get<HTMLInputElement>("campo-habitaciones"),
+        ciudad: get<HTMLInputElement>("campo-ciudad"),
+        direccion: get<HTMLInputElement>("campo-direccion"),
+        estado: get<HTMLSelectElement>("campo-estado"),
+        destacada: get<HTMLSelectElement>("campo-destacada"),
+        agente: get<HTMLSelectElement>("campo-agente"),
+        constructora: get<HTMLSelectElement>("campo-constructora"),
+    };
+
+    const formError = get<HTMLElement>("form-error");
+    const fotosError = get<HTMLElement>("fotos-error");
+    const eliminarError = get<HTMLElement>("eliminar-error");
+
+    let pendiente: Pendiente | null = null;
+    let propiedadFotosId: number | null = null;
+    let fotosCambiaron = false; // si hubo cambios, al cerrar el modal se recarga para actualizar la tarjeta
+
+    // ---------- Modales (apertura, cierre, foco, Escape) ----------
+    const pilaModales: NombreModal[] = [];
+    const focoPrevio = new Map<NombreModal, HTMLElement | null>();
+
+    function mostrarError(node: HTMLElement, msg: string | null) {
+        node.hidden = !msg;
+        node.textContent = msg ?? "";
+    }
+
+    function abrir(nombre: NombreModal) {
+        const modal = modales[nombre];
+        focoPrevio.set(nombre, document.activeElement as HTMLElement | null);
+        modal.hidden = false;
+        pilaModales.push(nombre);
+        const primero = modal.querySelector<HTMLElement>(
+            "input:not([type=hidden]), textarea, select, button.btn-primary, button.btn-danger, button"
+        );
+        primero?.focus();
+    }
+
+    function cerrar(nombre: NombreModal) {
+        modales[nombre].hidden = true;
+        const i = pilaModales.lastIndexOf(nombre);
+        if (i >= 0) pilaModales.splice(i, 1);
+        focoPrevio.get(nombre)?.focus?.();
+        focoPrevio.delete(nombre);
+        if (nombre === "fotos" && fotosCambiaron) window.location.reload();
+    }
+
+    document.querySelectorAll<HTMLElement>("[data-cerrar]").forEach((n) => {
+        n.addEventListener("click", () => cerrar(n.dataset.cerrar as NombreModal));
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && pilaModales.length) {
+            cerrar(pilaModales[pilaModales.length - 1]);
+        }
+    });
+
+    // ---------- Red ----------
+    async function pedir(url: string, init: RequestInit) {
+        const res = await fetch(url, { credentials: "same-origin", ...init });
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return { ok: res.ok, status: res.status, data };
+    }
+
+    function mensajeError(data: Record<string, unknown>, status: number, porDefecto: string) {
+        const detalle = (data.error ?? data.message) as string | undefined;
+        return detalle ? String(detalle) : `${porDefecto} (${status})`;
+    }
+
+    // Deshabilita el botón mientras corre la petición (evita dobles envíos)
+    async function conBloqueo(btn: HTMLButtonElement, fn: () => Promise<void>) {
+        if (btn.disabled) return;
+        const textoOriginal = btn.textContent;
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
+        try {
+            await fn();
+        } finally {
+            btn.disabled = false;
+            btn.removeAttribute("aria-busy");
+            btn.textContent = textoOriginal;
+        }
+    }
+
+    // ---------- Filtros de las tarjetas ----------
+    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const grid = get<HTMLElement>("grid-propiedades");
+    const tarjetas = Array.from(grid.querySelectorAll<HTMLElement>(".prop-card"));
+    const filtroBuscar = get<HTMLInputElement>("filtro-buscar");
+    const filtroEstado = get<HTMLSelectElement>("filtro-estado");
+    const filtroTipo = get<HTMLSelectElement>("filtro-tipo");
+    const sinResultados = get<HTMLElement>("sin-resultados");
+    const contador = get<HTMLElement>("contador");
+
+    function filtrar() {
+        const q = norm(filtroBuscar.value.trim());
+        const estado = filtroEstado.value;
+        const tipo = filtroTipo.value;
+        let visibles = 0;
+
+        tarjetas.forEach((t) => {
+            const ok =
+                (!q || (t.dataset.busqueda ?? "").includes(q)) &&
+                (!estado || t.dataset.estado === estado) &&
+                (!tipo || t.dataset.tipo === tipo);
+            t.hidden = !ok;
+            if (ok) visibles++;
+        });
+
+        sinResultados.hidden = visibles !== 0 || tarjetas.length === 0;
+        contador.textContent =
+            visibles === tarjetas.length
+                ? `${visibles} ${visibles === 1 ? "propiedad" : "propiedades"}`
+                : `Mostrando ${visibles} de ${tarjetas.length}`;
+    }
+
+    filtroBuscar.addEventListener("input", filtrar);
+    filtroEstado.addEventListener("change", filtrar);
+    filtroTipo.addEventListener("change", filtrar);
+
+    // ---------- Formulario ----------
+    function mapTipoNombreAId(nombre?: string): string {
+        const n = String(nombre ?? "").toLowerCase();
+        if (n.includes("venta")) return "1";
+        if (n.includes("arriend")) return "2";
+        if (n.includes("empe")) return "3";
+        return "1";
+    }
+
+    function limpiarFormulario() {
+        form.reset();
+        campo.id.value = "";
+        campo.tipo.value = "1";
+        campo.estado.value = "Disponible";
+        campo.destacada.value = "false";
+        campo.agente.value = "";
+        campo.constructora.value = "";
+        mostrarError(formError, null);
+        get("modal-titulo").textContent = "Nueva propiedad";
+    }
+
+    function rellenarFormulario(d: Prop) {
+        campo.id.value = String(d.propiedadID);
+        campo.titulo.value = d.titulo ?? "";
+        campo.descripcion.value = d.descripcion ?? "";
+        campo.precio.value = d.precio != null ? String(d.precio) : "";
+        campo.tipo.value = d.tipoOperacionID
+            ? String(d.tipoOperacionID)
+            : mapTipoNombreAId(d.tipoOperacion);
+        campo.habitaciones.value = d.habitaciones != null ? String(d.habitaciones) : "";
+        campo.ciudad.value = d.ciudad ?? "";
+        campo.direccion.value = d.direccion ?? "";
+        campo.estado.value = d.estado || "Disponible";
+        campo.destacada.value = d.destacada ? "true" : "false";
+        campo.agente.value = d.agenteID != null ? String(d.agenteID) : "";
+        campo.constructora.value = d.constructoraID != null ? String(d.constructoraID) : "";
+        get("modal-titulo").textContent = "Editar propiedad";
+        mostrarError(formError, null);
+    }
+
+    // ---------- Galería ----------
+    function urlImg(path: unknown): string | null {
+        if (!path) return null;
+        const p = String(path);
+        if (/^https?:\/\//i.test(p)) return p;
+        return BACKEND_PUBLIC + (p.startsWith("/") ? p : "/" + p);
+    }
+
+    function pintarGaleria(imagenes: unknown[]) {
+        const g = get<HTMLElement>("galeria-fotos");
+        g.replaceChildren();
+
+        const lista: Imagen[] = (imagenes ?? []).map((item) => {
+            if (typeof item === "string") return { imagenID: null, url: item };
+            const o = item as Record<string, unknown>;
+            const id = o.imagenID ?? o.imagenId;
+            return { imagenID: id != null ? Number(id) : null, url: String(o.url ?? "") };
+        });
+
+        if (!lista.length) {
+            const vacio = document.createElement("span");
+            vacio.className = "vacio";
+            vacio.textContent = "Sin fotos aún. Sube la primera.";
+            g.appendChild(vacio);
+            return;
+        }
+
+        lista.forEach((item) => {
+            const src = urlImg(item.url);
+            if (!src) return;
+            const wrap = document.createElement("div");
+            wrap.className = "galeria-item";
+
+            const img = document.createElement("img");
+            img.src = src;
+            img.alt = "Foto de la propiedad";
+            img.loading = "lazy";
+            wrap.appendChild(img);
+
+            if (item.imagenID != null) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn-del-img";
+                btn.textContent = "×";
+                btn.setAttribute("aria-label", "Eliminar foto");
+                btn.dataset.skyDelImg = String(item.imagenID);
+                wrap.appendChild(btn);
+            }
+            g.appendChild(wrap);
+        });
+    }
+
+    // Requiere la ruta Astro: src/pages/api/inmobiliarias/propiedades/[id]/detalle.ts
+    async function cargarGaleria(id: number) {
+        mostrarError(fotosError, null);
+        try {
+            const { ok, status, data } = await pedir(`${API}/${id}/detalle`, { method: "GET" });
+            if (!ok) {
+                pintarGaleria([]);
+                mostrarError(fotosError, mensajeError(data, status, "No se pudieron cargar las fotos"));
+                return;
+            }
+            const prop = (data.propiedad ?? data.data ?? data) as { imagenes?: unknown[] };
+            pintarGaleria(prop.imagenes ?? []);
+        } catch {
+            pintarGaleria([]);
+            mostrarError(fotosError, "Error de red al cargar las fotos");
+        }
+    }
+
+    // ---------- Acciones de las tarjetas (Editar / Fotos / Eliminar) ----------
+    function abrirEditar(p: Prop) {
+        rellenarFormulario(p);
+        abrir("propiedad");
+    }
+
+    function abrirEliminar(p: Prop) {
+        pendiente = { tipo: "propiedad", id: p.propiedadID };
+        get("titulo-eliminar").textContent = "Eliminar propiedad";
+        get("texto-eliminar").textContent =
+            `¿Eliminar la propiedad "${p.titulo || "#" + p.propiedadID}"? Esta acción no se puede deshacer.`;
+        mostrarError(eliminarError, null);
+        abrir("eliminar");
+    }
+
+    function abrirFotos(p: Prop) {
+        propiedadFotosId = p.propiedadID;
+        fotosCambiaron = false;
+        get("titulo-fotos").textContent = `Fotos — "${p.titulo || "#" + p.propiedadID}"`;
+        get<HTMLInputElement>("input-foto").value = "";
+        pintarGaleria([]);
+        abrir("fotos");
+        cargarGaleria(p.propiedadID);
+    }
+
+    grid.addEventListener("click", (e) => {
+        const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-accion]");
+        if (!btn) return;
+        const p = propiedades.get(Number(btn.dataset.id));
+        if (!p) return;
+
+        if (btn.dataset.accion === "editar") abrirEditar(p);
+        else if (btn.dataset.accion === "fotos") abrirFotos(p);
+        else if (btn.dataset.accion === "eliminar") abrirEliminar(p);
+    });
+
+    // ---------- Nueva ----------
+    get("btn-nueva-propiedad").addEventListener("click", () => {
+        limpiarFormulario();
+        abrir("propiedad");
+    });
+
+    // ---------- Guardar (crear / editar) ----------
+    const btnGuardar = get<HTMLButtonElement>("btn-guardar-propiedad");
+    btnGuardar.addEventListener("click", () =>
+        conBloqueo(btnGuardar, async () => {
+            mostrarError(formError, null);
+
+            if (!form.reportValidity()) return;
+
+            const precio = Number(campo.precio.value);
+            if (!Number.isFinite(precio) || precio < 0) {
+                mostrarError(formError, "El precio debe ser un número mayor o igual a 0.");
+                return;
+            }
+
+            const id = campo.id.value.trim();
+            const payload = {
+                titulo: campo.titulo.value.trim(),
+                descripcion: campo.descripcion.value.trim() || null,
+                precio,
+                tipoOperacionID: Number(campo.tipo.value),
+                habitaciones: campo.habitaciones.value !== "" ? Number(campo.habitaciones.value) : null,
+                direccion: campo.direccion.value.trim(),
+                ciudad: campo.ciudad.value.trim() || null,
+                estado: campo.estado.value,
+                destacada: campo.destacada.value === "true",
+                // Se envían siempre para que al editar no se borren
+                agenteID: campo.agente.value ? Number(campo.agente.value) : null,
+                constructoraID: campo.constructora.value ? Number(campo.constructora.value) : null,
+            };
+
+            if (!payload.titulo || !payload.direccion) {
+                mostrarError(formError, "Título y dirección no pueden estar vacíos.");
+                return;
+            }
+
+            btnGuardar.textContent = "Guardando…";
+            try {
+                const { ok, status, data } = await pedir(id ? `${API}/${id}` : API, {
+                    method: id ? "PUT" : "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+                if (!ok) {
+                    mostrarError(formError, mensajeError(data, status, "No se pudo guardar"));
+                    return;
+                }
+                window.location.reload();
+            } catch {
+                mostrarError(formError, "Error de red al guardar");
+            }
+        })
+    );
+
+    // ---------- Confirmar eliminar (propiedad o foto) ----------
+    const btnEliminar = get<HTMLButtonElement>("btn-confirmar-eliminar");
+    btnEliminar.addEventListener("click", () =>
+        conBloqueo(btnEliminar, async () => {
+            if (!pendiente) return;
+            mostrarError(eliminarError, null);
+            btnEliminar.textContent = "Eliminando…";
+
+            const url =
+                pendiente.tipo === "propiedad"
+                    ? `${API}/${pendiente.id}`
+                    : `${API}/${pendiente.propiedadId}/imagenes/${pendiente.imagenId}`;
+
+            try {
+                const { ok, status, data } = await pedir(url, { method: "DELETE" });
+                if (!ok) {
+                    mostrarError(eliminarError, mensajeError(data, status, "No se pudo eliminar"));
+                    return;
+                }
+                if (pendiente.tipo === "propiedad") {
+                    window.location.reload();
+                } else {
+                    const pid = pendiente.propiedadId;
+                    pendiente = null;
+                    fotosCambiaron = true;
+                    cerrar("eliminar");
+                    await cargarGaleria(pid);
+                }
+            } catch {
+                mostrarError(eliminarError, "Error de red al eliminar");
+            }
+        })
+    );
+
+    // ---------- Eliminar foto (abre la confirmación) ----------
+    get("galeria-fotos").addEventListener("click", (ev) => {
+        const del = (ev.target as HTMLElement | null)?.closest<HTMLElement>("[data-sky-del-img]");
+        if (!del || propiedadFotosId == null) return;
+        const imagenId = del.dataset.skyDelImg;
+        if (!imagenId) return;
+
+        pendiente = { tipo: "foto", propiedadId: propiedadFotosId, imagenId };
+        get("titulo-eliminar").textContent = "Eliminar foto";
+        get("texto-eliminar").textContent = "¿Eliminar esta foto? Esta acción no se puede deshacer.";
+        mostrarError(eliminarError, null);
+        abrir("eliminar");
+    });
+
+    // ---------- Subir imagen ----------
+    const btnSubir = get<HTMLButtonElement>("btn-subir-foto");
+    btnSubir.addEventListener("click", () =>
+        conBloqueo(btnSubir, async () => {
+            if (propiedadFotosId == null) return;
+            mostrarError(fotosError, null);
+
+            const input = get<HTMLInputElement>("input-foto");
+            const file = input.files?.[0];
+            if (!file) {
+                mostrarError(fotosError, "Elige una imagen.");
+                return;
+            }
+            if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+                mostrarError(fotosError, "Formato no soportado (usa jpg, png o webp).");
+                return;
+            }
+            if (file.size > MAX_FOTO_BYTES) {
+                mostrarError(fotosError, "La imagen no puede superar los 5 MB.");
+                return;
+            }
+
+            btnSubir.textContent = "Subiendo…";
+            const fd = new FormData();
+            fd.append("imagen", file);
+            try {
+                const { ok, status, data } = await pedir(`${API}/${propiedadFotosId}/imagenes`, {
+                    method: "POST",
+                    body: fd,
+                });
+                if (!ok) {
+                    mostrarError(fotosError, mensajeError(data, status, "No se pudo subir la foto"));
+                    return;
+                }
+                input.value = "";
+                fotosCambiaron = true;
+                await cargarGaleria(propiedadFotosId);
+            } catch {
+                mostrarError(fotosError, "Error de red al subir");
+            }
+        })
+    );
+</script>
