@@ -1,5 +1,6 @@
 ---
-
+import Navbar from "../components/menu/Navbar.astro";
+import "../components/menu/menu.css";
 
 ---
 
@@ -13,18 +14,8 @@
 	<body>
 		<!-- ▌HEADER / HERO ▐ -->
 		<header id="header">
-			<div class="topbar">
-				<div class="logo">SkyInit</div>
-				<div class="menu-toggle" id="menuToggle">&#9776;</div>
-				<nav id="menu">
-					<a href="/">Inicio</a>
-					<a href="/propiedades">Propiedades</a>
-					<a href="/proyectos">Proyectos</a>
-					<a href="/servicios">Servicios</a>
-					<a href="/constructoras">Constructoras</a>
-					<span id="navUser"></span>
-				</nav>
-			</div>
+            <Navbar />
+
 			<div class="hero-inner">
 				<div class="hero-eyebrow">Cuidamos tu hogar</div>
 				<h1>Mantenimiento <em>profesional</em> para tu vivienda</h1>
@@ -98,53 +89,76 @@
 				type ServicioMantenimiento,
 			} from '../utils/api';
 
-			let usuarioAutenticado = false;
-let nombreUsuario = '';
-let fotoPerfil = '/img/default-avatar.svg';
+const BACKEND_PUBLIC = "http://localhost:8001";
 
-// ── Sesión ──────────────────────────────────────────
+function urlPublica(ruta: string | null | undefined) {
+  if (!ruta || !ruta.trim()) return "";
+  const r = ruta.trim();
+  if (r.startsWith("http") || r.startsWith("data:")) return r;
+  if (r.startsWith("/uploads/")) return `${BACKEND_PUBLIC}${r}`;
+  return r;
+}
+
+function iniciales(nombre: string) {
+  const p = nombre.trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return "U";
+  if (p.length === 1) return p[0].slice(0, 2).toUpperCase();
+  return (p[0][0] + p[1][0]).toUpperCase();
+}
+
+let usuarioAutenticado = false;
+let nombreUsuario = "";
+let fotoPerfil = "";
+
 async function verificarSesion() {
-    try {
-        const res = await fetch('/api/perfil', { credentials: 'same-origin' });
-        if (res.ok) {
-            const data = await res.json();
-            usuarioAutenticado = true;
-            nombreUsuario = data.usuario?.nombre ?? '';
-            fotoPerfil = data.usuario?.fotoPerfil || '/img/default-avatar.svg';
-        }
-    } catch {
-
+  try {
+    const res = await fetch("/api/perfil", { credentials: "same-origin" });
+    if (res.ok) {
+      const data = await res.json();
+      const u = data.usuario ?? data;
+      usuarioAutenticado = true;
+      nombreUsuario = u.nombre ?? "";
+      fotoPerfil = urlPublica(u.fotoPerfil ?? u.FotoPerfil);
     }
-    renderUserMenu();
+  } catch {
+    /* sin sesión */
+  }
+  renderUserMenu();
 }
 
 function renderUserMenu() {
-    const nav = document.getElementById('navUser');
-    if (!nav) return;
+  const nav = document.getElementById("navUser");
+  if (!nav) return;
 
-    if (usuarioAutenticado) {
-        nav.innerHTML = `
-            <div class="user-profile">
-                <img src="${fotoPerfil}" alt="Perfil" class="profile-pic" id="profilePic" />
-                <div id="user-menu" class="user-menu">
-                    <div class="user-menu-name">${nombreUsuario}</div>
-                    <a href="/ajustes">⚙️ Ajustes</a>
-                    <button type="button" id="btnLogout">🚪 Cerrar sesión</button>
-                </div>
-            </div>`;
+  if (usuarioAutenticado) {
+    const avatar = fotoPerfil
+      ? `<img src="${fotoPerfil}" alt="Perfil" class="profile-pic" id="profilePic" />`
+      : `<button type="button" class="profile-pic profile-iniciales" id="profilePic">${iniciales(nombreUsuario)}</button>`;
 
-        document.getElementById('profilePic')?.addEventListener('click', () => {
-            document.getElementById('user-menu')?.classList.toggle('active');
-        });
+    nav.innerHTML = `
+      <div class="user-profile">
+        ${avatar}
+        <div id="user-menu" class="user-menu">
+          <div class="user-menu-name">${nombreUsuario}</div>
+          <a href="/usuario">⚙️ Ajustes</a>
+          <button type="button" id="btnLogout">🚪 Cerrar sesión</button>
+        </div>
+      </div>`;
 
-        document.getElementById('btnLogout')?.addEventListener('click', async () => {
-            await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
-            location.reload();
-        });
-    } else {
-        nav.innerHTML = `<a href="/login" class="btn-registrar">Iniciar Sesión</a>`;
-    }
+    document.getElementById("profilePic")?.addEventListener("click", () => {
+      document.getElementById("user-menu")?.classList.toggle("active");
+    });
+
+    document.getElementById("btnLogout")?.addEventListener("click", async () => {
+      await fetch("/api/logout", { method: "POST", credentials: "same-origin" });
+      location.reload();
+    });
+  } else {
+    nav.innerHTML = `<a href="/login" class="btn-registrar">Iniciar Sesión</a>`;
+  }
 }
+
+
 
 // ── Catálogo de servicios ───────────────────────────
 function formatoPrecio(precio: string | number) {
@@ -157,15 +171,6 @@ function escapeHtml(valor: string | null | undefined) {
     }[c] as string));
 }
 
-// Iniciales de la inmobiliaria, usadas como logo de respaldo cuando no tiene uno cargado
-function iniciales(nombre: string) {
-    return nombre
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((p) => p[0]?.toUpperCase())
-        .join('') || '?';
-}
 
 // Bloque clicable con el logo + nombre de la inmobiliaria que ofrece el servicio.
 // Si no hay InmobiliariaID (servicio publicado directo por SkyInit) no es clicable.
@@ -174,7 +179,7 @@ function renderProveedorChip(inmobiliariaID: number | null, nombre: string, logo
     const contenido = `
         ${
             logo
-                ? `<img src="${logo}" alt="${nombreSeguro}" class="proveedor-logo" loading="lazy">`
+                ? `<img src="${urlPublica(logo)}" alt="${nombreSeguro}" class="proveedor-logo" loading="lazy">`
                 : `<span class="proveedor-logo proveedor-logo--placeholder">${iniciales(nombre)}</span>`
         }
         <span class="proveedor-nombre">${nombreSeguro}</span>
@@ -191,6 +196,7 @@ function renderProveedorChip(inmobiliariaID: number | null, nombre: string, logo
         </a>`;
 }
 
+
 function renderCardServicio(s: ServicioMantenimiento, grupo: GrupoServiciosInmobiliaria) {
     const nombreSeguro = escapeHtml(s.nombre);
     return `
@@ -198,7 +204,7 @@ function renderCardServicio(s: ServicioMantenimiento, grupo: GrupoServiciosInmob
         <div class="card-img-container">
             ${
                 s.imagen
-                    ? `<img src="${s.imagen}" alt="${nombreSeguro}" loading="lazy">`
+                    ? `<img src="${urlPublica(s.imagen)}" alt="${nombreSeguro}" loading="lazy">`
                     : `<div class="card-icon-placeholder">🛠️</div>`
             }
             <span class="badge-tipo">Disponible</span>
@@ -227,7 +233,7 @@ function renderGrupo(grupo: GrupoServiciosInmobiliaria) {
     const textoCantidad = `${cantidad} ${cantidad === 1 ? 'servicio disponible' : 'servicios disponibles'}`;
 
     const logoHtml = grupo.inmobiliariaLogo
-        ? `<img src="${grupo.inmobiliariaLogo}" alt="${nombreSeguro}" class="grupo-logo">`
+        ? `<img src="${urlPublica(grupo.inmobiliariaLogo)}" alt="${nombreSeguro}" class="grupo-logo">`
         : `<span class="grupo-logo grupo-logo-placeholder">${iniciales(grupo.inmobiliaria)}</span>`;
 
     const headerInner = `
@@ -384,14 +390,14 @@ document.addEventListener('DOMContentLoaded', () => {
         index = (index + 1) % images.length;
     }
     cambiarFondo();
-    setInterval(cambiarFondo, 5000);
+    setInterval(cambiarFondo, 7500);
 });
 		</script>
 	</body>
 </html>
 
 <style is:global>
-	@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
 
 * {
     margin: 0;
@@ -438,157 +444,6 @@ header::before {
     left: 0;
     z-index: 0;
     pointer-events: none;
-}
-
-/* NAVBAR */
-.topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 30px;
-    position: relative;
-    z-index: 100;
-    overflow: visible;
-    background: rgba(46, 125, 50, 0.7);
-    backdrop-filter: blur(6px);
-}
-
-.logo {
-    font-size: 24px;
-    font-weight: bold;
-    color: white;
-}
-
-nav {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    position: relative;
-    z-index: 9999;
-    overflow: visible;
-}
-
-nav a {
-    color: white;
-    text-decoration: none;
-    padding: 6px 10px;
-    border-radius: 5px;
-    transition: 0.3s;
-    font-size: 15px;
-}
-
-nav a:hover {
-    background: var(--verde-claro);
-    color: var(--verde-oscuro);
-}
-
-.btn-registrar {
-    background: #f5f5dc;
-    color: var(--verde-medio);
-    font-weight: bold;
-}
-
-.btn-registrar:hover {
-    background: #e6e6c5;
-}
-
-.menu-toggle {
-    display: none;
-    font-size: 26px;
-    cursor: pointer;
-    color: white;
-}
-
-/* PERFIL DE USUARIO */
-.user-profile {
-    position: relative;
-    display: inline-block;
-    z-index: 9999;
-    overflow: visible;
-}
-
-.profile-pic {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid #fff;
-    object-fit: cover;
-    transition: transform 0.3s;
-}
-
-.profile-pic:hover {
-    transform: scale(1.1);
-}
-
-.user-menu {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: calc(100% + 10px);
-    background: #ffffff;
-    border: 1px solid #eaeaea;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    min-width: 180px;
-    z-index: 9999;
-    padding: 8px 0;
-}
-
-.user-menu.active {
-    display: flex;
-    flex-direction: column;
-}
-
-.user-menu-name {
-    padding: 10px 16px;
-    font-weight: bold;
-    color: #333333;
-    border-bottom: 1px solid #eeeeee;
-    margin-bottom: 4px;
-    font-size: 14.5px;
-}
-
-.user-menu a,
-.user-menu button {
-    display: block;
-    width: 100%;
-    padding: 10px 16px !important;
-    color: #333333 !important;
-    text-align: left;
-    background: none;
-    border: none;
-    font-size: 14.5px;
-    cursor: pointer;
-    text-decoration: none;
-    box-sizing: border-box;
-}
-
-.user-menu a:hover,
-.user-menu button:hover {
-    background-color: #f8f9fa !important;
-    color: var(--verde-medio) !important;
-}
-
-/* RESPONSIVE NAV */
-@media (max-width: 900px) {
-    nav {
-        position: absolute;
-        top: 65px;
-        right: 0;
-        background: var(--verde-medio);
-        flex-direction: column;
-        width: 240px;
-        display: none;
-    }
-
-    nav.active {
-        display: flex;
-    }
-
-    .menu-toggle {
-        display: block;
-    }
 }
 
 /* HERO TEXTO */
@@ -1067,6 +922,17 @@ a.proveedor-chip:hover {
 .btn-login-required:hover {
     background: var(--verde-medio) !important;
     color: white !important;
+}
+
+.profile-iniciales {
+  border: none;
+  background: #2e8b57;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .empty-state {
