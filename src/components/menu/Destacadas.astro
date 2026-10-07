@@ -208,19 +208,46 @@ function formatPrecio(n: number | string) {
       e.preventDefault();
       e.stopPropagation();
 
-      const propiedadId = (btn as HTMLElement).dataset.id;
-      const res = await fetch("/api/usuario/favoritos", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `propiedadId=${propiedadId}`,
-      }).catch(() => null);
+      const el = btn as HTMLElement;
+      const propiedadID = Number(el.dataset.id);
+      if (!propiedadID) return;
 
-      if (!res || res.status === 401) {
-        document.getElementById("modalRegistro")?.classList.add("open");
-        return;
-      }
-      if (res.ok) {
-        btn.classList.toggle("favorito-activo");
+      const yaEsFavorito = el.classList.contains("favorito-activo");
+
+      try {
+        let res: Response;
+
+        if (yaEsFavorito) {
+          // Quitar
+          res = await fetch(`/api/usuario/favoritos/${propiedadID}`, {
+            method: "DELETE",
+            credentials: "same-origin",
+          });
+        } else {
+          // Agregar — JSON y nombre del campo como en Deno
+          res = await fetch("/api/usuario/favoritos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ propiedadID }),
+          });
+        }
+
+        if (res.status === 401) {
+          document.getElementById("modalRegistro")?.classList.add("open");
+          return;
+        }
+
+        // 201 creado, 200 eliminado, 409 ya existía → mostrar como activo
+        if (res.ok || res.status === 409) {
+          if (yaEsFavorito && res.ok) {
+            el.classList.remove("favorito-activo");
+          } else {
+            el.classList.add("favorito-activo");
+          }
+        }
+      } catch {
+        // sin conexión: no cambia el corazón
       }
     });
   });

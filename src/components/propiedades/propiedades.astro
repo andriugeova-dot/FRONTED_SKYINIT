@@ -265,26 +265,91 @@ function resolverImagenTarjeta(url: string | null) {
     cambiarFondoHero();
     setInterval(cambiarFondoHero, 5000);
 
-    // Favoritos (el backend aún no tiene el endpoint)
+    // Favoritos
     const modalRegistro = document.getElementById("modalRegistro") as HTMLElement;
+    // ─── Pintar favoritos al cargar ────────────────────────────────────────────
+async function inicializarFavoritos() {
+    try {
+        const res = await fetch("/api/usuario/favoritos", {
+            credentials: "same-origin",
+        });
+
+        // 401 = no está logueado, simplemente no hacer nada
+        if (res.status === 401) return;
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        // El endpoint devuelve { favoritos: [...] }
+        const favoritos: { propiedadID?: number; propiedad?: { propiedadID: number } }[] =
+            data.favoritos ?? [];
+
+        const idsFavoritos = new Set<number>(
+            favoritos.map((f) => f.propiedad?.propiedadID ?? f.propiedadID ?? 0)
+                     .filter((id) => id > 0)
+        );
+
+        document.querySelectorAll<HTMLElement>(".btn-favorito").forEach((btn) => {
+            const id = Number(btn.getAttribute("data-id"));
+            if (!id) return;
+
+            const activo = idsFavoritos.has(id);
+            btn.classList.toggle("favorito-activo", activo);
+            btn.classList.toggle("favorito-inactivo", !activo);
+            btn.setAttribute("aria-pressed", String(activo));
+            btn.setAttribute(
+                "aria-label",
+                activo ? "Quitar de favoritos" : "Guardar en favoritos"
+            );
+        });
+    } catch {
+        // Error de red — no romper la página
+    }
+}
+
+inicializarFavoritos();
 
     document.querySelectorAll(".btn-favorito").forEach((btn) => {
-        btn.addEventListener("click", async () => {
-            const propiedadId = btn.getAttribute("data-id");
-            try {
-                const response = await fetch("/api/favoritos/toggle", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ propiedadID: Number(propiedadId) }),
-                });
+        btn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // no abrir el modal de detalle
 
-                if (response.ok) {
-                    btn.classList.toggle("favorito-activo");
-                    btn.classList.toggle("favorito-inactivo");
-                } else if (response.status === 401) {
-                    modalRegistro.classList.add("open");
+            const el = btn as HTMLElement;
+            const propiedadID = Number(el.getAttribute("data-id"));
+            if (!propiedadID) return;
+
+            const yaEsFavorito = el.classList.contains("favorito-activo");
+
+            try {
+                let response: Response;
+
+                if (yaEsFavorito) {
+                    response = await fetch(`/api/usuario/favoritos/${propiedadID}`, {
+                        method: "DELETE",
+                        credentials: "same-origin",
+                    });
                 } else {
-                    alert("Favoritos aún no está disponible.");
+                    response = await fetch("/api/usuario/favoritos", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "same-origin",
+                        body: JSON.stringify({ propiedadID }),
+                    });
+                }
+
+                if (response.status === 401) {
+                    modalRegistro?.classList.add("open");
+                    return;
+                }
+
+                if (response.ok || response.status === 409) {
+                    if (yaEsFavorito && response.ok) {
+                        el.classList.remove("favorito-activo");
+                        el.classList.add("favorito-inactivo");
+                    } else {
+                        el.classList.add("favorito-activo");
+                        el.classList.remove("favorito-inactivo");
+                    }
                 }
             } catch {
                 alert("No se pudo conectar con el servidor.");
