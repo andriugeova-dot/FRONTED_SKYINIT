@@ -1,0 +1,16 @@
+---
+import Layout from "../../layouts/LayoutVistas.astro";
+import  Proyectos  from "../../components/admin/proyectos.astro";
+import { getTokenSSR, obtenerRolDesdeToken } from "../../utils/auth";
+
+const token = getTokenSSR(Astro.cookies);
+const rol = obtenerRolDesdeToken(token);
+
+if (!token || (rol !== "Administrador" && rol !== "SuperAdmin")) {
+    return Astro.redirect("/login");
+}
+---
+
+<Layout>
+    <Proyectos />
+</Layout>
