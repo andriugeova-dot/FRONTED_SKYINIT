@@ -2,36 +2,91 @@
 import "./terminos.css";
 ---
 
-<div class="terminos-page">
-  <div class="terminos-card">
-    <h1>Términos y condiciones</h1>
-    <p class="meta" id="metaTerminos">Cargando…</p>
-
-    <div class="contenido" id="contenidoTerminos">
-      <p class="cargando">Obteniendo documento…</p>
-    </div>
-
-    <label class="check-row">
-      <input type="checkbox" id="chkAcepto" />
-      <span>He leído y acepto los términos y condiciones de SkyInit</span>
-    </label>
-
-    <div id="mensajeError" class="error d-none" role="alert"></div>
-    <div id="mensajeExito" class="exito d-none" role="status"></div>
-
-    <div class="acciones">
-      <button type="button" class="btn btn-secondary" id="btnCancelar">
-        No acepto
-      </button>
-      <button type="button" class="btn btn-primary" id="btnAceptar" disabled>
-        Aceptar y crear cuenta
-      </button>
-    </div>
+<div class="auth-page">
+  <div class="bg-layer" aria-hidden="true">
+  <img
+    src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=2000&q=80"
+    class="bg-img active"
+    alt=""
+  />
+  <img
+    src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=2000&q=80"
+    class="bg-img"
+    alt=""
+  />
+  <img
+    src="https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=2000&q=80"
+    class="bg-img"
+    alt=""
+  />
+  <img
+    src="https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?auto=format&fit=crop&w=2000&q=80"
+    class="bg-img"
+    alt=""
+  />
+    <div class="bg-overlay"></div>
   </div>
+
+  <header class="auth-header">
+    <div class="brand">
+      <h1>SkyInit</h1>
+      <p>Encuentra tu hogar ideal</p>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="glass-card card-enter-terminos">
+      <div class="card-title">
+        <h2>Términos y condiciones</h2>
+        <p id="metaTerminos">Cargando documento…</p>
+      </div>
+
+      <div class="contenido" id="contenidoTerminos">
+        <p class="cargando">Obteniendo documento…</p>
+      </div>
+
+      <label class="check-row">
+        <input type="checkbox" id="chkAcepto" />
+        <span>He leído y acepto los términos y condiciones de SkyInit</span>
+      </label>
+
+      <div id="mensajeError" class="msg-error d-none" role="alert"></div>
+      <div id="mensajeExito" class="msg-exito d-none" role="status"></div>
+
+      <div class="acciones">
+        <button type="button" class="btn-secondary" id="btnCancelar">Volver</button>
+        <button type="button" class="btn-brand" id="btnAceptar" disabled>
+          Aceptar y crear cuenta
+        </button>
+      </div>
+
+      <p class="auth-footer-links">
+        <a href="/registro" id="linkVolverRegistro">Editar datos del registro</a>
+      </p>
+    </div>
+  </main>
+
+  <footer class="auth-footer">&copy; 2026 SkyInit. Todos los derechos reservados.</footer>
 </div>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
 
 <script>
   import { obtenerTerminosRequest, registroRequest, rutaPorRol } from "../../utils/api";
+
+  // Carrusel de fondo (igual que registro)
+  const imgs = document.querySelectorAll(".bg-img");
+  let i = 0;
+  setInterval(() => {
+    imgs[i].classList.remove("active");
+    i = (i + 1) % imgs.length;
+    imgs[i].classList.add("active");
+  }, 7500);
 
   const meta = document.getElementById("metaTerminos") as HTMLParagraphElement;
   const contenido = document.getElementById("contenidoTerminos") as HTMLDivElement;
@@ -41,22 +96,32 @@ import "./terminos.css";
   const mensajeError = document.getElementById("mensajeError") as HTMLDivElement;
   const mensajeExito = document.getElementById("mensajeExito") as HTMLDivElement;
 
-  // Sin datos del formulario → no se puede estar aquí
   const raw = sessionStorage.getItem("skyinit_registro");
   if (!raw) {
     window.location.href = "/registro";
+    throw new Error("Sin datos de registro");
   }
 
   chk.addEventListener("change", () => {
     btnAceptar.disabled = !chk.checked;
   });
 
+  function irConFade(url: string) {
+    document.querySelector(".auth-page")?.classList.add("page-leave");
+    setTimeout(() => {
+      window.location.href = url;
+    }, 320);
+  }
+
   btnCancelar.addEventListener("click", () => {
-    sessionStorage.removeItem("skyinit_registro");
     window.location.href = "/registro";
   });
 
-  // Cargar texto de términos
+  document.getElementById("linkVolverRegistro")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    irConFade("/registro");
+  });
+
   (async () => {
     try {
       const data = await obtenerTerminosRequest();
@@ -65,10 +130,8 @@ import "./terminos.css";
         contenido.innerHTML = `<p class="error-inline">${data.error || "No se pudieron cargar los términos"}</p>`;
         return;
       }
-
       const t = data.terminos;
       meta.textContent = `Versión ${t.version} · Actualizado ${t.fechaActualizacion}`;
-      // Texto plano del backend → respetar saltos de línea
       contenido.textContent = t.contenido;
     } catch {
       meta.textContent = "";
@@ -79,7 +142,6 @@ import "./terminos.css";
   btnAceptar.addEventListener("click", async () => {
     mensajeError.classList.add("d-none");
     mensajeExito.classList.add("d-none");
-
     if (!chk.checked) {
       mensajeError.textContent = "Debes aceptar los términos y condiciones";
       mensajeError.classList.remove("d-none");
@@ -88,7 +150,7 @@ import "./terminos.css";
 
     const stored = sessionStorage.getItem("skyinit_registro");
     if (!stored) {
-      window.location.href = "/registro";
+      irConFade("/registro");
       return;
     }
 
@@ -101,31 +163,24 @@ import "./terminos.css";
     };
 
     btnAceptar.disabled = true;
-
     try {
-      const data = await registroRequest({
-        ...datos,
-        AceptoTerminos: true,
-      });
-
+      const data = await registroRequest({ ...datos, AceptoTerminos: true });
       if (data.error) {
         mensajeError.textContent = data.error;
         mensajeError.classList.remove("d-none");
         btnAceptar.disabled = false;
         return;
       }
-
       sessionStorage.removeItem("skyinit_registro");
       mensajeExito.textContent = data.mensaje || "Cuenta creada correctamente";
       mensajeExito.classList.remove("d-none");
-
       setTimeout(() => {
-        window.location.href = rutaPorRol(data.usuario?.rol ?? "Usuario");
-      }, 1000);
+        window.location.href = "/"; // menú
+      }, 900);
     } catch {
       mensajeError.textContent = "Error al conectar con el servidor";
       mensajeError.classList.remove("d-none");
       btnAceptar.disabled = false;
     }
   });
-</script>s
+</script>
