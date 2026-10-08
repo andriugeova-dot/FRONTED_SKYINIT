@@ -193,6 +193,15 @@ import "./registro.css";
       JSON.stringify({ Nombre, Correo, Password, Confirmar, Telefono })
     );
 
+    const saved = sessionStorage.getItem("skyinit_registro");
+    if (saved) {
+      const d = JSON.parse(saved);
+      (document.getElementById("reg-nombre") as HTMLInputElement).value = d.Nombre ?? "";
+      (document.getElementById("reg-correo") as HTMLInputElement).value = d.Correo ?? "";
+      // password mejor no rellenar por seguridad
+      (document.getElementById("reg-telefono") as HTMLInputElement).value = d.Telefono ?? "";
+    }
+
     window.location.href = "/terminos";
   });
 </script>
