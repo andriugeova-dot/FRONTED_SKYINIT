@@ -92,11 +92,13 @@ const configuraciones: Record<
         iniciales: string;
         clase: string;
         rutas: {
+            usuarios?: string;
             dashboard: string;
             propiedades: string;
             favoritos?: string;
             solicitudes?: string;
             proyectos?: string;
+            constructoras?:string;
             perfil: string;
         };
         items: {
@@ -132,7 +134,7 @@ const configuraciones: Record<
     Constructora: {
         nombre: nombreMostrar,
         descripcion: subtitulo,
-        iniciales,
+        iniciales, 
         clase: "constructora",
         rutas: {
             dashboard:   "/constructora",
@@ -158,11 +160,13 @@ const configuraciones: Record<
             propiedades: "/admin/propiedades",
             proyectos:   "/admin/proyectos",
             solicitudes: "/admin/servicios",
+            constructoras: "/admin/servicios",
             perfil:      "/admin/perfil",
         },
         items: [
             { href: "/admin",              icon: "bi-grid-1x2-fill",  label: "Dashboard" },
             { href: "/admin/servicios",   icon: "bi-tools",          label: "Servicios" },
+            { href: "/admin/constructoras",        icon: "bi-grid-1x2-fill",  label: "constructoras" },
             { href: "/admin/propiedades",    icon: "bi-buildings-fill", label: "Propiedades" },
             { href: "/admin/proyectos",  icon: "bi-house-fill",     label: "Proyectos" },
             { href: "/admin/perfil",       icon: "bi-person-fill",    label: "Perfil" },
@@ -176,6 +180,7 @@ const configuraciones: Record<
         clase: "superadmin",
         rutas: {
             dashboard:   "/superadmin",
+            usuarios: "/superadmin/usuarios",
             propiedades: "/superadmin/propiedades",
             proyectos:   "/superadmin/proyectos",
             perfil:      "/superadmin/perfil",

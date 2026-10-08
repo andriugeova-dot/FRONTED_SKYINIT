@@ -1,0 +1,18 @@
+---
+import Layout from "../../layouts/LayoutVistas.astro";
+import Constructoras from "../../components/admin/constructoras.astro";
+import { getTokenSSR, obtenerRolDesdeToken } from "../../utils/auth";
+
+const token = getTokenSSR(Astro.cookies);
+const rol = obtenerRolDesdeToken(token);
+
+if (!token || (rol !== "Administrador" && rol !== "SuperAdmin")) {
+    return Astro.redirect("/login");
+}
+
+const esSuperAdmin = rol === "SuperAdmin";
+---
+
+<Layout>
+    <Constructoras esSuperAdmin={esSuperAdmin} />
+</Layout>
