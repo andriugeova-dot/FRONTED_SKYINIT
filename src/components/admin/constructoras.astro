@@ -1,0 +1,377 @@
+---
+import "./constructoras.css";
+const { esSuperAdmin = false } = Astro.props;
+---
+
+<div class="page" id="page-constructoras">
+    <header class="page-header">
+        <div>
+        <h1>Constructoras</h1>
+        <p>Administra constructoras y su vínculo con inmobiliarias</p>
+        </div>
+        <button type="button" class="btn-nueva" id="btn-nueva">+ Nueva constructora</button>
+    </header>
+
+    <div class="stats">
+        <div class="stat-card">
+        <span class="stat-label">Total</span>
+        <span class="stat-value" id="stat-total">—</span>
+        </div>
+        <div class="stat-card">
+        <span class="stat-label">Activas</span>
+        <span class="stat-value" id="stat-activas">—</span>
+        </div>
+        <div class="stat-card">
+        <span class="stat-label">Pendientes</span>
+        <span class="stat-value" id="stat-pendientes">—</span>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="tabla">
+        <thead>
+            <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Ciudad</th>
+            <th>Correo</th>
+            <th>Estado</th>
+            <th>Inmobiliaria</th>
+            <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tbody">
+            <tr>
+            <td colspan="7" class="loading">Cargando…</td>
+            </tr>
+        </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal fuera de .page -->
+<div id="modal" class="modal" hidden>
+    <div class="modal-backdrop" data-cerrar></div>
+    <div class="modal-card">
+        <h2 id="modal-titulo">Nueva constructora</h2>
+        <form id="form-constructora">
+        <input type="hidden" id="f-id" value="" />
+
+        <label>Nombre *</label>
+        <input type="text" id="f-nombre" required />
+
+        <label>Descripción *</label>
+        <textarea id="f-descripcion" rows="3" required></textarea>
+
+        <div class="row-2">
+            <div>
+            <label>Ciudad</label>
+            <input type="text" id="f-ciudad" />
+            </div>
+            <div>
+            <label>Estado</label>
+            <select id="f-estado">
+                <option value="Activo">Activo</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="Inactivo">Inactivo</option>
+            </select>
+            </div>
+        </div>
+
+        <div class="row-2">
+            <div>
+            <label>Teléfono</label>
+            <input type="text" id="f-telefono" />
+            </div>
+            <div>
+            <label>Correo</label>
+            <input type="email" id="f-correo" />
+            </div>
+        </div>
+
+        <label>Contacto (red / persona)</label>
+        <input type="text" id="f-contacto" />
+
+        {esSuperAdmin ? (
+        <>
+            <label>Inmobiliaria</label>
+            <select id="f-inmobiliaria">
+            <option value="">Sin inmobiliaria</option>
+            </select>
+        </>
+        ) : (
+        <input type="hidden" id="f-inmobiliaria" value="" />
+        )}
+
+        <p id="form-error" class="form-error" hidden></p>
+
+        <div class="modal-actions">
+            <button type="button" class="btn-outline" data-cerrar>Cancelar</button>
+            <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+        </form>
+    </div>
+</div>
+
+<script is:inline>
+    (function () {
+        var inmobiliariasMap = {};
+        var lista = [];
+        var modal = document.getElementById("modal");
+        var form = document.getElementById("form-constructora");
+        var formError = document.getElementById("form-error");
+
+        function abrirModal() {
+        if (modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+        }
+
+        function cerrarModal() {
+        modal.hidden = true;
+        formError.hidden = true;
+        document.body.style.overflow = "";
+        }
+
+        function badgeEstado(estado) {
+        var e = (estado || "").toLowerCase();
+        if (e === "activo") return '<span class="badge badge-ok">Activo</span>';
+        if (e === "pendiente") return '<span class="badge badge-warn">Pendiente</span>';
+        return '<span class="badge badge-off">' + (estado || "—") + "</span>";
+        }
+
+        function pintarStats() {
+        var total = lista.length;
+        var activas = lista.filter(function (c) {
+            return String(c.estado || "").toLowerCase() === "activo";
+        }).length;
+        var pendientes = lista.filter(function (c) {
+            return String(c.estado || "").toLowerCase() === "pendiente";
+        }).length;
+        document.getElementById("stat-total").textContent = String(total);
+        document.getElementById("stat-activas").textContent = String(activas);
+        document.getElementById("stat-pendientes").textContent = String(pendientes);
+        }
+
+        function pintarTabla() {
+        var tbody = document.getElementById("tbody");
+        if (!lista.length) {
+            tbody.innerHTML =
+            '<tr><td colspan="7" class="loading">No hay constructoras</td></tr>';
+            pintarStats();
+            return;
+        }
+        tbody.innerHTML = lista
+            .map(function (c) {
+            var id = c.constructoraID ?? c.ConstructoraID;
+            var nombre = c.nombre ?? c.Nombre ?? "";
+            var ciudad = c.ciudad ?? c.Ciudad ?? "—";
+            var correo = c.correo ?? c.Correo ?? "—";
+            var estado = c.estado ?? c.Estado ?? "";
+            var inmoId = c.inmobiliariaID ?? c.InmobiliariaID;
+            var inmo =
+                inmobiliariasMap[inmoId] ||
+                (inmoId != null ? "ID " + inmoId : "—");
+            return (
+                "<tr>" +
+                "<td>" + id + "</td>" +
+                "<td><strong>" + nombre + "</strong></td>" +
+                "<td>" + ciudad + "</td>" +
+                "<td>" + correo + "</td>" +
+                "<td>" + badgeEstado(estado) + "</td>" +
+                "<td>" + inmo + "</td>" +
+                '<td class="acciones">' +
+                '<button type="button" class="btn-sm btn-edit" data-edit="' + id + '">Editar</button> ' +
+                '<button type="button" class="btn-sm btn-del" data-del="' + id + '">Eliminar</button>' +
+                "</td></tr>"
+            );
+            })
+            .join("");
+        pintarStats();
+        }
+
+        function cargarInmobiliarias() {
+        return fetch("/api/admin/inmobiliarias", { credentials: "same-origin" })
+            .then(function (r) {
+            return r.json();
+            })
+            .then(function (json) {
+            var data = Array.isArray(json.data) ? json.data : [];
+            var sel = document.getElementById("f-inmobiliaria");
+            sel.innerHTML = '<option value="">Sin inmobiliaria</option>';
+            inmobiliariasMap = {};
+            data.forEach(function (i) {
+                var id = i.inmobiliariaID ?? i.InmobiliariaID;
+                var nombre = i.nombre ?? i.Nombre ?? ("Inmobiliaria " + id);
+                inmobiliariasMap[id] = nombre;
+                var opt = document.createElement("option");
+                opt.value = String(id);
+                opt.textContent = nombre;
+                sel.appendChild(opt);
+            });
+            })
+            .catch(function () {
+            console.error("No se pudieron cargar inmobiliarias");
+            });
+        }
+
+        function cargar() {
+        return fetch("/api/admin/constructoras", { credentials: "same-origin" })
+            .then(function (r) {
+            return r.json();
+            })
+            .then(function (json) {
+            lista = Array.isArray(json.data)
+                ? json.data
+                : Array.isArray(json)
+                ? json
+                : [];
+            pintarTabla();
+            })
+            .catch(function () {
+            document.getElementById("tbody").innerHTML =
+                '<tr><td colspan="7" class="loading">Error al cargar</td></tr>';
+            });
+        }
+
+        function limpiarForm() {
+        document.getElementById("f-id").value = "";
+        document.getElementById("f-nombre").value = "";
+        document.getElementById("f-descripcion").value = "";
+        document.getElementById("f-ciudad").value = "";
+        document.getElementById("f-estado").value = "Activo";
+        document.getElementById("f-telefono").value = "";
+        document.getElementById("f-correo").value = "";
+        document.getElementById("f-contacto").value = "";
+        document.getElementById("f-inmobiliaria").value = "";
+        document.getElementById("modal-titulo").textContent = "Nueva constructora";
+        }
+
+        function rellenarForm(c) {
+        document.getElementById("f-id").value =
+            c.constructoraID ?? c.ConstructoraID ?? "";
+        document.getElementById("f-nombre").value = c.nombre ?? c.Nombre ?? "";
+        document.getElementById("f-descripcion").value =
+            c.descripcion ?? c.Descripcion ?? "";
+        document.getElementById("f-ciudad").value = c.ciudad ?? c.Ciudad ?? "";
+        document.getElementById("f-estado").value =
+            c.estado ?? c.Estado ?? "Activo";
+        document.getElementById("f-telefono").value =
+            c.telefono ?? c.Telefono ?? "";
+        document.getElementById("f-correo").value = c.correo ?? c.Correo ?? "";
+        document.getElementById("f-contacto").value =
+            c.contacto ?? c.Contacto ?? "";
+
+
+        var inmoEl = document.getElementById("f-inmobiliaria");
+            if (inmoEl) {
+                var inmo = c.inmobiliariaID ?? c.InmobiliariaID;
+                inmoEl.value = inmo != null ? String(inmo) : "";
+        }
+
+
+        document.getElementById("modal-titulo").textContent =
+            "Editar constructora";
+        }
+
+        document.getElementById("btn-nueva").addEventListener("click", function () {
+        limpiarForm();
+        abrirModal();
+        });
+
+        document.querySelectorAll("[data-cerrar]").forEach(function (el) {
+        el.addEventListener("click", cerrarModal);
+        });
+
+        document.getElementById("tbody").addEventListener("click", function (e) {
+        var t = e.target;
+        if (!t || !t.getAttribute) return;
+
+        var editId = t.getAttribute("data-edit");
+        if (editId) {
+            var item = lista.find(function (c) {
+            return String(c.constructoraID ?? c.ConstructoraID) === String(editId);
+            });
+            if (item) {
+            rellenarForm(item);
+            abrirModal();
+            }
+            return;
+        }
+
+        var delId = t.getAttribute("data-del");
+        if (delId) {
+            if (!confirm("¿Eliminar constructora #" + delId + "?")) return;
+            fetch("/api/admin/constructoras?id=" + delId, {
+            method: "DELETE",
+            credentials: "same-origin",
+            })
+            .then(function (r) {
+                if (!r.ok) throw new Error("No se pudo eliminar");
+                return cargar();
+            })
+            .catch(function (err) {
+                alert(err.message || "Error al eliminar");
+            });
+        }
+        });
+
+        form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        formError.hidden = true;
+
+        var id = document.getElementById("f-id").value;
+        var inmoVal = document.getElementById("f-inmobiliaria").value;
+
+        var payload = {
+            nombre: document.getElementById("f-nombre").value.trim(),
+            descripcion: document.getElementById("f-descripcion").value.trim(),
+            ciudad: document.getElementById("f-ciudad").value.trim() || null,
+            estado: document.getElementById("f-estado").value,
+            telefono: document.getElementById("f-telefono").value.trim() || null,
+            correo: document.getElementById("f-correo").value.trim() || null,
+            contacto: document.getElementById("f-contacto").value.trim() || null,
+            inmobiliariaID: inmoVal ? Number(inmoVal) : null,
+            
+        };
+
+        if (!payload.nombre || !payload.descripcion) {
+            formError.textContent = "Nombre y descripción son obligatorios";
+            formError.hidden = false;
+            return;
+        }
+
+        var url = id
+            ? "/api/admin/constructoras?id=" + id
+            : "/api/admin/constructoras";
+        var method = id ? "PUT" : "POST";
+
+        fetch(url, {
+            method: method,
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        })
+            .then(function (r) {
+            return r.json().then(function (data) {
+                if (!r.ok) {
+                throw new Error(
+                    data.message || data.mensaje || data.error || "Error",
+                );
+                }
+                cerrarModal();
+                return cargar();
+            });
+            })
+            .catch(function (err) {
+            formError.textContent = err.message || "Error al guardar";
+            formError.hidden = false;
+            });
+        });
+
+        // Primero inmobiliarias (BD), luego constructoras
+        cargarInmobiliarias().then(cargar);
+    })();
+</script>
