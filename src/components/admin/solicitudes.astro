@@ -1,0 +1,505 @@
+---
+// Solicitudes de la inmobiliaria del administrador: listar, editar estado y eliminar.
+---
+
+<div class="admin-solicitudes">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h1 class="page-title">Solicitudes de servicios</h1>
+      <p class="page-subtitle">Solicitudes recibidas para los servicios de tu inmobiliaria.</p>
+    </div>
+    <button id="btnRefresh" class="btn btn-sky-primary d-flex align-items-center gap-2" type="button">
+      <i class="bi bi-arrow-clockwise"></i>
+      <span>Refrescar</span>
+    </button>
+  </div>
+
+  <div id="toastMsg" class="alert d-none mb-3" role="status"></div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="stat-card">
+        <div class="stat-title">Total</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="stat-card stat-pendientes">
+        <div class="stat-title">En esta página</div>
+        <div class="stat-value" id="statPagina">0</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="stat-card stat-pagina">
+        <div class="stat-title">Página</div>
+        <div class="stat-value" id="statPaginaNum">1</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="loadingState" class="text-center py-5">
+    <div class="spinner-border text-success" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+  </div>
+
+  <div id="errorState" class="alert alert-danger py-3 d-none" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <span id="errorMessage">Ocurrió un error al cargar la información.</span>
+  </div>
+
+  <div id="emptyState" class="text-center py-5 bg-white rounded border d-none">
+    <i class="bi bi-inbox display-4 text-muted"></i>
+    <h3 class="mt-3 text-secondary">No hay solicitudes registradas</h3>
+    <p class="text-muted">Aún no se han recibido solicitudes para tus servicios.</p>
+  </div>
+
+  <div id="dataContainer" class="table-container d-none">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Servicio</th>
+            <th>Estado</th>
+            <th>Fecha de solicitud</th>
+            <th>Fecha de finalización</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div id="paginationContainer" class="pagination-controls d-none">
+      <span id="pageInfo" class="text-muted small">Página 1 de 1</span>
+      <div class="btn-group">
+        <button id="btnPrev" class="btn btn-sm btn-outline-secondary" type="button" disabled>
+          <i class="bi bi-chevron-left"></i> Anterior
+        </button>
+        <button id="btnNext" class="btn btn-sm btn-outline-secondary" type="button" disabled>
+          Siguiente <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal editar -->
+<div class="modal fade" id="modalEditarSolicitud" tabindex="-1" aria-labelledby="modalEditarTitulo" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background-color: #2e8b57;">
+        <h5 class="modal-title" id="modalEditarTitulo">Editar solicitud</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div id="modalAlert" class="alert d-none" role="alert"></div>
+        <input type="hidden" id="editSolicitudId" value="" />
+        <div class="mb-3">
+          <label class="form-label" for="editEstado">Estado</label>
+          <select id="editEstado" class="form-select">
+            <option value="aun no aceptada">Aun no aceptada</option>
+            <option value="aceptada">Aceptada</option>
+            <option value="en proceso">En proceso</option>
+            <option value="finalizado">Finalizado</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="editNotas">Notas (opcional)</label>
+          <textarea id="editNotas" class="form-control" rows="3" maxlength="2000" placeholder="Detalle adicional..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer flex-wrap gap-2">
+        <button type="button" class="btn btn-outline-danger me-auto" id="btnEliminarSolicitud">
+          <i class="bi bi-trash"></i> Eliminar solicitud
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sky-primary" id="btnGuardarSolicitud">
+          <span class="spinner-border spinner-border-sm d-none" id="spinnerGuardar" role="status" aria-hidden="true"></span>
+          Guardar cambios
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  interface SolicitudItem {
+    SolicitudID: number;
+    Usuario: string;
+    Servicio: string;
+    Estado: string | null;
+    Fecha: string | null;
+    FechaFinalizacion?: string | null;
+    Notas: string | null;
+  }
+
+  const ESTADOS = [
+    "aun no aceptada",
+    "aceptada",
+    "en proceso",
+    "finalizado",
+  ] as const;
+
+  const API = "/api/inmobiliarias/solicitudes";
+
+  const tableBody = document.getElementById("tableBody") as HTMLTableSectionElement;
+  const dataContainer = document.getElementById("dataContainer") as HTMLElement;
+  const loadingState = document.getElementById("loadingState") as HTMLElement;
+  const errorState = document.getElementById("errorState") as HTMLElement;
+  const errorMessage = document.getElementById("errorMessage") as HTMLElement;
+  const emptyState = document.getElementById("emptyState") as HTMLElement;
+  const paginationContainer = document.getElementById("paginationContainer") as HTMLElement;
+  const pageInfo = document.getElementById("pageInfo") as HTMLElement;
+  const btnPrev = document.getElementById("btnPrev") as HTMLButtonElement;
+  const btnNext = document.getElementById("btnNext") as HTMLButtonElement;
+  const btnRefresh = document.getElementById("btnRefresh") as HTMLButtonElement;
+  const statTotal = document.getElementById("statTotal") as HTMLElement;
+  const statPagina = document.getElementById("statPagina") as HTMLElement;
+  const statPaginaNum = document.getElementById("statPaginaNum") as HTMLElement;
+  const toastMsg = document.getElementById("toastMsg") as HTMLElement;
+  const modalAlert = document.getElementById("modalAlert") as HTMLElement;
+  const editSolicitudId = document.getElementById("editSolicitudId") as HTMLInputElement;
+  const editEstado = document.getElementById("editEstado") as HTMLSelectElement;
+  const editNotas = document.getElementById("editNotas") as HTMLTextAreaElement;
+  const btnGuardar = document.getElementById("btnGuardarSolicitud") as HTMLButtonElement;
+  const btnEliminar = document.getElementById("btnEliminarSolicitud") as HTMLButtonElement;
+  const spinnerGuardar = document.getElementById("spinnerGuardar") as HTMLElement;
+  const modalEl = document.getElementById("modalEditarSolicitud") as HTMLElement;
+
+  let currentPage = 1;
+  let totalPages = 1;
+  let modalEdit: { show: () => void; hide: () => void } | null = null;
+
+  function getModal(): { show: () => void; hide: () => void } {
+    if (modalEdit) return modalEdit;
+    const BS = (window as unknown as { bootstrap?: { Modal: new (el: HTMLElement) => { show: () => void; hide: () => void } } }).bootstrap;
+    if (BS?.Modal) {
+      modalEdit = new BS.Modal(modalEl);
+    } else {
+      modalEdit = {
+        show: () => { modalEl.classList.add("show"); modalEl.style.display = "block"; },
+        hide: () => { modalEl.classList.remove("show"); modalEl.style.display = "none"; },
+      };
+    }
+    return modalEdit;
+  }
+
+  function mostrarToast(mensaje: string, ok: boolean): void {
+    toastMsg.textContent = mensaje;
+    toastMsg.className = ok ? "alert alert-success mb-3" : "alert alert-danger mb-3";
+    window.setTimeout(() => toastMsg.classList.add("d-none"), 4000);
+  }
+
+  function formatearFecha(fechaISO: string | null | undefined): string {
+    if (!fechaISO) return "—";
+    const date = new Date(fechaISO);
+    if (Number.isNaN(date.getTime())) return "—";
+    return new Intl.DateTimeFormat("es-CO", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(date);
+  }
+
+  function claseEstado(estado: string | null): string {
+    const texto = String(estado || "").toLowerCase();
+    if (texto.includes("pendiente") || texto.includes("aun no")) return "estado-pendiente";
+    if (texto.includes("aceptada")) return "estado-aceptada";
+    if (texto.includes("proceso")) return "estado-proceso";
+    if (texto.includes("finalizado") || texto.includes("resuelta") || texto.includes("completad")) {
+      return "estado-resuelta";
+    }
+    return "estado-default";
+  }
+
+  function abrirEditar(item: SolicitudItem): void {
+    editSolicitudId.value = String(item.SolicitudID);
+    const estadoActual = (item.Estado || "").toLowerCase();
+    const match = ESTADOS.find((e) => e === estadoActual) ?? ESTADOS[0];
+    editEstado.value = match;
+    editNotas.value = item.Notas || "";
+    modalAlert.classList.add("d-none");
+    getModal().show();
+  }
+
+  function renderizarTabla(items: SolicitudItem[]): void {
+    tableBody.replaceChildren();
+    for (const item of items) {
+      const tr = document.createElement("tr");
+
+      const tdId = document.createElement("td");
+      tdId.className = "text-muted fw-bold";
+      tdId.textContent = `#${item.SolicitudID ?? ""}`;
+
+      const tdUsuario = document.createElement("td");
+      tdUsuario.textContent = item.Usuario || "Usuario desconocido";
+
+      const tdServicio = document.createElement("td");
+      const nombre = document.createElement("div");
+      nombre.textContent = item.Servicio || "Servicio general";
+      tdServicio.appendChild(nombre);
+      if (item.Notas) {
+        const notas = document.createElement("div");
+        notas.className = "solicitud-notas";
+        notas.textContent = item.Notas;
+        tdServicio.appendChild(notas);
+      }
+
+      const tdEstado = document.createElement("td");
+      const badge = document.createElement("span");
+      const estado = item.Estado || "Sin estado";
+      badge.className = `badge-estado ${claseEstado(estado)}`;
+      badge.textContent = estado;
+      tdEstado.appendChild(badge);
+
+      const tdFecha = document.createElement("td");
+      tdFecha.textContent = formatearFecha(item.Fecha);
+
+      const tdFin = document.createElement("td");
+      tdFin.textContent = formatearFecha(item.FechaFinalizacion);
+
+      const tdAcciones = document.createElement("td");
+      const btnEdit = document.createElement("button");
+      btnEdit.type = "button";
+      btnEdit.className = "btn btn-sm btn-outline-primary me-1";
+      btnEdit.innerHTML = '<i class="bi bi-pencil"></i> Editar';
+      btnEdit.addEventListener("click", () => abrirEditar(item));
+
+      const btnDel = document.createElement("button");
+      btnDel.type = "button";
+      btnDel.className = "btn btn-sm btn-outline-danger";
+      btnDel.innerHTML = '<i class="bi bi-trash"></i>';
+      btnDel.title = "Eliminar";
+      btnDel.addEventListener("click", () => eliminarSolicitud(item.SolicitudID));
+
+      tdAcciones.append(btnEdit, btnDel);
+      tr.append(tdId, tdUsuario, tdServicio, tdEstado, tdFecha, tdFin, tdAcciones);
+      tableBody.appendChild(tr);
+    }
+  }
+
+  function configurarPaginacion(total: number, page: number, limit: number): void {
+    totalPages = Math.max(1, Math.ceil(total / limit));
+    currentPage = page;
+    statTotal.textContent = String(total);
+    statPaginaNum.textContent = String(page);
+    if (total <= limit) {
+      paginationContainer.classList.add("d-none");
+      return;
+    }
+    paginationContainer.classList.remove("d-none");
+    pageInfo.textContent = `Página ${currentPage} de ${totalPages} (${total} en total)`;
+    btnPrev.disabled = currentPage <= 1;
+    btnNext.disabled = currentPage >= totalPages;
+  }
+
+  async function cargarSolicitudes(page: number): Promise<void> {
+    loadingState.classList.remove("d-none");
+    dataContainer.classList.add("d-none");
+    errorState.classList.add("d-none");
+    emptyState.classList.add("d-none");
+
+    try {
+      const response = await fetch(`${API}?page=${page}`, {
+        headers: { Accept: "application/json" },
+        credentials: "same-origin",
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        window.location.href = `/login?redirect=${encodeURIComponent("/admin/solicitudes")}`;
+        return;
+      }
+
+      const json = await response.json() as {
+        ok?: boolean;
+        message?: string;
+        data?: {
+          items?: SolicitudItem[];
+          total?: number;
+          page?: number;
+          limit?: number;
+        };
+      };
+
+      if (!response.ok || json.ok === false) {
+        throw new Error(json.message || "Error en la respuesta del servidor");
+      }
+
+      const data = json.data ?? { items: [], total: 0, page: 1, limit: 20 };
+      const items = Array.isArray(data.items) ? data.items : [];
+      statPagina.textContent = String(items.length);
+
+      if (items.length === 0) {
+        statTotal.textContent = "0";
+        emptyState.classList.remove("d-none");
+      } else {
+        renderizarTabla(items);
+        configurarPaginacion(
+          Number(data.total) || 0,
+          Number(data.page) || page,
+          Number(data.limit) || 20,
+        );
+        dataContainer.classList.remove("d-none");
+      }
+    } catch (error) {
+      errorMessage.textContent = error instanceof Error
+        ? error.message
+        : "Hubo un problema al conectar con el servidor.";
+      errorState.classList.remove("d-none");
+    } finally {
+      loadingState.classList.add("d-none");
+    }
+  }
+
+  async function guardarCambios(): Promise<void> {
+    const id = editSolicitudId.value;
+    const estado = editEstado.value;
+    const notas = editNotas.value.trim();
+    spinnerGuardar.classList.remove("d-none");
+    btnGuardar.disabled = true;
+    modalAlert.classList.add("d-none");
+
+    try {
+      const response = await fetch(`${API}/${id}/estado`, {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ estado, notas: notas || null }),
+      });
+      const json = await response.json() as {
+        ok?: boolean;
+        message?: string;
+        data?: { correoEnviado?: boolean };
+      };
+      if (!response.ok || json.ok === false) {
+        throw new Error(json.message || "Error al actualizar la solicitud");
+      }
+      getModal().hide();
+      mostrarToast(
+        json.data?.correoEnviado === false
+          ? "Estado actualizado, pero el correo no se envió."
+          : "Estado actualizado correctamente",
+        true,
+      );
+      await cargarSolicitudes(currentPage);
+    } catch (error) {
+      modalAlert.textContent = error instanceof Error
+        ? error.message
+        : "Error al actualizar la solicitud";
+      modalAlert.className = "alert alert-danger";
+    } finally {
+      spinnerGuardar.classList.add("d-none");
+      btnGuardar.disabled = false;
+    }
+  }
+
+  async function eliminarSolicitud(id?: number): Promise<void> {
+    const solicitudId = id ?? Number(editSolicitudId.value);
+    if (!solicitudId) return;
+    if (!confirm("¿Seguro que deseas eliminar esta solicitud? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API}/${solicitudId}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      const json = await response.json() as { ok?: boolean; message?: string };
+      if (!response.ok || json.ok === false) {
+        throw new Error(json.message || "Error al eliminar la solicitud");
+      }
+      getModal().hide();
+      mostrarToast("Solicitud eliminada correctamente", true);
+      await cargarSolicitudes(currentPage);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Error al eliminar la solicitud";
+      if (modalEl.classList.contains("show") || modalEl.style.display === "block") {
+        modalAlert.textContent = msg;
+        modalAlert.className = "alert alert-danger";
+      } else {
+        mostrarToast(msg, false);
+      }
+    }
+  }
+
+  btnPrev.addEventListener("click", () => {
+    if (currentPage > 1) cargarSolicitudes(currentPage - 1);
+  });
+  btnNext.addEventListener("click", () => {
+    if (currentPage < totalPages) cargarSolicitudes(currentPage + 1);
+  });
+  btnRefresh.addEventListener("click", () => cargarSolicitudes(currentPage));
+  btnGuardar.addEventListener("click", () => guardarCambios());
+  btnEliminar.addEventListener("click", () => eliminarSolicitud());
+
+  cargarSolicitudes(currentPage);
+</script>
+
+<style>
+  .page-title {
+    font-family: Georgia, serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+    color: #1b3a2a;
+  }
+  .page-subtitle { margin: 0.25rem 0 0; color: #6b7280; }
+  .btn-sky-primary { background: #2e8b57; color: #fff; border: none; }
+  .btn-sky-primary:hover { background: #1b5e20; color: #fff; }
+  .stat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+  }
+  .stat-title {
+    font-size: 0.8rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .stat-value { font-size: 1.8rem; font-weight: 700; color: #111827; }
+  .stat-pendientes .stat-value { color: #15803d; }
+  .stat-pagina .stat-value { color: #1b5e20; }
+  .table-container {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+  }
+  .table thead { background: #f1f5f9; color: #202d3b; }
+  .table th, .table td { vertical-align: middle; padding: 1rem; }
+  .solicitud-notas { margin-top: 0.25rem; font-size: 0.8rem; color: #6b7280; }
+  .badge-estado {
+    display: inline-block;
+    padding: 0.35em 0.75em;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85em;
+  }
+  .estado-pendiente { background: #fff3cd; color: #856404; }
+  .estado-aceptada { background: #d1e7dd; color: #0f5132; }
+  .estado-proceso { background: #cce5ff; color: #004085; }
+  .estado-resuelta { background: #d4edda; color: #155724; }
+  .estado-default { background: #e2e8f0; color: #334155; }
+  .pagination-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-top: 1px solid #e5e7eb;
+    background: #fff;
+  }
+</style>

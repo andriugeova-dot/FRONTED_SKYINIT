@@ -1,0 +1,16 @@
+---
+import Layout from "../../layouts/LayoutVistas.astro";
+import Solicitudes from "../../components/admin/solicitudes.astro";
+import { getTokenSSR, obtenerRolDesdeToken } from "../../utils/auth";
+
+const token = getTokenSSR(Astro.cookies);
+const rol = obtenerRolDesdeToken(token);
+
+if (!token || rol !== "Administrador") {
+  return Astro.redirect("/login");
+}
+---
+
+<Layout>
+  <Solicitudes />
+</Layout>
