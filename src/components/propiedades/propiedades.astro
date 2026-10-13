@@ -382,7 +382,15 @@ inicializarFavoritos();
     document.querySelectorAll<HTMLElement>(".link-detalle-propiedad").forEach((enlace) => {
         enlace.addEventListener("click", async (e) => {
             e.preventDefault();
-            const propiedadId = enlace.dataset.id;
+            const propiedadId = enlace.dataset.id; 
+            (document.getElementById("modalTitulo") as HTMLElement).textContent = "Cargando...";
+            (document.getElementById("modalDescripcion") as HTMLElement).textContent = "";
+            (document.getElementById("modalAgenteNombre") as HTMLElement).textContent = "";
+            (document.getElementById("modalImagen") as HTMLImageElement).src = "";
+            const telElReset = document.getElementById("modalAgenteTelefono");
+            if (telElReset) telElReset.textContent = "";
+            modal.classList.add("active");
+
 
             try {
                 const response = await fetch(`${BACKEND_URL}/api/propiedades/${propiedadId}`);
