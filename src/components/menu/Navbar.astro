@@ -2,6 +2,14 @@
 import { isAuthenticatedSSR, getTokenSSR, COOKIE_NAME } from "../../utils/auth";
 import "./menu.css";
 
+interface Props {
+  /** Si es true, renderiza su propio <header> sólido sin hero.
+   *  Si es false (por defecto), se inserta dentro del <header id="header"> de la página. */
+  soloNav?: boolean;
+}
+
+const { soloNav = false } = Astro.props;
+
 const autenticado = isAuthenticatedSSR(Astro.cookies);
 const token = getTokenSSR(Astro.cookies);
 
@@ -33,6 +41,9 @@ const iniciales = nombre
   .slice(0, 2)
   .toUpperCase();
 ---
+{
+  soloNav ? (
+    <header id="header" class="header--solo-nav">
 
 <div class="topbar">
   <span class="logo">SkyInit</span>
@@ -66,6 +77,43 @@ const iniciales = nombre
     )}
   </nav>
 </div>
+    </header>
+  ) : (
+
+<div class="topbar">
+  <span class="logo">SkyInit</span>
+
+  <button type="button" class="menu-toggle" id="menuToggle" aria-label="Abrir menú">&#9776;</button>
+
+  <nav id="menu">
+    <a href="/">Inicio</a>
+    <a href="/propiedades">Propiedades</a>
+    <a href="/proyectos">Proyectos</a>
+    <a href="/servicios">Servicios</a>
+    <a href="/constructoras">Constructoras</a>
+
+    {autenticado ? (
+      <div class="user-profile">
+        {foto ? (
+          <img src={foto} alt="Perfil" class="profile-pic" id="btnUserMenu" />
+        ) : (
+          <button type="button" class="profile-pic profile-iniciales" id="btnUserMenu">
+            {iniciales}
+          </button>
+        )}
+        <div id="user-menu" class="user-menu">
+          <div class="user-menu-name">{nombre}</div>
+          <a href="/usuario">⚙️ Ajustes</a>
+          <button type="button" id="btnLogout">🚪 Cerrar sesión</button>
+        </div>
+      </div>
+    ) : (
+      <a href="/login" class="btn-registrar">Iniciar Sesión</a>
+    )}
+  </nav>
+</div>
+  )
+}
 
 <script>
   import { logoutRequest } from "../../utils/api";
