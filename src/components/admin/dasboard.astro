@@ -1,39 +1,158 @@
+---
+import "./dashboard.css";
+import { COOKIE_NAME, getTokenSSR } from "../../utils/auth";
+
+const BACKEND = import.meta.env.BACKEND_URL ?? "http://localhost:8001";
+const token = getTokenSSR(Astro.cookies);
+
+type ResumenDashboard = {
+  totales: {
+    propiedades: number;
+    proyectos: number;
+    constructoras: number;
+    servicios: number;
+  };
+  propiedadesPorEstado: { estado: string; total: number }[];
+  proyectosPorEstado: { estadoProyectoID: number ; total: number}[];
+};
+
+let resumen: ResumenDashboard | null = null;
+let errorCarga: string | null = null;
+
+if (token) {
+  try {
+    const res = await fetch(`${BACKEND}/admin/dashboard`, {
+      headers: {
+        Cookie: `${COOKIE_NAME}=${token}`,
+        Accept: "application/json",
+      },
+    });
+    if (res.ok) {
+      resumen = await res.json();
+    } else {
+      errorCarga = `No se pudieron cargar las estadisticas (${res.status})`;
+    }
+  } catch (error) {
+    errorCarga = "No se pudo conectar con el backend";
+  }
+} else {
+  errorCarga = "Sesion no valida";
+}
+
+const nombreEstadoProy = (id: number) => 
+  id === 3 ? "Finalizados" : id === 2 ? "En construccion" : "Planificados";
+
+const iconoEstadoProp = (estado: string) => {
+  if (estado === "Disponible") return "bi-house-check";
+  if (estado === "Reservada") return "bi-hourglass-split";
+  if (estado === "Mantenimiento") return "bi-cone-striped";
+  return "bi-slash-circle";
+};
+
+const iconoEstadoProy = (id: number) => {
+  if (id === 3) return "bi-flag-fill";
+  if (id === 2) return "bi-hammer";
+  return "bi-clipboard2-pulse";
+};
+---
 <div class="panel-body">
-  <div class="topbar-panel">
-    <h1>Panel inmobiliaria</h1>
-    <p>Administra los servicios de mantenimiento de tu inmobiliaria.</p>
-  </div>
-
-  <section class="card">
-    <h2>Accesos rápidos</h2>
-    <div class="accesos-grid">
-      <a href="/admin/servicios" class="acceso-btn">🛠️ Servicios de mantenimiento</a>
+    <div class="topbar-panel">
+        <h1>Panel inmobiliaria</h1>
+        <p>Resumen general del estado de la plataforma.</p>
     </div>
-  </section>
-</div>
 
-<style>
-  .panel-body { display: flex; flex-direction: column; gap: 1.5rem; }
-  .topbar-panel h1 { margin: 0 0 0.25rem; font-size: 1.6rem; }
-  .topbar-panel p { margin: 0; color: #6b7280; }
-  .card {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 1.25rem 1.5rem;
-  }
-  .card h2 { font-size: 1.1rem; margin: 0 0 1rem; }
-  .accesos-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-  .acceso-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: #202d3b;
-    color: #fff;
-    text-decoration: none;
-    padding: 10px 16px;
-    border-radius: 10px;
-    font-weight: 600;
-  }
-  .acceso-btn:hover { background: #2e4458; color: #fff; }
-</style>
+    {errorCarga && (
+        <div class="alert-error" role="alert">
+            <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+            {errorCarga}
+        </div>
+    )}
+
+    {resumen && (
+        <>
+            <!-- Tarjetas de totales -->
+            <section class="stats-grid" aria-label="Totales">
+                <div class="stat-card">
+                    <i class="bi bi-houses stat-icon" aria-hidden="true"></i>
+                    <div class="stat-info">
+                        <span class="stat-label">Propiedades</span>
+                        <span class="stat-value">{resumen.totales.propiedades}</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="bi bi-building-fill-up stat-icon" aria-hidden="true"></i>
+                    <div class="stat-info">
+                        <span class="stat-label">Proyectos</span>
+                        <span class="stat-value">{resumen.totales.proyectos}</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="bi bi-hammer stat-icon" aria-hidden="true"></i>
+                    <div class="stat-info">
+                        <span class="stat-label">Constructoras</span>
+                        <span class="stat-value">{resumen.totales.constructoras}</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="bi bi-briefcase stat-icon" aria-hidden="true"></i>
+                    <div class="stat-info">
+                        <span class="stat-label">Servicios</span>
+                        <span class="stat-value">{resumen.totales.servicios}</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Accesos rápidos -->
+            <section class="card">
+                <h2><i class="bi bi-grid-1x2" aria-hidden="true"></i> Accesos rápidos</h2>
+                <div class="accesos-grid">
+                    <a href="/admin/propiedades" class="acceso-btn">
+                        <i class="bi bi-houses" aria-hidden="true"></i> Propiedades
+                    </a>
+                    <a href="/admin/proyectos" class="acceso-btn">
+                        <i class="bi bi-building-fill-up" aria-hidden="true"></i> Proyectos
+                    </a>
+                    <a href="/admin/constructoras" class="acceso-btn">
+                        <i class="bi bi-hammer" aria-hidden="true"></i> Constructoras
+                    </a>
+                    <a href="/admin/servicios" class="acceso-btn">
+                        <i class="bi bi-briefcase" aria-hidden="true"></i> Servicios
+                    </a>
+                </div>
+            </section>
+
+            <!-- Estados: propiedades y proyectos lado a lado -->
+            <div class="estados-grid">
+                <section class="card">
+                    <h2><i class="bi bi-houses" aria-hidden="true"></i> Propiedades por estado</h2>
+                    <div class="breakdown-list">
+                        {resumen.propiedadesPorEstado.map((p) => (
+                            <div class="breakdown-row">
+                                <span class="breakdown-dot">
+                                    <i class={`bi ${iconoEstadoProp(p.estado)}`} aria-hidden="true"></i>
+                                </span>
+                                <span class="breakdown-label">{p.estado}</span>
+                                <span class="breakdown-value">{p.total}</span>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2><i class="bi bi-building-fill-up" aria-hidden="true"></i> Proyectos por estado</h2>
+                    <div class="breakdown-list">
+                        {resumen.proyectosPorEstado.map((p) => (
+                            <div class="breakdown-row">
+                                <span class="breakdown-dot">
+                                    <i class={`bi ${iconoEstadoProy(p.estadoProyectoID)}`} aria-hidden="true"></i>
+                                </span>
+                                <span class="breakdown-label">{nombreEstadoProy(p.estadoProyectoID)}</span>
+                                <span class="breakdown-value">{p.total}</span>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </div>
+        </>
+    )}
+</div>

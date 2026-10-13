@@ -2,14 +2,14 @@
 import "./propiedades.css";
 
 interface Propiedad {
-    propiedadID: number,
-    titulo: string,
+    propiedadID: number;
+    titulo: string;
     descripcion: string | null;
     precio: string;
     habitaciones: number | null;
     direccion: string;
     ciudad: string | null;
-    tipoOperacion: string;  
+    tipoOperacion: string;
     imagenPrincipal: string | null;
 }
 
@@ -52,11 +52,15 @@ function resolverImagenTarjeta(url: string | null) {
     return url.startsWith("/uploads") ? `${BACKEND_URL}${url}` : url;
 }
 ---
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Propiedades - SkyInit</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet"
+    />
 </head>
 <header id="header">
     <div class="topbar">
@@ -68,52 +72,80 @@ function resolverImagenTarjeta(url: string | null) {
             <a href="/proyectos">Proyectos</a>
             <a href="/servicios">Servicios</a>
             <a href="/constructoras">Constructoras</a>
-            {usuario ? (
-                <div class="user-profile">
-                    <img
-                        src={usuario.fotoPerfil ?? "/img/default-avatar.svg"}
-                        alt="Avatar"
-                        class="profile-pic"
-                        id="profilePic"
-                    />
-                    <div id="user-menu" class="user-menu">
-                        <div class="user-menu-name">{usuario.nombre}</div>
-                        <a href="/usuario">⚙️ Ajustes</a>
-                        <a href="#" id="btnLogout">🚪 Cerrar sesión</a>
+            {
+                usuario ? (
+                    <div class="user-profile">
+                        <img
+                            src={
+                                usuario.fotoPerfil ?? "/img/default-avatar.svg"
+                            }
+                            alt="Avatar"
+                            class="profile-pic"
+                            id="profilePic"
+                        />
+                        <div id="user-menu" class="user-menu">
+                            <div class="user-menu-name">{usuario.nombre}</div>
+                            <a href="/usuario">⚙️ Ajustes</a>
+                            <a href="#" id="btnLogout">
+                                🚪 Cerrar sesión
+                            </a>
+                        </div>
                     </div>
-                </div>
-            ) : (
-                <a href="/login" class="btn-registrar">Iniciar Sesión</a>
-            )}
+                ) : (
+                    <a href="/login" class="btn-registrar">
+                        Iniciar Sesión
+                    </a>
+                )
+            }
         </nav>
     </div>
 
     <div class="hero-inner">
         <div class="hero-eyebrow">Catálogo completo</div>
         <h1>Encuentra tu <em>propiedad ideal</em></h1>
-        <p class="hero-sub">Explora casas, apartamentos y encuentra el hogar que se ajusta a lo que buscas.</p>
+        <p class="hero-sub">
+            Explora casas, apartamentos y encuentra el hogar que se ajusta a lo
+            que buscas.
+        </p>
     </div>
 </header>
 
 <section class="search-container">
     <form action="/propiedades" method="get" class="search-box">
-        <input type="text" name="query" value={filtros.query} placeholder="Buscar por título o descripción..." />
+        <input
+            type="text"
+            name="query"
+            value={filtros.query}
+            placeholder="Buscar por título o descripción..."
+        />
 
         <select name="tipoOperacion">
             <option value="">-- Tipo de operación --</option>
-            <option value="1" selected={filtros.tipoOperacion === "1"}>Venta</option>
-            <option value="2" selected={filtros.tipoOperacion === "2"}>Arriendo</option>
-            <option value="3" selected={filtros.tipoOperacion === "3"}>Empeño</option>
+            <option value="1" selected={filtros.tipoOperacion === "1"}
+                >Venta</option
+            >
+            <option value="2" selected={filtros.tipoOperacion === "2"}
+                >Arriendo</option
+            >
+            <option value="3" selected={filtros.tipoOperacion === "3"}
+                >Empeño</option
+            >
         </select>
 
         <select name="habitaciones">
             <option value="">-- Habitaciones --</option>
             <option value="1" selected={filtros.habitaciones === "1"}>1</option>
             <option value="2" selected={filtros.habitaciones === "2"}>2</option>
-            <option value="3" selected={filtros.habitaciones === "3"}>3+</option>
+            <option value="3" selected={filtros.habitaciones === "3"}>3+</option
+            >
         </select>
 
-        <input type="text" name="ciudad" value={filtros.ciudad} placeholder="Ciudad" />
+        <input
+            type="text"
+            name="ciudad"
+            value={filtros.ciudad}
+            placeholder="Ciudad"
+        />
 
         <button type="submit">Buscar</button>
     </form>
@@ -123,63 +155,32 @@ function resolverImagenTarjeta(url: string | null) {
     <div class="header-destacadas">
         <div class="textos-destacadas">
             <span class="etiqueta-destacadas">Catálogo</span>
-            <h2 class="titulo-destacadas">{propiedades.length} propiedades disponibles</h2>
+            <h2 class="titulo-destacadas">
+                {propiedades.length} propiedades disponibles
+            </h2>
             <p class="sub-destacadas">
-                Explora el listado completo y encuentra la opción que mejor se adapte a ti
+                Explora el listado completo y encuentra la opción que mejor se
+                adapte a ti
             </p>
         </div>
     </div>
 
-    <div class="properties">
-        {propiedades.length > 0 ? (
-            propiedades.map((propiedad) => (
-                <div class="property-card">
-                    <div class="property-image">
-                        <img src={resolverImagenTarjeta(propiedad.imagenPrincipal)} alt={propiedad.titulo} />
+    <!-- Datos de propiedades serializados para paginación cliente -->
+    <script
+        id="propiedades-data"
+        type="application/json"
+        set:html={JSON.stringify(propiedades)}
+    />
 
-                        <span class={`badge-tipo ${claseBadge(propiedad.tipoOperacion)}`}>
-                            {propiedad.tipoOperacion}
-                        </span>
+    <div id="properties-grid" class="properties"></div>
 
-                        <button type="button" class="btn-favorito favorito-inactivo" data-id={propiedad.propiedadID}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    <div class="property-info">
-                        <div class="precio-container">
-                            <h3>{formatoPesos.format(Number(propiedad.precio))}</h3>
-                        </div>
-
-                        <h2>{propiedad.titulo}</h2>
-
-                        <p class="location">
-                            <svg class="icono-pin" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                            </svg>
-                            <span>{propiedad.ciudad ?? propiedad.direccion}</span>
-                        </p>
-
-                        <p class="description">{propiedad.descripcion}</p>
-
-                        <div class="details">
-                            <span>🛏️ {propiedad.habitaciones ?? 0} Habitaciones</span>
-                        </div>
-
-                        <a
-                            href={`/propiedades#propiedad-${propiedad.propiedadID}`}
-                            class="link-detalle-propiedad enlace-absoluto"
-                            data-id={propiedad.propiedadID}
-                        ></a>
-                    </div>
-                </div>
-            ))
-        ) : (
-            <p class="sin-resultados">No se encontraron propiedades con los filtros seleccionados.</p>
-        )}
-    </div>
+    <!-- Paginación -->
+    <nav
+        id="paginacion-propiedades"
+        class="paginacion-container"
+        aria-label="Paginación de propiedades"
+    >
+    </nav>
 </section>
 
 <div id="modalRegistro" class="modal-overlay">
@@ -200,7 +201,12 @@ function resolverImagenTarjeta(url: string | null) {
         <span class="modal-close">&times;</span>
         <div id="modal-body">
             <h2 id="modalTitulo"></h2>
-            <img id="modalImagen" src="" alt="Imagen propiedad" class="modal-img-propiedad" />
+            <img
+                id="modalImagen"
+                src=""
+                alt="Imagen propiedad"
+                class="modal-img-propiedad"
+            />
             <p id="modalDescripcion"></p>
 
             <div class="modal-detalles-grid">
@@ -212,9 +218,16 @@ function resolverImagenTarjeta(url: string | null) {
 
             <div class="modal-contacto">
                 <div class="modal-agente" id="modalAgenteWrap">
-                    <img id="modalAgenteFoto" src="/img/default-avatar.svg" alt="Foto del agente" class="modal-avatar" />
+                    <img
+                        id="modalAgenteFoto"
+                        src="/img/default-avatar.svg"
+                        alt="Foto del agente"
+                        class="modal-avatar"
+                    />
                     <div class="modal-contacto-info">
-                        <span class="modal-contacto-label">Agente encargado</span>
+                        <span class="modal-contacto-label"
+                            >Agente encargado</span
+                        >
                         <p id="modalAgenteNombre"></p>
                         <p id="modalAgenteTelefono"></p>
                     </div>
@@ -231,23 +244,172 @@ function resolverImagenTarjeta(url: string | null) {
     </div>
 </div>
 
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+<link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap"
+    rel="stylesheet"
+/>
 
 <script>
     const BACKEND_URL = "http://localhost:8001";
 
-    // Menús
+    // ── PAGINACIÓN DE PROPIEDADES ────────────────────────────────────────────
+    const ITEMS_POR_PAGINA = 12;
+    let paginaActual = 1;
+
+    const todasPropiedades: any[] = JSON.parse(
+        (document.getElementById("propiedades-data") as HTMLScriptElement)
+            .textContent ?? "[]",
+    );
+
+    const formatoPesosPag = new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        minimumFractionDigits: 0,
+    });
+
+    function claseBadgePag(tipo: string) {
+        const t = (tipo ?? "").toLowerCase();
+        if (t.includes("venta")) return "badge-venta";
+        if (t.includes("arriendo")) return "badge-arriendo";
+        return "badge-default";
+    }
+
+    function resolverImgTarjeta(url: string | null) {
+        if (!url) return "/img/no-image.png";
+        return url.startsWith("/uploads") ? `${BACKEND_URL}${url}` : url;
+    }
+
+    function renderGrid(propiedades: any[]) {
+        const grid = document.getElementById("properties-grid")!;
+        if (!propiedades.length) {
+            grid.innerHTML = `<p class="sin-resultados">No se encontraron propiedades con los filtros seleccionados.</p>`;
+            return;
+        }
+        grid.innerHTML = propiedades
+            .map(
+                (p) => `
+            <div class="property-card">
+                <div class="property-image">
+                    <img src="${resolverImgTarjeta(p.imagenPrincipal)}" alt="${p.titulo ?? ""}" loading="lazy" />
+                    <span class="badge-tipo ${claseBadgePag(p.tipoOperacion)}">${p.tipoOperacion}</span>
+                    <button type="button" class="btn-favorito favorito-inactivo" data-id="${p.propiedadID}" aria-label="Guardar en favoritos">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="property-info">
+                    <div class="precio-container">
+                        <h3>${formatoPesosPag.format(Number(p.precio))}</h3>
+                    </div>
+                    <h2>${p.titulo}</h2>
+                    <p class="location">
+                        <svg class="icono-pin" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                        <span>${p.ciudad ?? p.direccion}</span>
+                    </p>
+                    <p class="description">${p.descripcion ?? ""}</p>
+                    <div class="details">
+                        <span>🛏️ ${p.habitaciones ?? 0} Habitaciones</span>
+                    </div>
+                    <a href="/propiedades#propiedad-${p.propiedadID}" class="link-detalle-propiedad enlace-absoluto" data-id="${p.propiedadID}"></a>
+                </div>
+            </div>
+        `,
+            )
+            .join("");
+
+        // Re-asignar eventos favoritos y modal a las nuevas tarjetas
+        adjuntarEventosFavoritos();
+        adjuntarEventosModal();
+        inicializarFavoritos();
+    }
+
+    function renderPaginacion(total: number) {
+        const nav = document.getElementById("paginacion-propiedades")!;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA);
+        if (totalPaginas <= 1) {
+            nav.innerHTML = "";
+            return;
+        }
+
+        let html = `<div class="paginas">`;
+        html += `<button class="pag-btn pag-prev" ${paginaActual === 1 ? "disabled" : ""} data-dir="prev">&#8592; Anterior</button>`;
+
+        // Siempre mostrar primera, última y 2 alrededor de la actual
+        const visible = new Set<number>();
+        visible.add(1);
+        visible.add(totalPaginas);
+        for (
+            let i = Math.max(2, paginaActual - 1);
+            i <= Math.min(totalPaginas - 1, paginaActual + 1);
+            i++
+        )
+            visible.add(i);
+        const sorted = Array.from(visible).sort((a, b) => a - b);
+
+        let prev = 0;
+        for (const n of sorted) {
+            if (prev && n - prev > 1)
+                html += `<span class="pag-ellipsis">…</span>`;
+            html += `<button class="pag-btn pag-num ${n === paginaActual ? "pag-activa" : ""}" data-page="${n}">${n}</button>`;
+            prev = n;
+        }
+
+        html += `<button class="pag-btn pag-next" ${paginaActual === totalPaginas ? "disabled" : ""} data-dir="next">Siguiente &#8594;</button>`;
+        html += `<span class="pag-info">Página ${paginaActual} de ${totalPaginas} · ${total} propiedades</span>`;
+        html += `</div>`;
+        nav.innerHTML = html;
+
+        nav.querySelectorAll(".pag-num").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                paginaActual = Number((btn as HTMLElement).dataset.page);
+                irAPagina();
+            });
+        });
+        nav.querySelector(".pag-prev")?.addEventListener("click", () => {
+            if (paginaActual > 1) {
+                paginaActual--;
+                irAPagina();
+            }
+        });
+        nav.querySelector(".pag-next")?.addEventListener("click", () => {
+            if (paginaActual < totalPaginas) {
+                paginaActual++;
+                irAPagina();
+            }
+        });
+    }
+
+    function irAPagina() {
+        const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+        const pagina = todasPropiedades.slice(
+            inicio,
+            inicio + ITEMS_POR_PAGINA,
+        );
+        renderGrid(pagina);
+        renderPaginacion(todasPropiedades.length);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // Render inicial
+    irAPagina();
+
+    // ── MENÚS ────────────────────────────────────────────────────────────────
     document.getElementById("menuToggle")?.addEventListener("click", () => {
         document.getElementById("menu")?.classList.toggle("active");
     });
     document.getElementById("profilePic")?.addEventListener("click", () => {
         document.getElementById("user-menu")?.classList.toggle("active");
     });
-    document.getElementById("btnLogout")?.addEventListener("click", async (e) => {
-        e.preventDefault();
-        await fetch("/api/logout", { method: "POST" });
-        window.location.href = "/login";
-    });
+    document
+        .getElementById("btnLogout")
+        ?.addEventListener("click", async (e) => {
+            e.preventDefault();
+            await fetch("/api/logout", { method: "POST" });
+            window.location.href = "/login";
+        });
 
     // Fondo del hero (decorativo)
     const heroImages = [
@@ -266,107 +428,116 @@ function resolverImagenTarjeta(url: string | null) {
     setInterval(cambiarFondoHero, 5000);
 
     // Favoritos
-    const modalRegistro = document.getElementById("modalRegistro") as HTMLElement;
+    const modalRegistro = document.getElementById(
+        "modalRegistro",
+    ) as HTMLElement;
+
     // ─── Pintar favoritos al cargar ────────────────────────────────────────────
-async function inicializarFavoritos() {
-    try {
-        const res = await fetch("/api/usuario/favoritos", {
-            credentials: "same-origin",
-        });
+    async function inicializarFavoritos() {
+        try {
+            const res = await fetch("/api/usuario/favoritos", {
+                credentials: "same-origin",
+            });
 
-        // 401 = no está logueado, simplemente no hacer nada
-        if (res.status === 401) return;
-        if (!res.ok) return;
+            // 401 = no está logueado, simplemente no hacer nada
+            if (res.status === 401) return;
+            if (!res.ok) return;
 
-        const data = await res.json();
+            const data = await res.json();
 
-        // El endpoint devuelve { favoritos: [...] }
-        const favoritos: { propiedadID?: number; propiedad?: { propiedadID: number } }[] =
-            data.favoritos ?? [];
+            // El endpoint devuelve { favoritos: [...] }
+            const favoritos: {
+                propiedadID?: number;
+                propiedad?: { propiedadID: number };
+            }[] = data.favoritos ?? [];
 
-        const idsFavoritos = new Set<number>(
-            favoritos.map((f) => f.propiedad?.propiedadID ?? f.propiedadID ?? 0)
-                     .filter((id) => id > 0)
-        );
-
-        document.querySelectorAll<HTMLElement>(".btn-favorito").forEach((btn) => {
-            const id = Number(btn.getAttribute("data-id"));
-            if (!id) return;
-
-            const activo = idsFavoritos.has(id);
-            btn.classList.toggle("favorito-activo", activo);
-            btn.classList.toggle("favorito-inactivo", !activo);
-            btn.setAttribute("aria-pressed", String(activo));
-            btn.setAttribute(
-                "aria-label",
-                activo ? "Quitar de favoritos" : "Guardar en favoritos"
+            const idsFavoritos = new Set<number>(
+                favoritos
+                    .map((f) => f.propiedad?.propiedadID ?? f.propiedadID ?? 0)
+                    .filter((id) => id > 0),
             );
-        });
-    } catch {
-        // Error de red — no romper la página
+
+            document
+                .querySelectorAll<HTMLElement>(".btn-favorito")
+                .forEach((btn) => {
+                    const id = Number(btn.getAttribute("data-id"));
+                    if (!id) return;
+
+                    const activo = idsFavoritos.has(id);
+                    btn.classList.toggle("favorito-activo", activo);
+                    btn.classList.toggle("favorito-inactivo", !activo);
+                    btn.setAttribute("aria-pressed", String(activo));
+                    btn.setAttribute(
+                        "aria-label",
+                        activo ? "Quitar de favoritos" : "Guardar en favoritos",
+                    );
+                });
+        } catch {
+            // Error de red — no romper la página
+        }
     }
-}
 
-inicializarFavoritos();
-
-    document.querySelectorAll(".btn-favorito").forEach((btn) => {
-        btn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            e.stopPropagation(); // no abrir el modal de detalle
-
-            const el = btn as HTMLElement;
-            const propiedadID = Number(el.getAttribute("data-id"));
-            if (!propiedadID) return;
-
-            const yaEsFavorito = el.classList.contains("favorito-activo");
-
-            try {
-                let response: Response;
-
-                if (yaEsFavorito) {
-                    response = await fetch(`/api/usuario/favoritos/${propiedadID}`, {
-                        method: "DELETE",
-                        credentials: "same-origin",
-                    });
-                } else {
-                    response = await fetch("/api/usuario/favoritos", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        credentials: "same-origin",
-                        body: JSON.stringify({ propiedadID }),
-                    });
-                }
-
-                if (response.status === 401) {
-                    modalRegistro?.classList.add("open");
-                    return;
-                }
-
-                if (response.ok || response.status === 409) {
-                    if (yaEsFavorito && response.ok) {
-                        el.classList.remove("favorito-activo");
-                        el.classList.add("favorito-inactivo");
+    function adjuntarEventosFavoritos() {
+        document.querySelectorAll(".btn-favorito").forEach((btn) => {
+            btn.addEventListener("click", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const el = btn as HTMLElement;
+                const propiedadID = Number(el.getAttribute("data-id"));
+                if (!propiedadID) return;
+                const yaEsFavorito = el.classList.contains("favorito-activo");
+                try {
+                    let response: Response;
+                    if (yaEsFavorito) {
+                        response = await fetch(
+                            `/api/usuario/favoritos/${propiedadID}`,
+                            {
+                                method: "DELETE",
+                                credentials: "same-origin",
+                            },
+                        );
                     } else {
-                        el.classList.add("favorito-activo");
-                        el.classList.remove("favorito-inactivo");
+                        response = await fetch("/api/usuario/favoritos", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "same-origin",
+                            body: JSON.stringify({ propiedadID }),
+                        });
                     }
+                    if (response.status === 401) {
+                        modalRegistro?.classList.add("open");
+                        return;
+                    }
+                    if (response.ok || response.status === 409) {
+                        if (yaEsFavorito && response.ok) {
+                            el.classList.remove("favorito-activo");
+                            el.classList.add("favorito-inactivo");
+                        } else {
+                            el.classList.add("favorito-activo");
+                            el.classList.remove("favorito-inactivo");
+                        }
+                    }
+                } catch {
+                    alert("No se pudo conectar con el servidor.");
                 }
-            } catch {
-                alert("No se pudo conectar con el servidor.");
-            }
+            });
         });
-    });
+    }
 
-    document.getElementById("cerrarModalRegistro")?.addEventListener("click", () => {
-        modalRegistro.classList.remove("open");
-    });
+    document
+        .getElementById("cerrarModalRegistro")
+        ?.addEventListener("click", () => {
+            modalRegistro.classList.remove("open");
+        });
     modalRegistro.addEventListener("click", (e) => {
         if (e.target === modalRegistro) modalRegistro.classList.remove("open");
     });
 
     // Modal de detalle
     const modal = document.getElementById("modalPropiedad") as HTMLElement;
-    const closeBtn = document.querySelector("#modalPropiedad .modal-close") as HTMLElement;
+    const closeBtn = document.querySelector(
+        "#modalPropiedad .modal-close",
+    ) as HTMLElement;
 
     const formatoPesos = new Intl.NumberFormat("es-CO", {
         style: "currency",
@@ -379,10 +550,128 @@ inicializarFavoritos();
         return url.startsWith("/uploads") ? `${BACKEND_URL}${url}` : url;
     }
 
+    function adjuntarEventosModal() {
+        document
+            .querySelectorAll<HTMLElement>(".link-detalle-propiedad")
+            .forEach((enlace) => {
+                enlace.addEventListener("click", async (e) => {
+                    e.preventDefault();
+                    const propiedadId = enlace.dataset.id;
+                    try {
+                        const response = await fetch(
+                            `${BACKEND_URL}/api/propiedades/${propiedadId}`,
+                        );
+                        if (!response.ok)
+                            throw new Error("No se pudo cargar la info");
+                        const { propiedad } = await response.json();
+                        (
+                            document.getElementById(
+                                "modalTitulo",
+                            ) as HTMLElement
+                        ).textContent = propiedad.titulo;
+                        (
+                            document.getElementById(
+                                "modalImagen",
+                            ) as HTMLImageElement
+                        ).src = resolverImagen(propiedad.imagenes?.[0]?.url);
+                        (
+                            document.getElementById(
+                                "modalDescripcion",
+                            ) as HTMLElement
+                        ).textContent = propiedad.descripcion ?? "";
+                        (
+                            document.getElementById(
+                                "modalPrecio",
+                            ) as HTMLElement
+                        ).textContent = formatoPesos.format(
+                            Number(propiedad.precio),
+                        );
+                        (
+                            document.getElementById(
+                                "modalUbicacion",
+                            ) as HTMLElement
+                        ).textContent =
+                            `Ubicación: ${propiedad.direccion}${propiedad.ciudad ? `, ${propiedad.ciudad}` : ""}`;
+                        (
+                            document.getElementById(
+                                "modalTipoOperacion",
+                            ) as HTMLElement
+                        ).textContent = `Operación: ${propiedad.tipoOperacion}`;
+                        (
+                            document.getElementById(
+                                "modalHabitaciones",
+                            ) as HTMLElement
+                        ).textContent = propiedad.habitaciones
+                            ? `Habitaciones: ${propiedad.habitaciones}`
+                            : "Habitaciones: No especificado";
+                        const agenteWrap = document.getElementById(
+                            "modalAgenteWrap",
+                        ) as HTMLElement;
+                        const nombreEl = document.getElementById(
+                            "modalAgenteNombre",
+                        ) as HTMLElement;
+                        const telEl = document.getElementById(
+                            "modalAgenteTelefono",
+                        );
+                        const agenteNombre =
+                            propiedad.agenteNombre ??
+                            propiedad.agente?.nombre ??
+                            null;
+                        const agenteCorreo =
+                            propiedad.agenteCorreo ??
+                            propiedad.agente?.correo ??
+                            "";
+                        const agenteTelefono =
+                            propiedad.agenteTelefono ??
+                            propiedad.agente?.telefono ??
+                            "";
+                        if (agenteNombre || agenteCorreo || agenteTelefono) {
+                            nombreEl.textContent = agenteNombre
+                                ? agenteCorreo
+                                    ? `${agenteNombre} (${agenteCorreo})`
+                                    : agenteNombre
+                                : agenteCorreo || "Agente";
+                            if (telEl)
+                                telEl.textContent = agenteTelefono
+                                    ? `Tel: ${agenteTelefono}`
+                                    : "";
+                            agenteWrap.style.display = "flex";
+                        } else {
+                            nombreEl.textContent = "Sin agente asignado";
+                            if (telEl) telEl.textContent = "";
+                            agenteWrap.style.display = "flex";
+                        }
+                        const constructoraWrap = document.getElementById(
+                            "modalConstructoraWrap",
+                        ) as HTMLElement;
+                        if (propiedad.constructoraNombre) {
+                            (
+                                document.getElementById(
+                                    "modalConstructoraNombre",
+                                ) as HTMLElement
+                            ).textContent = propiedad.constructoraNombre;
+                            constructoraWrap.style.display = "flex";
+                        } else {
+                            constructoraWrap.style.display = "none";
+                        }
+                        modal.classList.add("active");
+                    } catch (error) {
+                        console.error("Error cargando los detalles:", error);
+                        alert(
+                            "Hubo un error al cargar la información de la propiedad",
+                        );
     document.querySelectorAll<HTMLElement>(".link-detalle-propiedad").forEach((enlace) => {
         enlace.addEventListener("click", async (e) => {
             e.preventDefault();
-            const propiedadId = enlace.dataset.id;
+            const propiedadId = enlace.dataset.id; 
+            (document.getElementById("modalTitulo") as HTMLElement).textContent = "Cargando...";
+            (document.getElementById("modalDescripcion") as HTMLElement).textContent = "";
+            (document.getElementById("modalAgenteNombre") as HTMLElement).textContent = "";
+            (document.getElementById("modalImagen") as HTMLImageElement).src = "";
+            const telElReset = document.getElementById("modalAgenteTelefono");
+            if (telElReset) telElReset.textContent = "";
+            modal.classList.add("active");
+
 
             try {
                 const response = await fetch(`${BACKEND_URL}/api/propiedades/${propiedadId}`);
@@ -436,16 +725,12 @@ inicializarFavoritos();
                     } else {
                         constructoraWrap.style.display = "none";
                     }
+                });
+            });
+    }
 
-                    modal.classList.add("active");
-            } catch (error) {
-                console.error("Error cargando los detalles:", error);
-                alert("Hubo un error al cargar la informacion de la propiedad");
-            }
-        });
-    });
     closeBtn.addEventListener("click", () => modal.classList.remove("active"));
     window.addEventListener("click", (e) => {
         if (e.target === modal) modal.classList.remove("active");
     });
-    </script>
+</script>

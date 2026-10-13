@@ -5,6 +5,26 @@ const BACKEND = import.meta.env.BACKEND_URL ?? "http://localhost:8001";
 const json = (data: unknown, status: number) =>
     new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
 
+
+/** GET: LISTAR PROYECTOS */
+
+export const GET: APIRoute = async ({ request, url }) => {
+    try {
+        const queryString = url.search;
+        const res = await fetch(`${BACKEND}/proyectos${queryString}`, {
+            method: "GET",
+            headers: {
+                Cookie: request.headers.get("cookie") || "",
+                Accept: "application/json",
+            },
+        });
+        return json(await res.json().catch(() => ({})), res.status);
+    } catch {
+        return json({ error: "Error de conexión al listar el proyecto" }, 502);
+    }
+};
+
+
 /** POST: crear proyecto */
 export const POST: APIRoute = async ({ request }) => {
     try {

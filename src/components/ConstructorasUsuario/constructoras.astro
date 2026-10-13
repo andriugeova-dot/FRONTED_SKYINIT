@@ -16,63 +16,127 @@ interface Grupo {
     items: ConstructoraItem[];
 }
 const { grupos = [] } = Astro.props as { grupos: Grupo[] };
-const BACKEND = "http://localhost:8001";
-
-function logoUrl(logo: string | null | undefined) {
-    if (!logo) return null;
-    if (logo.startsWith("http")) return logo;
-    if (logo.startsWith("/")) return `${BACKEND}${logo}`;
-    // rutas antiguas sin / (solo nombre de archivo)
-    return `${BACKEND}/uploads/constructoras/${encodeURIComponent(logo)}`;
-}
 ---
 
 <section class="resultados-section">
     <div class="contenedor">
-        {
-        grupos.length === 0 ? (
-            <p class="sin-resultados">No hay constructoras activas por ahora.</p>
-        ) : (
-            grupos.map((g) => (
-            <div class="grupo-bloque">
-                <h2 class="grupo-titulo">
-                {g.nombre}
-                {g.ciudad ? <span> · {g.ciudad}</span> : null}
-                </h2>
-                <div class="properties">
-                {g.items.map((c) => {
-                    const src = logoUrl(c.logo);
-                    return (
-                    <article class="property-card card-constructora">
-                        <div class="property-image">
-                        {src ? (
-                            <img src={src} alt={c.nombre} loading="lazy" />
-                        ) : (
-                            <div class="img-placeholder">
-                            {(c.nombre || "C").slice(0, 2).toUpperCase()}
-                            </div>
-                        )}
-                        </div>
-                        <div class="property-info">
-                        <h3>{c.nombre}</h3>
-                        {c.ciudad && <p class="ciudad">{c.ciudad}</p>}
-                        {c.descripcion && <p class="desc">{c.descripcion}</p>}
-                        {(c.telefono || c.correo) && (
-                            <p class="contacto">
-                            {[c.telefono, c.correo].filter(Boolean).join(" · ")}
-                            </p>
-                        )}
-                        </div>
-                    </article>
-                    );
-                })}
-                </div>
-            </div>
-            ))
-        )
-        }
+        <!-- Datos serializados para paginación JS -->
+        <script id="constructoras-grupos-data" type="application/json" set:html={JSON.stringify(grupos)}></script>
+
+        <div id="constructoras-grid"></div>
+        <nav id="paginacion-constructoras" class="paginacion-constructoras" aria-label="Paginación de constructoras"></nav>
     </div>
 </section>
+
+<script>
+    const BACKEND_CONST = "http://localhost:8001";
+    // Paginación a nivel de ITEMS totales (no grupos), 12 constructoras por página
+    const ITEMS_POR_PAG_C = 12;
+    let paginaC = 1;
+
+    interface ConstructoraItemJS {
+        constructoraID: number;
+        nombre: string;
+        descripcion?: string | null;
+        ciudad?: string | null;
+        telefono?: string | null;
+        correo?: string | null;
+        logo?: string | null;
+        _grupoNombre: string;
+        _grupoCiudad: string | null;
+    }
+
+    function logoUrlJS(logo: string | null | undefined): string | null {
+        if (!logo) return null;
+        if (logo.startsWith("http")) return logo;
+        if (logo.startsWith("/")) return `${BACKEND_CONST}${logo}`;
+        return `${BACKEND_CONST}/uploads/constructoras/${encodeURIComponent(logo)}`;
+    }
+
+    // Aplanar grupos en lista de items manteniendo etiqueta de grupo
+    const rawGrupos: any[] = JSON.parse(
+        (document.getElementById("constructoras-grupos-data") as HTMLScriptElement).textContent ?? "[]"
+    );
+
+    const todosItems: ConstructoraItemJS[] = rawGrupos.flatMap((g) =>
+        (g.items ?? []).map((c: any) => ({ ...c, _grupoNombre: g.nombre, _grupoCiudad: g.ciudad }))
+    );
+
+    function renderCardC(c: ConstructoraItemJS) {
+        const src = logoUrlJS(c.logo);
+        const imgHtml = src
+            ? `<img src="${src}" alt="${c.nombre}" loading="lazy" />`
+            : `<div class="img-placeholder">${(c.nombre || "C").slice(0, 2).toUpperCase()}</div>`;
+        const ciudad = c.ciudad ? `<p class="ciudad">${c.ciudad}</p>` : "";
+        const desc = c.descripcion ? `<p class="desc">${c.descripcion}</p>` : "";
+        const contacto = (c.telefono || c.correo)
+            ? `<p class="contacto">${[c.telefono, c.correo].filter(Boolean).join(" · ")}</p>` : "";
+        return `
+            <article class="property-card card-constructora">
+                <div class="property-image">${imgHtml}</div>
+                <div class="property-info">
+                    <span class="grupo-badge">${c._grupoNombre}</span>
+                    <h3>${c.nombre}</h3>
+                    ${ciudad}${desc}${contacto}
+                </div>
+            </article>`;
+    }
+
+    function renderGridC(items: ConstructoraItemJS[]) {
+        const grid = document.getElementById("constructoras-grid")!;
+        if (!items.length) {
+            grid.innerHTML = `<p class="sin-resultados">No hay constructoras activas por ahora.</p>`;
+            return;
+        }
+        grid.innerHTML = `<div class="properties">${items.map(renderCardC).join("")}</div>`;
+    }
+
+    function renderPaginacionC(total: number) {
+        const nav = document.getElementById("paginacion-constructoras")!;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAG_C);
+        if (totalPaginas <= 1) { nav.innerHTML = ""; return; }
+
+        let html = `<div class="paginas">`;
+        html += `<button class="pag-btn pag-prev" ${paginaC === 1 ? "disabled" : ""}>&#8592; Anterior</button>`;
+        const visible = new Set<number>();
+        visible.add(1); visible.add(totalPaginas);
+        for (let i = Math.max(2, paginaC - 1); i <= Math.min(totalPaginas - 1, paginaC + 1); i++) visible.add(i);
+        const sorted = Array.from(visible).sort((a, b) => a - b);
+        let prev = 0;
+        for (const n of sorted) {
+            if (prev && n - prev > 1) html += `<span class="pag-ellipsis">…</span>`;
+            html += `<button class="pag-btn pag-num ${n === paginaC ? "pag-activa" : ""}" data-page="${n}">${n}</button>`;
+            prev = n;
+        }
+        html += `<button class="pag-btn pag-next" ${paginaC === totalPaginas ? "disabled" : ""}>Siguiente &#8594;</button>`;
+        html += `<span class="pag-info">Página ${paginaC} de ${totalPaginas} · ${total} constructoras</span>`;
+        html += `</div>`;
+        nav.innerHTML = html;
+
+        nav.querySelectorAll(".pag-num").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                paginaC = Number((btn as HTMLElement).dataset.page);
+                irAPaginaC();
+            });
+        });
+        nav.querySelector(".pag-prev")?.addEventListener("click", () => {
+            if (paginaC > 1) { paginaC--; irAPaginaC(); }
+        });
+        nav.querySelector(".pag-next")?.addEventListener("click", () => {
+            const tp = Math.ceil(todosItems.length / ITEMS_POR_PAG_C);
+            if (paginaC < tp) { paginaC++; irAPaginaC(); }
+        });
+    }
+
+    function irAPaginaC() {
+        const inicio = (paginaC - 1) * ITEMS_POR_PAG_C;
+        renderGridC(todosItems.slice(inicio, inicio + ITEMS_POR_PAG_C));
+        renderPaginacionC(todosItems.length);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    irAPaginaC();
+</script>
 
 <style>
     :root {
@@ -89,26 +153,13 @@ function logoUrl(logo: string | null | undefined) {
     .contenedor {
         max-width: 1200px;
         margin: 0 auto;
-    }
-    .grupo-bloque {
-        margin-bottom: 28px;
-    }
-    .grupo-titulo {
-        margin: 0 30px 16px;
-        font-size: 1.15rem;
-        color: #1f5f3d;
-        border-bottom: 2px solid #c8ad72;
-        padding-bottom: 8px;
-    }
-    .grupo-titulo span {
-        font-weight: 500;
-        color: #6c757d;
+        padding: 0 30px;
     }
     .properties {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 24px;
-        padding: 0 30px 16px;
+        padding-bottom: 16px;
     }
     .card-constructora {
         background: #fff;
@@ -142,6 +193,18 @@ function logoUrl(logo: string | null | undefined) {
     .property-info {
         padding: 16px 18px 20px;
     }
+    .grupo-badge {
+        display: inline-block;
+        background: #e8f5e9;
+        color: var(--verde-dark);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 3px 9px;
+        border-radius: 20px;
+        margin-bottom: 6px;
+    }
     .property-info h3 {
         margin: 0 0 6px;
         font-size: 1.1rem;
@@ -158,6 +221,10 @@ function logoUrl(logo: string | null | undefined) {
         font-size: 0.9rem;
         color: #555;
         line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
     .contacto {
         margin: 10px 0 0;
@@ -168,5 +235,57 @@ function logoUrl(logo: string | null | undefined) {
         text-align: center;
         color: #666;
         padding: 40px;
+    }
+
+    /* ── Paginación ──────────────────────────────────────────────── */
+    .paginacion-constructoras {
+        display: flex;
+        justify-content: center;
+        padding: 24px 0 48px;
+    }
+    .paginas {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .pag-btn {
+        padding: 8px 14px;
+        border: 1px solid #d4e8d4;
+        border-radius: 8px;
+        background: #fff;
+        color: #2e7d32;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .pag-btn:hover:not(:disabled) {
+        background: #e8f5e9;
+        border-color: #2e7d32;
+    }
+    .pag-btn:disabled {
+        opacity: 0.38;
+        cursor: default;
+    }
+    .pag-btn.pag-activa {
+        background: #2e7d32;
+        color: #fff;
+        border-color: #2e7d32;
+    }
+    .pag-ellipsis {
+        padding: 0 4px;
+        color: #999;
+        font-size: 0.95rem;
+        user-select: none;
+    }
+    .pag-info {
+        width: 100%;
+        text-align: center;
+        margin-top: 8px;
+        font-size: 0.82rem;
+        color: #888;
+        font-weight: 500;
     }
 </style>
