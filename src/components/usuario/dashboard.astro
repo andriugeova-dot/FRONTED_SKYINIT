@@ -9,12 +9,15 @@ let totalSolicitudes = 0;
 
 if (token) {
     try {
-        const headers = { Cookie: `${COOKIE_NAME}=${token}` };
+        const headers = {
+            Cookie: `${COOKIE_NAME}=${token}`,
+            Authorization: `Bearer ${token}`,
+        };
 
         const [resPerfil, resFavs, resSols] = await Promise.allSettled([
-            fetch("http://localhost:8001/auth/perfil",           { headers }),
-            fetch("http://localhost:8001/api/usuario/favoritos", { headers }),
-            fetch("http://localhost:8001/api/usuario/solicitudes",{ headers }),
+            fetch("http://127.0.0.1:8001/auth/perfil",            { headers }),
+            fetch("http://127.0.0.1:8001/usuario/favoritos",      { headers }),
+            fetch("http://127.0.0.1:8001/usuario/solicitudes",    { headers }),
         ]);
 
         if (resPerfil.status === "fulfilled" && resPerfil.value.ok) {
@@ -24,11 +27,13 @@ if (token) {
         }
         if (resFavs.status === "fulfilled" && resFavs.value.ok) {
             const j = await resFavs.value.json();
-            totalFavoritos = (j.favoritos ?? j.data ?? []).length;
+            const lista = j.favoritos ?? j.data ?? j ?? [];
+            totalFavoritos = Array.isArray(lista) ? lista.length : 0;
         }
         if (resSols.status === "fulfilled" && resSols.value.ok) {
             const j = await resSols.value.json();
-            totalSolicitudes = (j.solicitudes ?? j.data ?? []).length;
+            const lista = j.solicitudes ?? j.data ?? j ?? [];
+            totalSolicitudes = Array.isArray(lista) ? lista.length : 0;
         }
     } catch { /* defaults */ }
 }

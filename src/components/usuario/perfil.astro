@@ -70,6 +70,19 @@ const fechaFormateada = usuario.fechaRegistro
             {fechaFormateada && (
                 <p class="avatar-fecha">Miembro desde {fechaFormateada}</p>
             )}
+
+            <!-- CAMBIO DE FOTO -->
+            <div class="foto-seccion">
+                <label class="btn-elegir-foto" for="inputFoto">
+                    <i class="bi bi-camera-fill"></i> Cambiar foto
+                </label>
+                <input type="file" id="inputFoto" accept="image/jpeg,image/png,image/webp" hidden />
+                <button type="button" id="btnSubirFoto" class="btn-subir-foto" disabled>
+                    <i class="bi bi-upload"></i> Subir
+                </button>
+                <p class="foto-hint">JPG, PNG o WebP · máx. 5 MB</p>
+                <div id="alertaFoto" class="alerta" style="display:none;"></div>
+            </div>
         </div>
 
         <!-- FORMULARIO DE EDICIÓN -->
@@ -230,6 +243,52 @@ const fechaFormateada = usuario.fechaRegistro
     font-weight: 600;
 }
 .avatar-fecha { font-size: 0.75rem; color: #9ca3af; margin: 0; }
+
+/* Sección foto de perfil */
+.foto-seccion {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 0.25rem;
+    padding-top: 0.75rem;
+    border-top: 1.5px solid #f3f4f6;
+}
+.btn-elegir-foto {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 9px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+.btn-elegir-foto:hover { border-color: #10b981; background: #f0fdf4; color: #10b981; }
+.btn-subir-foto {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    background: #1a2e3b;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+    justify-content: center;
+}
+.btn-subir-foto:hover:not(:disabled) { background: #0f4c6b; }
+.btn-subir-foto:disabled { opacity: 0.5; cursor: not-allowed; }
+.foto-hint { font-size: 0.7rem; color: #9ca3af; margin: 0; }
 
 /* Form card */
 .form-card {
@@ -422,4 +481,72 @@ function mostrarAlerta(msg: string, tipo: "ok" | "error") {
     alerta.style.display = "block";
     setTimeout(() => { alerta.style.display = "none"; }, 5000);
 }
+
+// ── Foto de perfil ──────────────────────────────────────────────
+const inputFoto    = document.getElementById("inputFoto")    as HTMLInputElement;
+const btnSubirFoto = document.getElementById("btnSubirFoto") as HTMLButtonElement;
+const alertaFoto   = document.getElementById("alertaFoto")   as HTMLDivElement;
+const avatarPreview = document.getElementById("avatarPreview") as HTMLElement;
+
+function mostrarAlertaFoto(msg: string, tipo: "ok" | "error") {
+    alertaFoto.textContent = msg;
+    alertaFoto.className = `alerta alerta-${tipo}`;
+    alertaFoto.style.display = "block";
+    setTimeout(() => { alertaFoto.style.display = "none"; }, 5000);
+}
+
+inputFoto?.addEventListener("change", () => {
+    const file = inputFoto.files?.[0];
+    btnSubirFoto.disabled = !file;
+
+    if (file) {
+        // Preview inmediata antes de subir
+        const objectUrl = URL.createObjectURL(file);
+        let img = avatarPreview.querySelector("img") as HTMLImageElement | null;
+        const iniciales = avatarPreview.querySelector("span");
+
+        if (!img) {
+            img = document.createElement("img");
+            img.id = "avatarImg";
+            if (iniciales) iniciales.style.display = "none";
+            avatarPreview.appendChild(img);
+        }
+        img.src = objectUrl;
+        img.style.display = "block";
+        if (iniciales) iniciales.style.display = "none";
+    }
+});
+
+btnSubirFoto?.addEventListener("click", async () => {
+    const file = inputFoto.files?.[0];
+    if (!file) return;
+
+    const fd = new FormData();
+    fd.append("foto", file); // campo que espera el backend
+
+    btnSubirFoto.disabled = true;
+    btnSubirFoto.innerHTML = `<i class="bi bi-hourglass-split"></i> Subiendo...`;
+
+    try {
+        const res = await fetch("/api/usuario/foto", {
+            method: "POST",
+            credentials: "same-origin",
+            body: fd,
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            mostrarAlertaFoto("Foto actualizada correctamente.", "ok");
+            inputFoto.value = "";
+            btnSubirFoto.disabled = true;
+        } else {
+            mostrarAlertaFoto(data.error ?? "Error al subir la foto.", "error");
+        }
+    } catch {
+        mostrarAlertaFoto("Error al conectar con el servidor.", "error");
+    } finally {
+        btnSubirFoto.innerHTML = `<i class="bi bi-upload"></i> Subir`;
+        if (!inputFoto.files?.length) btnSubirFoto.disabled = true;
+    }
+});
 </script>
