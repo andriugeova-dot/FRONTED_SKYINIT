@@ -1,42 +1,687 @@
 ---
-import Proyectos from "../components/proyectos/proyectos.astro";
+import Navbar from "../components/menu/Navbar.astro";
+import "../components/propiedades/propiedades.css";
+import "../components/proyectos/proyectos.css";
 import { getTokenSSR, COOKIE_NAME } from "../utils/auth";
 
 const BACKEND_URL = "http://127.0.0.1:8001";
 
-// Planificado | construccion | (todos) los unicos estados reales
 const estado = Astro.url.searchParams.get("estado") ?? "";
 
-const ESTADO_A_ID: Record<string, number> = {
-    planificado: 1,
-    construccion: 2,
-};
-
+const ESTADO_A_ID: Record<string, number> = { planificado: 1, construccion: 2 };
 const paramsBackend = new URLSearchParams();
-if (ESTADO_A_ID[estado]) paramsBackend.set("estadoProyectoID", String(ESTADO_A_ID[estado]));
+if (ESTADO_A_ID[estado])
+    paramsBackend.set("estadoProyectoID", String(ESTADO_A_ID[estado]));
 
-const respuestaProyectos = await fetch(`${BACKEND_URL}/proyectos${paramsBackend.toString() ?  `?${paramsBackend}` : ""}`);
-
-let proyectos = respuestaProyectos.ok ? await respuestaProyectos.json() : [];
-
-
-proyectos = proyectos.filter((p: any) => p.estadoProyectoID === 1 || p.estadoProyectoID === 2);
+const respuestaProyectos = await fetch(
+    `${BACKEND_URL}/proyectos${paramsBackend.toString() ? `?${paramsBackend}` : ""}`,
+);
+let proyectos: any[] = respuestaProyectos.ok
+    ? await respuestaProyectos.json()
+    : [];
+proyectos = proyectos.filter(
+    (p: any) => p.estadoProyectoID === 1 || p.estadoProyectoID === 2,
+);
 
 const token = getTokenSSR(Astro.cookies);
-let usuario = null;
-
+let usuario: any = null;
 if (token) {
-    const respuestaPerfil = await fetch(`${BACKEND_URL}/auth/perfil`, {
+    const res = await fetch(`${BACKEND_URL}/auth/perfil`, {
         headers: {
             Cookie: `${COOKIE_NAME}=${token}`,
             Authorization: `Bearer ${token}`,
         },
     });
-    if (respuestaPerfil.ok) {
-        const data = await respuestaPerfil.json();
+    if (res.ok) {
+        const data = await res.json();
         usuario = data.usuario;
     }
 }
+
+function claseBadgeEstado(estadoProyecto: string) {
+    const e = (estadoProyecto ?? "").toLowerCase();
+    if (e.includes("construcción") || e.includes("construccion"))
+        return "badge-venta";
+    if (e.includes("planificado")) return "badge-arriendo";
+    return "badge-default";
+}
+
+function formatearFecha(fecha: string | null) {
+    if (!fecha) return "No definida";
+    const soloFecha = fecha.slice(0, 10);
+    const [year, month, day] = soloFecha.split("-");
+    return `${day}/${month}/${year}`;
+}
+
+function resolverImagenTarjeta(url: string | null) {
+    if (!url) return "/img/no-image.png";
+    return url.startsWith("/uploads") ? `${BACKEND_URL}${url}` : url;
+}
 ---
 
-<Proyectos proyectos={proyectos} usuario={usuario} estado={estado} />
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Proyectos | SkyInit</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body>
+        <header id="header">
+            <Navbar />
+            <div class="hero-inner">
+                <div class="hero-eyebrow">Proyectos SkyInit</div>
+                <h1>Conoce lo que viene <em>construyendo</em> para ti</h1>
+                <p class="hero-sub">
+                    Proyectos planificados y en construcción de nuestras
+                    constructoras asociadas.
+                </p>
+            </div>
+        </header>
+        <section class="search-container">
+            <form action="/proyectos" method="get" class="search-box">
+                <select name="estado">
+                    <option value="" selected={estado === ""}
+                        >-- Todos los estados --</option
+                    >
+                    <option
+                        value="planificado"
+                        selected={estado === "planificado"}>Planificado</option
+                    >
+                    <option
+                        value="construccion"
+                        selected={estado === "construccion"}
+                        >En construcción</option
+                    >
+                </select>
+
+                <button type="submit">Filtrar</button>
+            </form>
+        </section>
+
+        <section class="contenedor resultados-section">
+            <div class="header-destacadas">
+                <div class="textos-destacadas">
+                    <span class="etiqueta-destacadas">Catálogo</span>
+                    <h2 class="titulo-destacadas">
+                        {proyectos.length} proyectos disponibles
+                    </h2>
+                    <p class="sub-destacadas">
+                        Proyectos planificados y en construcción de nuestras
+                        constructoras asociadas
+                    </p>
+                </div>
+            </div>
+
+            <!-- Datos serializados para paginación cliente -->
+            <script
+                id="proyectos-data"
+                type="application/json"
+                set:html={JSON.stringify(proyectos)}
+            />
+
+            <div id="proyectos-grid" class="properties"></div>
+
+            <nav
+                id="paginacion-proyectos"
+                class="paginacion-container"
+                aria-label="Paginación de proyectos"
+            >
+            </nav>
+        </section>
+
+        <div id="modalProyecto" class="modal">
+            <div class="modal-content modal-content-propiedad">
+                <span class="modal-close">&times;</span>
+                <div id="modal-body-proyecto">
+                    <p id="modalProyectoCargando" style="display:none;">
+                        Cargando información del proyecto...
+                    </p>
+                    <p
+                        id="modalProyectoError"
+                        style="display:none; color:#c0392b;"
+                    >
+                    </p>
+
+                    <div id="modalProyectoContenido">
+                        <h2 id="modalProyectoNombre"></h2>
+                        <img
+                            id="modalProyectoImagen"
+                            src=""
+                            alt="Imagen del proyecto"
+                            class="modal-img-propiedad"
+                        />
+                        <p id="modalProyectoDescripcion"></p>
+
+                        <div class="avance-container">
+                            <div class="avance-barra">
+                                <div
+                                    id="modalProyectoAvanceBarra"
+                                    class="avance-relleno"
+                                    style="width:0%"
+                                >
+                                </div>
+                            </div>
+                            <p
+                                id="modalProyectoAvanceTexto"
+                                class="avance-texto"
+                            >
+                            </p>
+                        </div>
+
+                        <div class="modal-detalles-grid">
+                            <p id="modalProyectoEstado"></p>
+                            <p id="modalProyectoUbicacion"></p>
+                            <p id="modalProyectoFechaInicio"></p>
+                            <p id="modalProyectoFechaFin"></p>
+                        </div>
+
+                        <div class="modal-contacto">
+                            <div
+                                class="modal-constructora"
+                                id="modalProyectoConstructoraWrap"
+                            >
+                                <div class="modal-contacto-info">
+                                    <span class="modal-contacto-label"
+                                        >Constructora encargada</span
+                                    >
+                                    <p id="modalProyectoConstructoraNombre"></p>
+                                    <p id="modalProyectoConstructoraContacto">
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-seccion">
+                            <h4>Proyectos similares</h4>
+                            <div
+                                id="modalProyectoSimilares"
+                                class="mini-lista-proyectos"
+                            >
+                            </div>
+                        </div>
+
+                        <div class="modal-seccion">
+                            <h4>Más proyectos de esta constructora</h4>
+                            <div
+                                id="modalProyectoActivosConstructora"
+                                class="mini-lista-proyectos"
+                            >
+                            </div>
+                        </div>
+
+                        <div class="modal-seccion">
+                            <h4>
+                                Historial de proyectos finalizados de esta
+                                constructora
+                            </h4>
+                            <div
+                                id="modalProyectoFinalizadosConstructora"
+                                class="mini-lista-proyectos"
+                            >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <link
+            href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap"
+            rel="stylesheet"
+        />
+
+        <script>
+            const BACKEND_URL = "http://localhost:8001";
+
+            // ── PAGINACIÓN DE PROYECTOS ───────────────────────────────────────────────
+            const ITEMS_POR_PAGINA_PROY = 12;
+            let paginaActualProy = 1;
+
+            const todosProyectos: any[] = JSON.parse(
+                (document.getElementById("proyectos-data") as HTMLScriptElement)
+                    .textContent ?? "[]",
+            );
+
+            function claseBadgeEstadoPag(estadoProyecto: string) {
+                const e = (estadoProyecto ?? "").toLowerCase();
+                if (e.includes("construcción") || e.includes("construccion"))
+                    return "badge-venta";
+                if (e.includes("planificado")) return "badge-arriendo";
+                return "badge-default";
+            }
+
+            function formatearFechaPag(fecha: string | null) {
+                if (!fecha) return "No definida";
+                const [year, month, day] = fecha.slice(0, 10).split("-");
+                return `${day}/${month}/${year}`;
+            }
+
+            function resolverImgProy(url: string | null) {
+                if (!url) return "/img/no-image.png";
+                return url.startsWith("/uploads")
+                    ? `${BACKEND_URL}${url}`
+                    : url;
+            }
+
+            function renderGridProyectos(proyectos: any[]) {
+                const grid = document.getElementById("proyectos-grid")!;
+                if (!proyectos.length) {
+                    grid.innerHTML = `<p class="sin-resultados">No hay proyectos disponibles con los filtros seleccionados.</p>`;
+                    return;
+                }
+                grid.innerHTML = proyectos
+                    .map(
+                        (p) => `
+            <div class="property-card">
+                <div class="property-image">
+                    <img src="${resolverImgProy(p.imagenPrincipal)}" alt="${p.nombre ?? ""}" loading="lazy" />
+                    <span class="badge-tipo ${claseBadgeEstadoPag(p.estadoProyecto)}">${p.estadoProyecto}</span>
+                </div>
+                <div class="property-info">
+                    <h2>${p.nombre}</h2>
+                    <p class="location">
+                        <svg class="icono-pin" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                        <span>${p.ubicacion ?? "Ubicación no definida"}</span>
+                    </p>
+                    <p class="description">${p.descripcion ?? ""}</p>
+                    <div class="avance-container">
+                        <div class="avance-barra">
+                            <div class="avance-relleno" style="width:${Number(p.porcentajeAvance)}%"></div>
+                        </div>
+                        <p class="avance-texto">${Number(p.porcentajeAvance)}% de avance</p>
+                    </div>
+                    <div class="details">
+                        <span>📅 Inicio: ${formatearFechaPag(p.fechaInicio)}</span>
+                        <span>🏁 Fin: ${formatearFechaPag(p.fechaFin)}</span>
+                    </div>
+                    ${p.constructoraNombre ? `<div class="details"><span>🏗️ ${p.constructoraNombre}</span></div>` : ""}
+                    <a href="/proyectos#proyecto-${p.proyectoID}" class="link-detalle-proyecto enlace-absoluto" data-id="${p.proyectoID}"></a>
+                </div>
+            </div>
+        `,
+                    )
+                    .join("");
+                adjuntarEventosModalProyecto();
+            }
+
+            function renderPaginacionProyectos(total: number) {
+                const nav = document.getElementById("paginacion-proyectos")!;
+                const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA_PROY);
+                if (totalPaginas <= 1) {
+                    nav.innerHTML = "";
+                    return;
+                }
+
+                let html = `<div class="paginas">`;
+                html += `<button class="pag-btn pag-prev" ${paginaActualProy === 1 ? "disabled" : ""} data-dir="prev">&#8592; Anterior</button>`;
+                const visible = new Set<number>();
+                visible.add(1);
+                visible.add(totalPaginas);
+                for (
+                    let i = Math.max(2, paginaActualProy - 1);
+                    i <= Math.min(totalPaginas - 1, paginaActualProy + 1);
+                    i++
+                )
+                    visible.add(i);
+                const sorted = Array.from(visible).sort((a, b) => a - b);
+                let prev = 0;
+                for (const n of sorted) {
+                    if (prev && n - prev > 1)
+                        html += `<span class="pag-ellipsis">…</span>`;
+                    html += `<button class="pag-btn pag-num ${n === paginaActualProy ? "pag-activa" : ""}" data-page="${n}">${n}</button>`;
+                    prev = n;
+                }
+                html += `<button class="pag-btn pag-next" ${paginaActualProy === totalPaginas ? "disabled" : ""} data-dir="next">Siguiente &#8594;</button>`;
+                html += `<span class="pag-info">Página ${paginaActualProy} de ${totalPaginas} · ${total} proyectos</span>`;
+                html += `</div>`;
+                nav.innerHTML = html;
+
+                nav.querySelectorAll(".pag-num").forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        paginaActualProy = Number(
+                            (btn as HTMLElement).dataset.page,
+                        );
+                        irAPaginaProyectos();
+                    });
+                });
+                nav.querySelector(".pag-prev")?.addEventListener(
+                    "click",
+                    () => {
+                        if (paginaActualProy > 1) {
+                            paginaActualProy--;
+                            irAPaginaProyectos();
+                        }
+                    },
+                );
+                nav.querySelector(".pag-next")?.addEventListener(
+                    "click",
+                    () => {
+                        const tp = Math.ceil(
+                            todosProyectos.length / ITEMS_POR_PAGINA_PROY,
+                        );
+                        if (paginaActualProy < tp) {
+                            paginaActualProy++;
+                            irAPaginaProyectos();
+                        }
+                    },
+                );
+            }
+
+            function irAPaginaProyectos() {
+                const inicio = (paginaActualProy - 1) * ITEMS_POR_PAGINA_PROY;
+                renderGridProyectos(
+                    todosProyectos.slice(
+                        inicio,
+                        inicio + ITEMS_POR_PAGINA_PROY,
+                    ),
+                );
+                renderPaginacionProyectos(todosProyectos.length);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+
+            // Render inicial
+            irAPaginaProyectos();
+
+            // ── MENÚS ────────────────────────────────────────────────────────────────
+            document
+                .getElementById("menuToggle")
+                ?.addEventListener("click", () => {
+                    document.getElementById("menu")?.classList.toggle("active");
+                });
+            document
+                .getElementById("profilePic")
+                ?.addEventListener("click", () => {
+                    document
+                        .getElementById("user-menu")
+                        ?.classList.toggle("active");
+                });
+            document
+                .getElementById("btnLogout")
+                ?.addEventListener("click", async (e) => {
+                    e.preventDefault();
+                    await fetch("/api/logout", { method: "POST" });
+                    window.location.href = "/login";
+                });
+
+            // Fondo del hero
+            const heroImages = [
+                "https://images.unsplash.com/photo-1541976590-713941681591?auto=format&fit=crop&w=2000&h=1125&q=80",
+                "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=2000&h=1125&q=80",
+                "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=2000&h=1125&q=80",
+
+            ];
+            let heroIndex = 0;
+            const heroHeader = document.getElementById("header") as HTMLElement;
+
+            function cambiarFondoHero() {
+                heroHeader.style.backgroundImage = `url(${heroImages[heroIndex]})`;
+                heroIndex = (heroIndex + 1) % heroImages.length;
+            }
+            cambiarFondoHero();
+            setInterval(cambiarFondoHero, 5000);
+
+            // --- Modal de detalle del proyecto ---
+            const modal = document.getElementById(
+                "modalProyecto",
+            ) as HTMLElement;
+            const closeBtn = document.querySelector(
+                "#modalProyecto .modal-close",
+            ) as HTMLElement;
+            const cargando = document.getElementById(
+                "modalProyectoCargando",
+            ) as HTMLElement;
+            const errorMsg = document.getElementById(
+                "modalProyectoError",
+            ) as HTMLElement;
+            const contenido = document.getElementById(
+                "modalProyectoContenido",
+            ) as HTMLElement;
+
+            function resolverImagen(url?: string | null) {
+                if (!url) return "/img/no-image.png";
+                return url.startsWith("/uploads")
+                    ? `${BACKEND_URL}${url}`
+                    : url;
+            }
+
+            function formatearFecha(fecha: string | null | undefined) {
+                if (!fecha) return "No definida";
+                const soloFecha = fecha.slice(0, 10);
+                const [year, month, day] = soloFecha.split("-");
+                return `${day}/${month}/${year}`;
+            }
+
+            function renderMiniLista(
+                contenedorId: string,
+                lista: any[],
+                vacioTexto: string,
+            ) {
+                const contenedor = document.getElementById(
+                    contenedorId,
+                ) as HTMLElement;
+                if (!lista || lista.length === 0) {
+                    contenedor.innerHTML = `<p class="modal-seccion-vacio">${vacioTexto}</p>`;
+                    return;
+                }
+                contenedor.innerHTML = lista
+                    .map(
+                        (p) => `
+                    <div class="mini-proyecto-item" data-id="${p.proyectoID}">
+                        <span class="mini-proyecto-nombre">${p.nombre}</span>
+                        <span class="mini-proyecto-meta">${p.estadoProyecto ?? ""} · ${Number(p.porcentajeAvance ?? 0)}%</span>
+                    </div>`,
+                    )
+                    .join("");
+
+                contenedor
+                    .querySelectorAll<HTMLElement>(".mini-proyecto-item")
+                    .forEach((item) => {
+                        item.addEventListener("click", () => {
+                            const id = item.dataset.id;
+                            if (id) cargarDetalleProyecto(id);
+                        });
+                    });
+            }
+
+            async function cargarDetalleProyecto(proyectoId: string) {
+                modal.classList.add("active");
+                contenido.style.display = "none";
+                errorMsg.style.display = "none";
+                cargando.style.display = "block";
+
+                try {
+                    const response = await fetch(
+                        `${BACKEND_URL}/proyectos/${proyectoId}`,
+                    );
+
+                    if (response.status === 404) {
+                        cargando.style.display = "none";
+                        errorMsg.textContent =
+                            "Este proyecto no existe o ya no está disponible.";
+                        errorMsg.style.display = "block";
+                        return;
+                    }
+
+                    if (!response.ok)
+                        throw new Error("Error al consultar el proyecto");
+
+                    const { proyecto } = await response.json();
+
+                    (
+                        document.getElementById(
+                            "modalProyectoNombre",
+                        ) as HTMLElement
+                    ).textContent = proyecto.nombre;
+                    (
+                        document.getElementById(
+                            "modalProyectoImagen",
+                        ) as HTMLImageElement
+                    ).src = resolverImagen(proyecto.imagenes?.[0]?.url);
+                    (
+                        document.getElementById(
+                            "modalProyectoDescripcion",
+                        ) as HTMLElement
+                    ).textContent =
+                        proyecto.descripcion ?? "Sin descripción disponible.";
+
+                    const avance = Number(proyecto.porcentajeAvance ?? 0);
+                    (
+                        document.getElementById(
+                            "modalProyectoAvanceBarra",
+                        ) as HTMLElement
+                    ).style.width = `${avance}%`;
+                    (
+                        document.getElementById(
+                            "modalProyectoAvanceTexto",
+                        ) as HTMLElement
+                    ).textContent = `${avance}% de avance`;
+
+                    (
+                        document.getElementById(
+                            "modalProyectoEstado",
+                        ) as HTMLElement
+                    ).textContent = `Estado: ${proyecto.estadoProyecto}`;
+                    (
+                        document.getElementById(
+                            "modalProyectoUbicacion",
+                        ) as HTMLElement
+                    ).textContent =
+                        `Ubicación: ${proyecto.ubicacion ?? "No definida"}`;
+                    (
+                        document.getElementById(
+                            "modalProyectoFechaInicio",
+                        ) as HTMLElement
+                    ).textContent =
+                        `Inicio: ${formatearFecha(proyecto.fechaInicio)}`;
+                    (
+                        document.getElementById(
+                            "modalProyectoFechaFin",
+                        ) as HTMLElement
+                    ).textContent = `Fin: ${formatearFecha(proyecto.fechaFin)}`;
+
+                    const constructoraWrap = document.getElementById(
+                        "modalProyectoConstructoraWrap",
+                    ) as HTMLElement;
+                    if (proyecto.constructoraNombre) {
+                        (
+                            document.getElementById(
+                                "modalProyectoConstructoraNombre",
+                            ) as HTMLElement
+                        ).textContent = proyecto.constructoraNombre;
+
+                        const datosContacto = [
+                            proyecto.constructoraContacto,
+                            proyecto.constructoraTelefono,
+                            proyecto.constructoraCorreo,
+                        ]
+                            .filter(Boolean)
+                            .join(" · ");
+                        (
+                            document.getElementById(
+                                "modalProyectoConstructoraContacto",
+                            ) as HTMLElement
+                        ).textContent =
+                            datosContacto ||
+                            "Sin datos de contacto registrados";
+
+                        constructoraWrap.style.display = "flex";
+                    } else {
+                        constructoraWrap.style.display = "none";
+                    }
+
+                    // Similares (misma constructora y mismo estado)
+                    const resSimilares = await fetch(
+                        `${BACKEND_URL}/proyectos/${proyectoId}/similares`,
+                    );
+                    const similares = resSimilares.ok
+                        ? await resSimilares.json()
+                        : [];
+                    renderMiniLista(
+                        "modalProyectoSimilares",
+                        similares,
+                        "No hay proyectos similares por el momento.",
+                    );
+
+                    // Proyectos de la misma constructora
+                    if (proyecto.constructoraID) {
+                        const resConstructora = await fetch(
+                            `${BACKEND_URL}/proyectos/constructora/${proyecto.constructoraID}`,
+                        );
+                        const proyectosConstructora = resConstructora.ok
+                            ? await resConstructora.json()
+                            : [];
+
+                        const activos = proyectosConstructora.filter(
+                            (p: any) =>
+                                p.proyectoID !== Number(proyectoId) &&
+                                p.estadoProyectoID !== 3,
+                        );
+                        const finalizados = proyectosConstructora.filter(
+                            (p: any) => p.estadoProyectoID === 3,
+                        );
+
+                        renderMiniLista(
+                            "modalProyectoActivosConstructora",
+                            activos,
+                            "Esta constructora no tiene más proyectos activos por ahora.",
+                        );
+                        renderMiniLista(
+                            "modalProyectoFinalizadosConstructora",
+                            finalizados,
+                            "Esta constructora aún no tiene proyectos finalizados.",
+                        );
+                    } else {
+                        renderMiniLista(
+                            "modalProyectoActivosConstructora",
+                            [],
+                            "No hay constructora asociada a este proyecto.",
+                        );
+                        renderMiniLista(
+                            "modalProyectoFinalizadosConstructora",
+                            [],
+                            "No hay constructora asociada a este proyecto.",
+                        );
+                    }
+
+                    cargando.style.display = "none";
+                    contenido.style.display = "block";
+                } catch (error) {
+                    console.error(
+                        "Error cargando el detalle del proyecto:",
+                        error,
+                    );
+                    cargando.style.display = "none";
+                    errorMsg.textContent =
+                        "No se pudo cargar la información del proyecto. Intenta de nuevo más tarde.";
+                    errorMsg.style.display = "block";
+                }
+            }
+
+            function adjuntarEventosModalProyecto() {
+                document
+                    .querySelectorAll<HTMLElement>(".link-detalle-proyecto")
+                    .forEach((enlace) => {
+                        enlace.addEventListener("click", (e) => {
+                            e.preventDefault();
+                            const id = enlace.dataset.id;
+                            if (id) cargarDetalleProyecto(id);
+                        });
+                    });
+            }
+
+            closeBtn.addEventListener("click", () =>
+                modal.classList.remove("active"),
+            );
+            window.addEventListener("click", (e) => {
+                if (e.target === modal) modal.classList.remove("active");
+            });
+        </script>
+    </body>
+</html>

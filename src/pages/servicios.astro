@@ -258,6 +258,68 @@ function renderGrupo(grupo: GrupoServiciosInmobiliaria) {
     </div>`;
 }
 
+// ── Paginación de servicios (por grupos de inmobiliaria) ───────────────────
+const GRUPOS_POR_PAGINA_SVC = 4; // 4 inmobiliarias por página (cada una puede tener múltiples servicios)
+let paginaSvc = 1;
+let todosGruposSvc: GrupoServiciosInmobiliaria[] = [];
+
+function renderPaginacionSvc() {
+    let nav = document.getElementById('paginacionServicios');
+    if (!nav) {
+        nav = document.createElement('nav');
+        nav.id = 'paginacionServicios';
+        nav.className = 'paginacion-svc';
+        nav.setAttribute('aria-label', 'Paginación de servicios');
+        document.getElementById('serviciosGrid')?.insertAdjacentElement('afterend', nav);
+    }
+    const total = todosGruposSvc.length;
+    const totalPaginas = Math.ceil(total / GRUPOS_POR_PAGINA_SVC);
+    if (totalPaginas <= 1) { nav.innerHTML = ''; return; }
+
+    let html = `<div class="paginas">`;
+    html += `<button class="pag-btn pag-prev" ${paginaSvc === 1 ? 'disabled' : ''}>&#8592; Anterior</button>`;
+    const visible = new Set<number>();
+    visible.add(1); visible.add(totalPaginas);
+    for (let i = Math.max(2, paginaSvc - 1); i <= Math.min(totalPaginas - 1, paginaSvc + 1); i++) visible.add(i);
+    const sorted = Array.from(visible).sort((a, b) => a - b);
+    let prev = 0;
+    for (const n of sorted) {
+        if (prev && n - prev > 1) html += `<span class="pag-ellipsis">…</span>`;
+        html += `<button class="pag-btn pag-num ${n === paginaSvc ? 'pag-activa' : ''}" data-page="${n}">${n}</button>`;
+        prev = n;
+    }
+    html += `<button class="pag-btn pag-next" ${paginaSvc === totalPaginas ? 'disabled' : ''}>Siguiente &#8594;</button>`;
+    html += `<span class="pag-info">Página ${paginaSvc} de ${totalPaginas} · ${total} inmobiliarias</span>`;
+    html += `</div>`;
+    nav.innerHTML = html;
+
+    nav.querySelectorAll('.pag-num').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            paginaSvc = Number((btn as HTMLElement).dataset.page);
+            renderPaginaSvc();
+        });
+    });
+    nav.querySelector('.pag-prev')?.addEventListener('click', () => { if (paginaSvc > 1) { paginaSvc--; renderPaginaSvc(); } });
+    nav.querySelector('.pag-next')?.addEventListener('click', () => { const tp = Math.ceil(todosGruposSvc.length / GRUPOS_POR_PAGINA_SVC); if (paginaSvc < tp) { paginaSvc++; renderPaginaSvc(); } });
+}
+
+function renderPaginaSvc() {
+    const grid = document.getElementById('serviciosGrid');
+    if (!grid) return;
+    const inicio = (paginaSvc - 1) * GRUPOS_POR_PAGINA_SVC;
+    const slice = todosGruposSvc.slice(inicio, inicio + GRUPOS_POR_PAGINA_SVC);
+    grid.innerHTML = slice.map(renderGrupo).join('');
+    grid.querySelectorAll('.btn-solicitar').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const id = (btn as HTMLElement).dataset.id ?? '';
+            const nombre = (btn as HTMLElement).dataset.nombre ?? '';
+            abrirModalSolicitud(id, nombre);
+        });
+    });
+    renderPaginacionSvc();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 async function cargarServicios() {
     const grid = document.getElementById('serviciosGrid');
     if (!grid) return;
@@ -278,15 +340,9 @@ async function cargarServicios() {
             return;
         }
 
-        grid.innerHTML = grupos.map(renderGrupo).join('');
-
-        grid.querySelectorAll('.btn-solicitar').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const id = (btn as HTMLElement).dataset.id ?? '';
-                const nombre = (btn as HTMLElement).dataset.nombre ?? '';
-                abrirModalSolicitud(id, nombre);
-            });
-        });
+        todosGruposSvc = grupos;
+        paginaSvc = 1;
+        renderPaginaSvc();
     } catch (e) {
         grid.innerHTML = `
             <div class="empty-state">
@@ -378,9 +434,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const images = [
-        'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789',
-        'https://images.unsplash.com/photo-1581141849291-1125c7b692b5',
-        'https://images.unsplash.com/photo-1599423300746-b62533397364',
+        'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=2000&q=80',
+        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=2000&q=80',
+        'https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=2000&q=80',
     ];
     let index = 0;
     const header = document.getElementById('header');
@@ -987,6 +1043,65 @@ a.proveedor-chip:hover {
 .toast.error {
     background: #c0392b;
     color: white;
+}
+
+/* ── Paginación ─────────────────────────────────────────────────────────── */
+.paginacion-svc {
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 48px;
+}
+
+.paginas {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.pag-btn {
+    padding: 8px 14px;
+    border: 1px solid #d4e8d4;
+    border-radius: 8px;
+    background: #fff;
+    color: #2e7d32;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.pag-btn:hover:not(:disabled) {
+    background: #e8f5e9;
+    border-color: #2e7d32;
+}
+
+.pag-btn:disabled {
+    opacity: 0.38;
+    cursor: default;
+}
+
+.pag-btn.pag-activa {
+    background: #2e7d32;
+    color: #fff;
+    border-color: #2e7d32;
+}
+
+.pag-ellipsis {
+    padding: 0 4px;
+    color: #999;
+    font-size: 0.95rem;
+    user-select: none;
+}
+
+.pag-info {
+    width: 100%;
+    text-align: center;
+    margin-top: 8px;
+    font-size: 0.82rem;
+    color: #888;
+    font-weight: 500;
 }
 
 /* ===========================================

@@ -4,7 +4,7 @@ body {
     background-color: #F9FCF3;
 }
 
-/* HEADER */
+/* HEADER con hero (página de inicio, constructoras, etc.) */
 header#header {
     height: 90vh;
     color: white;
@@ -17,8 +17,8 @@ header#header {
     transition: background-image 1s ease-in-out;
 }
 
-    /* Overlay oscuro */
-    header::before {
+    /* Overlay oscuro — solo cuando hay imagen de fondo (hero) */
+    header#header:not(.header--solo-nav)::before {
         content: "";
         position: absolute;
         width: 100%;
@@ -29,6 +29,13 @@ header#header {
         z-index: 0;
         pointer-events: none;
     }
+
+/* HEADER sin hero — solo la barra de navegación */
+header#header.header--solo-nav {
+    height: auto;
+    background: none;
+    background-color: #2e7d32;
+}
 
 /* NAVBAR */
 .topbar {

@@ -15,9 +15,7 @@ const autenticado = isAuthenticatedSSR(Astro.cookies);
     <title>Inmobiliaria | SkyInit</title>
   </head>
   <body>
-    <header id="header">
-      <Topbar />
-    </header>
+    <Topbar soloNav />
 
     <!-- ▌PERFIL DE LA INMOBILIARIA ▐ -->
     <section class="contenedor" id="perfilInmobiliaria">
@@ -538,7 +536,4 @@ nav a:hover {
         display: block;
     }
 }
-
-
-
 </style>
