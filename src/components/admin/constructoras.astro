@@ -170,10 +170,15 @@ const { esSuperAdmin = false } = Astro.props;
             var ciudad = c.ciudad ?? c.Ciudad ?? "—";
             var correo = c.correo ?? c.Correo ?? "—";
             var estado = c.estado ?? c.Estado ?? "";
-            var inmoId = c.inmobiliariaID ?? c.InmobiliariaID;
-            var inmo =
-                inmobiliariasMap[inmoId] ||
-                (inmoId != null ? "ID " + inmoId : "—");
+            var inmoTexto =
+                c.inmobiliariaNombres ||
+                (Array.isArray(c.inmobiliarias) && c.inmobiliarias.length
+                    ? c.inmobiliarias.map(function (i) {
+                        return i.nombre;
+                    }).join(", ")
+                    : null) ||
+                inmobiliariasMap[c.inmobiliariaID] ||
+                "—";
             return (
                 "<tr>" +
                 "<td>" + id + "</td>" +
@@ -181,7 +186,7 @@ const { esSuperAdmin = false } = Astro.props;
                 "<td>" + ciudad + "</td>" +
                 "<td>" + correo + "</td>" +
                 "<td>" + badgeEstado(estado) + "</td>" +
-                "<td>" + inmo + "</td>" +
+                "<td>" + inmoTexto + "</td>" +
                 '<td class="acciones">' +
                 '<button type="button" class="btn-sm btn-edit" data-edit="' + id + '">Editar</button> ' +
                 '<button type="button" class="btn-sm btn-del" data-del="' + id + '">Eliminar</button>' +

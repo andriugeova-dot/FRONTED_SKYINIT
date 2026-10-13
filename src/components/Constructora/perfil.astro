@@ -1,4 +1,5 @@
 ---
+import "./perfil.css"
 ---
 
 <div class="perfil-page">
@@ -27,172 +28,57 @@
 
         <!-- DATOS -->
         <section class="card">
-        <h2>Datos</h2>
-        <form id="formPerfil">
-            <div class="campo">
-            <label for="nombre">Nombre *</label>
-            <input type="text" id="nombre" name="nombre" required />
-            </div>
-            <div class="campo">
-            <label for="descripcion">Descripción *</label>
-            <textarea id="descripcion" name="descripcion" rows="3" required></textarea>
-            </div>
-            <div class="fila">
-            <div class="campo">
-                <label for="contacto">Contacto</label>
-                <input type="text" id="contacto" name="contacto" />
-            </div>
-            <div class="campo">
-                <label for="telefono">Teléfono</label>
-                <input type="text" id="telefono" name="telefono" />
-            </div>
-            </div>
-            <div class="fila">
-            <div class="campo">
-                <label for="correo">Correo</label>
-                <input type="email" id="correo" name="correo" disabled />
-            </div>
-            <div class="campo">
-                <label for="ciudad">Ciudad</label>
-                <input type="text" id="ciudad" name="ciudad" disabled />
-            </div>
-            </div>
-            <button type="submit" class="btn btn-primary" id="btnGuardar">
-            Guardar cambios
-            </button>
-        </form>
-        </section>
+            <h2>Datos</h2>
+            <form id="formPerfil">
+                <div class="campo">
+                <label for="nombre">Nombre *</label>
+                <input type="text" id="nombre" name="nombre" required />
+                </div>
+
+                <div class="campo">
+                <label for="descripcion">Descripción *</label>
+                <textarea id="descripcion" name="descripcion" rows="3" required></textarea>
+                </div>
+
+                <div class="fila">
+                <div class="campo">
+                    <label for="contacto">Contacto</label>
+                    <input type="text" id="contacto" name="contacto" />
+                </div>
+                <div class="campo">
+                    <label for="telefono">Teléfono</label>
+                    <input
+                        type="text"
+                        id="telefono"
+                        name="tel_constructora_sky"
+                        autocomplete="off"
+                        data-lpignore="true"
+                    />
+                </div>
+                </div>
+
+                <div class="fila">
+                    <div class="campo">
+                        <label for="correo">Correo</label>
+                        <input type="email" id="correo" name="correo" disabled readonly autocomplete="off" />
+                    </div>
+                    <div class="campo">
+                        <label for="ciudad">Ciudad</label>
+                        <input type="text" id="ciudad" name="ciudad" disabled readonly />
+                    </div>
+                </div>
+
+                <div class="campo inmo-section">
+                    <label>Inmobiliarias asociadas</label>
+                    <div id="lista-inmobiliarias" class="inmo-list"></div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btnGuardar">
+                Guardar cambios
+                </button>
+            </form>
+            </section>
     </div>
 </div>
-
-    <style>
-    .perfil-page h1 {
-        margin: 0 0 0.25rem;
-        font-size: 1.5rem;
-    }
-    .sub {
-        color: #6b7280;
-        margin-bottom: 1.5rem;
-    }
-    .perfil-grid {
-        display: grid;
-        grid-template-columns: 260px 1fr;
-        gap: 1.25rem;
-        align-items: start;
-    }
-    @media (max-width: 800px) {
-        .perfil-grid {
-        grid-template-columns: 1fr;
-        }
-    }
-    .card {
-        background: #fff;
-        border-radius: 12px;
-        padding: 1.25rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    }
-    .card h2 {
-        font-size: 1rem;
-        margin: 0 0 1rem;
-    }
-    .logo-preview {
-        width: 140px;
-        height: 140px;
-        border-radius: 16px;
-        border: 2px dashed #d1d5db;
-        margin: 0 auto 1rem;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f9fafb;
-    }
-    .logo-preview img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .logo-placeholder {
-        color: #9ca3af;
-        font-size: 0.85rem;
-    }
-    .logo-card {
-        text-align: center;
-    }
-    .btn-file {
-        display: inline-block;
-        margin-bottom: 0.5rem;
-        padding: 0.4rem 0.9rem;
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-        cursor: pointer;
-        font-size: 0.9rem;
-        background: #fff;
-    }
-    .btn {
-        border: none;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        cursor: pointer;
-        font-size: 0.9rem;
-    }
-    .btn-primary {
-        background: #253229;
-        color: #f5f1e8;
-    }
-    .btn-primary:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    .hint {
-        font-size: 0.75rem;
-        color: #9ca3af;
-        margin-top: 0.5rem;
-    }
-    .campo {
-        margin-bottom: 0.85rem;
-    }
-    .campo label {
-        display: block;
-        font-size: 0.8rem;
-        margin-bottom: 0.25rem;
-        color: #374151;
-    }
-    .campo input,
-    .campo textarea {
-        width: 100%;
-        padding: 0.5rem 0.65rem;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        box-sizing: border-box;
-    }
-    .campo input:disabled {
-        background: #f3f4f6;
-        color: #6b7280;
-    }
-    .fila {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
-    }
-    .alerta {
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-    }
-    .alerta.ok {
-        background: #ecfdf5;
-        color: #065f46;
-    }
-    .alerta.error {
-        background: #fef2f2;
-        color: #991b1b;
-    }
-    .d-none {
-        display: none !important;
-    }
-</style>
 
 <script>
     const BACKEND_PUBLIC = "http://localhost:8001";
@@ -237,14 +123,53 @@
             return;
         }
         const d = json.data ?? json;
+        const tel = document.getElementById("telefono") as HTMLInputElement;
+            tel.value = "";
+            tel.value = String(d.telefono ?? "");
+        setTimeout(() => {
+        tel.value = String(d.telefono ?? "");
+        }, 50);
+        setTimeout(() => {
+        tel.value = String(d.telefono ?? "");
+        }, 400);
         (document.getElementById("nombre") as HTMLInputElement).value = d.nombre ?? "";
         (document.getElementById("descripcion") as HTMLTextAreaElement).value =
             d.descripcion ?? "";
         (document.getElementById("contacto") as HTMLInputElement).value = d.contacto ?? "";
-        (document.getElementById("telefono") as HTMLInputElement).value = d.telefono ?? "";
         (document.getElementById("correo") as HTMLInputElement).value = d.correo ?? "";
         (document.getElementById("ciudad") as HTMLInputElement).value = d.ciudad ?? "";
+
+        const cont = document.getElementById("lista-inmobiliarias") as HTMLDivElement;
+        const lista = d.inmobiliarias ?? [];
+
+            if (!lista.length) {
+            cont.innerHTML =
+                '<div class="inmo-empty-box">Sin inmobiliarias vinculadas</div>';
+            } else {
+            cont.innerHTML = lista
+                .map((i: { nombre?: string; ciudad?: string; estado?: string }) => {
+                const nombre = i.nombre ?? "Inmobiliaria";
+                const ciudad = i.ciudad ?? "—";
+                const estado = i.estado ?? "";
+
+                return (
+                    '<article class="inmo-card">' +
+                    '<div class="inmo-card-icon"><i class="bi bi-buildings"></i></div>' +
+                    '<div class="inmo-card-body">' +
+                        '<p class="inmo-card-name">' + nombre + "</p>" +
+                        '<p class="inmo-card-city">' + ciudad + "</p>" +
+                    "</div>" +
+                    (estado
+                        ? '<span class="inmo-card-badge">' + estado + "</span>"
+                        : "") +
+                    "</article>"
+                );
+                })
+                .join("");
+            }
+
         pintarLogo(d.logo ?? d.Logo ?? null);
+
         } catch {
         mostrarAlerta("Error de conexión al cargar el perfil", false);
         }
@@ -290,30 +215,32 @@
     });
 
     form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const body = {
-        nombre: (document.getElementById("nombre") as HTMLInputElement).value.trim(),
-        descripcion: (document.getElementById("descripcion") as HTMLTextAreaElement).value.trim(),
-        contacto: (document.getElementById("contacto") as HTMLInputElement).value.trim(),
-        telefono: (document.getElementById("telefono") as HTMLInputElement).value.trim(),
-        };
+            e.preventDefault();
 
-        try {
-        const res = await fetch("/api/panel/constructora/perfil", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-        });
-        const json = await res.json();
-        if (!res.ok) {
-            mostrarAlerta(json.error || json.message || "Error al guardar", false);
-            return;
-        }
-        mostrarAlerta("Datos guardados correctamente", true);
-        } catch {
-        mostrarAlerta("Error de conexión al guardar", false);
-        }
-    });
+            const body = {
+                nombre: (document.getElementById("nombre") as HTMLInputElement).value.trim(),
+                descripcion: (document.getElementById("descripcion") as HTMLTextAreaElement).value.trim(),
+                contacto: (document.getElementById("contacto") as HTMLInputElement).value.trim(),
+                telefono: (document.getElementById("telefono") as HTMLInputElement).value.trim(),
+            };
+
+            try {
+                const res = await fetch("/api/panel/constructora/perfil", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify(body),
+                });
+                const json = await res.json();
+                if (!res.ok) {
+                mostrarAlerta(json.message || json.error || "Error al guardar", false);
+                return;
+                }
+                mostrarAlerta(json.message || "Datos guardados correctamente", true);
+            } catch {
+                mostrarAlerta("Error de conexión al guardar", false);
+            }
+            });
 
     cargarPerfil();
 </script>

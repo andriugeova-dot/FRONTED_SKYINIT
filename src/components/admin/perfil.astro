@@ -1,0 +1,164 @@
+---
+import "./perfil.css";
+---
+
+<div class="perfil-page">
+    <header class="page-header">
+        <div>
+        <h1>Mi perfil</h1>
+        <p>Datos de tu cuenta de administrador</p>
+        </div>
+    </header>
+
+    <div class="perfil-grid">
+        <section class="card logo-card">
+        <h2>Foto</h2>
+        <div class="logo-preview" id="foto-preview">
+            <span class="logo-placeholder" id="foto-placeholder">Sin foto</span>
+            <img id="foto-img" alt="Foto de perfil" hidden />
+        </div>
+        <label class="btn-file">
+            Elegir imagen
+            <input type="file" id="input-foto" accept="image/jpeg,image/png,image/webp" hidden />
+        </label>
+        <button type="button" class="btn btn-muted" id="btn-subir-foto" disabled>Subir foto</button>
+        <p class="hint">JPG, PNG o WebP · máx. 5 MB</p>
+        </section>
+
+        <section class="card">
+        <h2>Datos</h2>
+        <form id="form-perfil">
+            <label>Nombre *</label>
+            <input type="text" id="f-nombre" required />
+
+            <label>Correo</label>
+            <input type="email" id="f-correo" disabled />
+
+            <div class="row-2">
+            <div>
+                <label>Teléfono</label>
+                <input type="text" id="f-telefono" />
+            </div>
+            <div>
+                <label>Rol</label>
+                <input type="text" id="f-rol" disabled />
+            </div>
+            </div>
+
+            <p id="form-msg" class="form-msg" hidden></p>
+
+            <button type="submit" class="btn btn-primary" id="btn-guardar">Guardar cambios</button>
+        </form>
+        </section>
+    </div>
+</div>
+
+<script is:inline>
+    (function () {
+        var fotoFile = null;
+        var BACKEND_PUBLIC = "http://localhost:8001";
+
+        function urlFoto(path) {
+        if (!path) return "";
+        if (path.indexOf("http") === 0) return path;
+        return BACKEND_PUBLIC + (path.charAt(0) === "/" ? path : "/" + path);
+        }
+
+        function mostrarFoto(path) {
+        var img = document.getElementById("foto-img");
+        var ph = document.getElementById("foto-placeholder");
+        if (path) {
+            img.src = urlFoto(path);
+            img.hidden = false;
+            ph.hidden = true;
+        } else {
+            img.hidden = true;
+            ph.hidden = false;
+        }
+        }
+
+        function cargar() {
+        fetch("/api/perfil", { credentials: "same-origin" })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+            var u = data.usuario || data;
+            document.getElementById("f-nombre").value = u.nombre || u.Nombre || "";
+            document.getElementById("f-correo").value = u.correo || u.Correo || "";
+            document.getElementById("f-telefono").value = u.telefono || u.Telefono || "";
+            document.getElementById("f-rol").value = u.nombreRol || u.rol || u.Rol || "";
+            mostrarFoto(u.fotoPerfil || u.FotoPerfil || null);
+            })
+            .catch(function () {
+            document.getElementById("form-msg").textContent = "No se pudo cargar el perfil";
+            document.getElementById("form-msg").hidden = false;
+            });
+        }
+
+        document.getElementById("input-foto").addEventListener("change", function (e) {
+        var f = e.target.files && e.target.files[0];
+        fotoFile = f || null;
+        document.getElementById("btn-subir-foto").disabled = !fotoFile;
+        if (fotoFile) {
+            var reader = new FileReader();
+            reader.onload = function () {
+            var img = document.getElementById("foto-img");
+            img.src = reader.result;
+            img.hidden = false;
+            document.getElementById("foto-placeholder").hidden = true;
+            };
+            reader.readAsDataURL(fotoFile);
+        }
+        });
+
+        document.getElementById("btn-subir-foto").addEventListener("click", function () {
+        if (!fotoFile) return;
+        var fd = new FormData();
+        fd.append("foto", fotoFile); // ajusta al nombre que use tu API de perfil
+        fetch("/api/perfil/foto", { method: "POST", body: fd, credentials: "same-origin" })
+            .then(function (r) {
+            if (!r.ok) throw new Error("No se pudo subir");
+            return r.json();
+            })
+            .then(function (data) {
+            fotoFile = null;
+            document.getElementById("btn-subir-foto").disabled = true;
+            if (data.fotoPerfil || data.url) mostrarFoto(data.fotoPerfil || data.url);
+            alert("Foto actualizada");
+            })
+            .catch(function (err) {
+            alert(err.message || "Error al subir foto");
+            });
+        });
+
+        document.getElementById("form-perfil").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var msg = document.getElementById("form-msg");
+        msg.hidden = true;
+
+        fetch("/api/perfil", {
+            method: "PUT",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+            nombre: document.getElementById("f-nombre").value.trim(),
+            telefono: document.getElementById("f-telefono").value.trim() || null,
+            }),
+        })
+            .then(function (r) {
+            return r.json().then(function (data) {
+                if (!r.ok) throw new Error(data.error || data.message || "Error");
+                msg.textContent = "Cambios guardados";
+                msg.className = "form-msg ok";
+                msg.hidden = false;
+            });
+            })
+            .catch(function (err) {
+            msg.textContent = err.message || "Error al guardar";
+            msg.className = "form-msg err";
+            msg.hidden = false;
+            });
+        });
+
+        cargar();
+    })();
+</script>
