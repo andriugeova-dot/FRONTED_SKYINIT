@@ -1,13 +1,14 @@
 import type { APIRoute } from "astro";
 
-const BACKEND_URL = "http://localhost:8001/api/propiedades";
-
+const BACKEND = import.meta.env.BACKEND_URL ?? "http://localhost:8001";
+const URL_LISTADO = `${BACKEND}/api/propiedades/admin/listado`;
+const URL_CREAR = `${BACKEND}/api/propiedades`; 
 export const GET: APIRoute = async ({ request, url})=> {
     try {
         const cookieHeader = request.headers.get("cookie") || "";
         const queryString = url.search;
 
-        const response = await fetch(`${BACKEND_URL}${queryString}`, {
+        const response = await fetch(`${URL_LISTADO}${queryString}`, {
             method: "GET",
             headers: {
                 Cookie: cookieHeader,
@@ -33,7 +34,7 @@ export const POST: APIRoute = async ({ request }) => {
         const cookieHeader = request.headers.get("cookie") || "";
         const body = await request.text();
 
-        const response = await fetch(BACKEND_URL, {
+        const response = await fetch(URL_CREAR, {
             method: "POST",
             headers: {
                 Cookie: cookieHeader,
