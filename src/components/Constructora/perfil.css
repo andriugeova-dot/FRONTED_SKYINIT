@@ -1,0 +1,264 @@
+.perfil-page h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  color: #1b3a2a;
+}
+
+.perfil-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .perfil-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.35rem 1.4rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid #eef0ee;
+}
+
+.card h2 {
+  font-size: 1rem;
+  margin: 0 0 1rem;
+  color: #1b3a2a;
+}
+
+/* Logo */
+.logo-card {
+  text-align: center;
+}
+
+.logo-preview {
+  width: 140px;
+  height: 140px;
+  border-radius: 16px;
+  border: 2px dashed #d1d5db;
+  margin: 0 auto 1rem;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+}
+
+.logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logo-placeholder {
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+.btn-file {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  background: #253229;
+  color: #f5f1e8;
+  font-weight: 600;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.5rem;
+}
+
+/* Campos */
+.campo {
+  margin-bottom: 0.9rem;
+}
+
+.campo label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 0.3rem;
+}
+
+.campo input,
+.campo textarea {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  background: #fff;
+  color: #111;
+}
+
+.campo input:disabled,
+.campo input[readonly] {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .fila {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Alertas */
+.alerta {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.alerta.ok {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.alerta.error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.d-none {
+  display: none !important;
+}
+
+/* —— Inmobiliarias asociadas —— */
+.inmo-section {
+  margin-top: 0.75rem;
+  margin-bottom: 1.15rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #eef0ee;
+}
+
+.inmo-section > label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.inmo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.inmo-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f7fbf7 0%, #f3f8f3 100%);
+  border: 1px solid #cfe3cf;
+  box-shadow: 0 1px 2px rgba(27, 58, 42, 0.05);
+}
+
+.inmo-card-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: #e5f4e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.inmo-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.inmo-card-name {
+  margin: 0;
+  font-size: 0.93rem;
+  font-weight: 600;
+  color: #1b3a2a;
+  line-height: 1.35;
+}
+
+.inmo-card-city {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
+.inmo-card-badge {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.inmo-empty-box {
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px dashed #d1d5db;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  background: #fafafa;
+}
+
+.inmo-card-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: #e5f4e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.inmo-card-icon .bi {
+  font-size: 1.2rem;
+  color: #2e8b57;
+  line-height: 1;
+}

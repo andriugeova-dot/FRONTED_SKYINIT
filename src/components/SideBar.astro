@@ -94,12 +94,13 @@ const configuraciones: Record<
         rutas: {
             usuarios?: string;
             dashboard: string;
-            propiedades: string;
+            propiedades?: string;
             favoritos?: string;
             solicitudes?: string;
             proyectos?: string;
             constructoras?:string;
             perfil: string;
+            inmobiliarias? : string;
         };
         items: {
             href: string;
@@ -134,7 +135,7 @@ const configuraciones: Record<
     Constructora: {
         nombre: nombreMostrar,
         descripcion: subtitulo,
-        iniciales, 
+        iniciales,
         clase: "constructora",
         rutas: {
             dashboard:   "/constructora",
@@ -166,7 +167,7 @@ const configuraciones: Record<
         items: [
             { href: "/admin",              icon: "bi-grid-1x2-fill",  label: "Dashboard" },
             { href: "/admin/servicios",   icon: "bi-tools",          label: "Servicios" },
-            { href: "/admin/constructoras",        icon: "bi-grid-1x2-fill",  label: "constructoras" },
+            { href: "/admin/constructoras",        icon: "bi-shop-window    ",  label: "constructoras" },
             { href: "/admin/propiedades",    icon: "bi-buildings-fill", label: "Propiedades" },
             { href: "/admin/proyectos",  icon: "bi-house-fill",     label: "Proyectos" },
             { href: "/admin/perfil",       icon: "bi-person-fill",    label: "Perfil" },
@@ -181,14 +182,15 @@ const configuraciones: Record<
         rutas: {
             dashboard:   "/superadmin",
             usuarios: "/superadmin/usuarios",
-            propiedades: "/superadmin/propiedades",
-            proyectos:   "/superadmin/proyectos",
+            constructoras: "/superadmin/constructoras",
+            inmobiliarias:   "/superadmin/inmobiliarias",
             perfil:      "/superadmin/perfil",
         },
         items: [
             { href: "/superadmin",             icon: "bi-grid-1x2-fill",  label: "Dashboard" },
-            { href: "/superadmin/proyectos",   icon: "bi-buildings-fill", label: "Proyectos" },
-            { href: "/superadmin/propiedades", icon: "bi-house-fill",     label: "Propiedades" },
+            { href: "/superadmin/usuarios",   icon: "bi bi-people", label: "Usuarios" },
+            { href: "/superadmin/constructoras", icon: "bi-house-fill",     label: "constructoras" },
+            { href: "/superadmin/inmobiliarias", icon: "bi-house-fill",     label: "inmobiliarias" },
             { href: "/superadmin/perfil",      icon: "bi-person-fill",    label: "Perfil" },
         ],
     },

@@ -1,0 +1,319 @@
+---
+import "./usuarios.css";
+---
+
+<div class="page" id="page-usuarios">
+    <header class="page-header">
+        <div>
+        <h1>Usuarios</h1>
+        <p>Gestiona cuentas, roles y estado de la plataforma</p>
+        </div>
+        <button type="button" class="btn-nueva" id="btn-nueva">+ Nuevo usuario</button>
+    </header>
+
+    <div class="stats">
+        <div class="stat-card">
+        <span class="stat-label">Total</span>
+        <span class="stat-value" id="stat-total">—</span>
+        </div>
+        <div class="stat-card">
+        <span class="stat-label">Activos</span>
+        <span class="stat-value" id="stat-activos">—</span>
+        </div>
+        <div class="stat-card">
+        <span class="stat-label">Inactivos</span>
+        <span class="stat-value" id="stat-inactivos">—</span>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="tabla">
+        <thead>
+            <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Inmobiliaria</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tbody">
+            <tr><td colspan="7" class="loading">Cargando…</td></tr>
+        </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="modal" hidden>
+    <div class="modal-backdrop" data-cerrar></div>
+    <div class="modal-card">
+        <h3 id="modal-titulo">Nuevo usuario</h3>
+        <p id="form-error" class="form-error" hidden></p>
+
+        <input type="hidden" id="f-id" value="" />
+
+        <label>Nombre *</label>
+        <input type="text" id="f-nombre" />
+
+        <label>Correo *</label>
+        <input type="email" id="f-correo" />
+
+        <label id="lbl-password">Contraseña *</label>
+        <input type="password" id="f-password" autocomplete="new-password" />
+        <p class="hint" id="hint-password">Mín. 8 caracteres. En edición, déjala vacía para no cambiarla.</p>
+
+        <label>Teléfono</label>
+        <input type="text" id="f-telefono" />
+
+        <label>Rol *</label>
+        <select id="f-rol"></select>
+
+        <label>Inmobiliaria</label>
+        <select id="f-inmobiliaria">
+        <option value="">— Ninguna —</option>
+        </select>
+
+        <label>Estado</label>
+        <select id="f-estado">
+        <option value="Activa">Activa</option>
+        <option value="Inactiva">Inactiva</option>
+        <option value="Suspendida">Suspendida</option>
+        </select>
+
+        <div class="modal-actions">
+        <button type="button" class="btn-outline" data-cerrar>Cancelar</button>
+        <button type="button" class="btn-primary" id="btn-guardar">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script is:inline>
+    (function () {
+    var lista = [];
+    var roles = [];
+
+    function badgeEstado(e) {
+        var s = (e || "").toLowerCase();
+        var cls = s.indexOf("activ") >= 0 ? "ok" : s.indexOf("susp") >= 0 ? "warn" : "off";
+        return '<span class="badge badge-' + cls + '">' + (e || "—") + "</span>";
+    }
+
+    function pintarStats() {
+        var total = lista.length;
+        var activos = lista.filter(function (u) {
+        return String(u.estadoCuenta || "").toLowerCase().indexOf("activ") >= 0;
+        }).length;
+        document.getElementById("stat-total").textContent = total;
+        document.getElementById("stat-activos").textContent = activos;
+        document.getElementById("stat-inactivos").textContent = total - activos;
+    }
+
+    function pintarTabla() {
+        var tbody = document.getElementById("tbody");
+        if (!lista.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay usuarios</td></tr>';
+        return;
+        }
+        tbody.innerHTML = lista
+        .map(function (u) {
+            var id = u.usuarioID;
+            return (
+            "<tr>" +
+            "<td>" + id + "</td>" +
+            "<td><strong>" + (u.nombre || "") + "</strong></td>" +
+            "<td>" + (u.correo || "—") + "</td>" +
+            "<td>" + (u.nombreRol || "—") + "</td>" +
+            "<td>" + (u.inmobiliariaNombre || "—") + "</td>" +
+            "<td>" + badgeEstado(u.estadoCuenta) + "</td>" +
+            '<td class="acciones">' +
+            '<button type="button" class="btn-sm btn-edit" data-edit="' + id + '">Editar</button>' +
+            "</td></tr>"
+            );
+        })
+        .join("");
+    }
+
+    function cargar() {
+        return fetch("/api/superadmin/usuarios", { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (json) {
+            lista = json.data || [];
+            pintarStats();
+            pintarTabla();
+        })
+        .catch(function () {
+            document.getElementById("tbody").innerHTML =
+            '<tr><td colspan="7" class="loading">Error al cargar</td></tr>';
+        });
+    }
+
+    function cargarRoles() {
+        return fetch("/api/superadmin/usuarios?roles=1", { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (json) {
+            roles = json.data || [];
+            var sel = document.getElementById("f-rol");
+            sel.innerHTML = roles
+            .map(function (r) {
+                var id = r.rolID ?? r.RolID;
+                var nom = r.nombreRol ?? r.NombreRol;
+                return '<option value="' + id + '">' + nom + "</option>";
+            })
+            .join("");
+        });
+    }
+
+    function cargarInmobiliarias() {
+        return fetch("/api/superadmin/inmobiliarias", { credentials: "same-origin" })
+            .then(function (r) {
+            return r.json();
+            })
+            .then(function (json) {
+            var data = json.data || [];
+            var sel = document.getElementById("f-inmobiliaria");
+            if (!sel) return;
+
+            sel.innerHTML = '<option value="">— Ninguna —</option>';
+
+            data.forEach(function (i) {
+                var id = i.inmobiliariaID ?? i.InmobiliariaID;
+                var nombre = i.nombre ?? i.Nombre ?? "";
+                var ciudad = i.ciudad ?? i.Ciudad ?? "";
+                var opt = document.createElement("option");
+                opt.value = String(id);
+                opt.textContent = ciudad ? nombre + " · " + ciudad : nombre;
+                sel.appendChild(opt);
+            });
+            })
+            .catch(function (err) {
+            console.error("Error cargando inmobiliarias", err);
+            });
+    }
+
+    function abrirModal(editar) {
+        var modal = document.getElementById("modal");
+        document.getElementById("form-error").hidden = true;
+
+        // Importante: fuera de .page para que no herede filtros/opacidad
+        document.body.appendChild(modal);
+        modal.hidden = false;
+
+        if (editar) {
+        document.getElementById("modal-titulo").textContent = "Editar usuario";
+        document.getElementById("lbl-password").textContent = "Contraseña (opcional)";
+        document.getElementById("f-correo").disabled = true;
+        } else {
+        document.getElementById("modal-titulo").textContent = "Nuevo usuario";
+        document.getElementById("lbl-password").textContent = "Contraseña *";
+        document.getElementById("f-correo").disabled = false;
+        limpiar();
+        }
+    }
+
+    function cerrarModal() {
+        document.getElementById("modal").hidden = true;
+    }
+
+    function limpiar() {
+        document.getElementById("f-id").value = "";
+        document.getElementById("f-nombre").value = "";
+        document.getElementById("f-correo").value = "";
+        document.getElementById("f-password").value = "";
+        document.getElementById("f-telefono").value = "";
+        document.getElementById("f-inmobiliaria").value = "";
+        document.getElementById("f-estado").value = "Activa";
+    }
+
+    function rellenar(u) {
+        document.getElementById("f-id").value = u.usuarioID;
+        document.getElementById("f-nombre").value = u.nombre || "";
+        document.getElementById("f-correo").value = u.correo || "";
+        document.getElementById("f-password").value = "";
+        document.getElementById("f-telefono").value = u.telefono || "";
+        document.getElementById("f-rol").value = String(u.rolID || "");
+        document.getElementById("f-inmobiliaria").value = u.inmobiliariaID
+        ? String(u.inmobiliariaID)
+        : "";
+        document.getElementById("f-estado").value = u.estadoCuenta || "Activa";
+    }
+
+    document.getElementById("btn-nueva").addEventListener("click", function () {
+        abrirModal(false);
+    });
+
+    document.querySelectorAll("[data-cerrar]").forEach(function (el) {
+        el.addEventListener("click", cerrarModal);
+    });
+
+    document.getElementById("tbody").addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-edit]");
+        if (!btn) return;
+        var id = Number(btn.getAttribute("data-edit"));
+        var u = lista.find(function (x) { return x.usuarioID === id; });
+        if (!u) return;
+        rellenar(u);
+        abrirModal(true);
+    });
+
+    document.getElementById("btn-guardar").addEventListener("click", function () {
+        var err = document.getElementById("form-error");
+        err.hidden = true;
+
+        var id = document.getElementById("f-id").value;
+        var payload = {
+        nombre: document.getElementById("f-nombre").value.trim(),
+        correo: document.getElementById("f-correo").value.trim(),
+        telefono: document.getElementById("f-telefono").value.trim() || null,
+        rolID: Number(document.getElementById("f-rol").value),
+        inmobiliariaID: document.getElementById("f-inmobiliaria").value
+            ? Number(document.getElementById("f-inmobiliaria").value)
+            : null,
+        estadoCuenta: document.getElementById("f-estado").value,
+        };
+
+        var pass = document.getElementById("f-password").value;
+        if (!id && !pass) {
+        err.textContent = "La contraseña es obligatoria al crear";
+        err.hidden = false;
+        return;
+        }
+        if (pass) payload.password = pass;
+
+        if (!payload.nombre || !payload.correo || !payload.rolID) {
+        err.textContent = "Nombre, correo y rol son obligatorios";
+        err.hidden = false;
+        return;
+        }
+
+        var url = id
+        ? "/api/superadmin/usuarios?id=" + id
+        : "/api/superadmin/usuarios";
+        var method = id ? "PUT" : "POST";
+
+        fetch(url, {
+        method: method,
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        })
+        .then(function (r) {
+            return r.json().then(function (data) {
+            if (!r.ok) throw new Error(data.message || data.error || "Error");
+            cerrarModal();
+            return cargar();
+            });
+        })
+        .catch(function (e) {
+            err.textContent = e.message || "Error al guardar";
+            err.hidden = false;
+        });
+    });
+
+    cargarRoles()
+    .then(cargarInmobiliarias)
+    .then(cargar);
+})();
+</script>
