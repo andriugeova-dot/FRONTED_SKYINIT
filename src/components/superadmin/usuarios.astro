@@ -10,6 +10,18 @@ import "./usuarios.css";
         </div>
         <button type="button" class="btn-nueva" id="btn-nueva">+ Nuevo usuario</button>
     </header>
+    <div class="toolbar">
+        <input type="search" id="filtro-q" placeholder="Buscar nombre o correo…" />
+        <select id="filtro-rol">
+            <option value="">Todos los roles</option>
+        </select>
+        <select id="filtro-estado">
+            <option value="">Todos los estados</option>
+            <option value="Activa">Activa</option>
+            <option value="Inactiva">Inactiva</option>
+            <option value="Suspendida">Suspendida</option>
+        </select>
+    </div>
 
     <div class="stats">
         <div class="stat-card">
@@ -91,229 +103,307 @@ import "./usuarios.css";
 </div>
 
 <script is:inline>
-    (function () {
-    var lista = [];
-    var roles = [];
+(function () {
+  var lista = [];
+  var roles = [];
+  var inmobiliarias = [];
 
-    function badgeEstado(e) {
-        var s = (e || "").toLowerCase();
-        var cls = s.indexOf("activ") >= 0 ? "ok" : s.indexOf("susp") >= 0 ? "warn" : "off";
-        return '<span class="badge badge-' + cls + '">' + (e || "—") + "</span>";
+  function esSuperAdmin(u) {
+    var rol = String(u.nombreRol || u.rol || "").toLowerCase();
+    var rolId = Number(u.rolID || u.RolID || 0);
+    return rol.indexOf("superadmin") >= 0 || rol.indexOf("super admin") >= 0 || rolId === 4;
+    // Si tu RolID de SuperAdmin es otro, cámbialo aquí
+  }
+
+  function badgeEstado(e) {
+    var s = String(e || "").toLowerCase();
+    if (s.indexOf("activ") >= 0) return '<span class="badge badge-ok">' + e + "</span>";
+    if (s.indexOf("susp") >= 0) return '<span class="badge badge-warn">' + e + "</span>";
+    return '<span class="badge badge-off">' + (e || "—") + "</span>";
+  }
+
+  function pintarStats() {
+    var total = lista.length;
+    var activos = lista.filter(function (u) {
+      return String(u.estadoCuenta || "").toLowerCase().indexOf("activ") >= 0;
+    }).length;
+    var inactivos = total - activos;
+    var elT = document.getElementById("stat-total");
+    var elA = document.getElementById("stat-activos");
+    var elI = document.getElementById("stat-inactivos");
+    if (elT) elT.textContent = String(total);
+    if (elA) elA.textContent = String(activos);
+    if (elI) elI.textContent = String(inactivos);
+  }
+
+  function pintarTabla(items) {
+    items = items || lista;
+    var tbody = document.getElementById("tbody");
+    if (!tbody) return;
+    if (!items.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="7" class="loading">Sin resultados</td></tr>';
+      return;
     }
+    tbody.innerHTML = items
+      .map(function (u) {
+        var id = u.usuarioID || u.UsuarioID;
+        var bloqueado = esSuperAdmin(u);
+        var acciones = bloqueado
+          ? '<span class="hint-sa">Protegido</span>'
+          : '<button type="button" class="btn-sm" data-edit="' +
+            id +
+            '">Editar</button>';
+        return (
+          "<tr>" +
+          "<td>" + id + "</td>" +
+          "<td>" + (u.nombre || "") + "</td>" +
+          "<td>" + (u.correo || "") + "</td>" +
+          "<td>" + (u.nombreRol || u.rol || "—") + "</td>" +
+          "<td>" + (u.inmobiliariaNombre || "—") + "</td>" +
+          "<td>" + badgeEstado(u.estadoCuenta) + "</td>" +
+          "<td>" + acciones + "</td>" +
+          "</tr>"
+        );
+      })
+      .join("");
+  }
 
-    function pintarStats() {
-        var total = lista.length;
-        var activos = lista.filter(function (u) {
-        return String(u.estadoCuenta || "").toLowerCase().indexOf("activ") >= 0;
-        }).length;
-        document.getElementById("stat-total").textContent = total;
-        document.getElementById("stat-activos").textContent = activos;
-        document.getElementById("stat-inactivos").textContent = total - activos;
-    }
+  function aplicarFiltro() {
+    var q = (document.getElementById("filtro-q").value || "")
+      .toLowerCase()
+      .trim();
+    var rol = document.getElementById("filtro-rol").value;
+    var est = document.getElementById("filtro-estado").value;
+    var filtrados = lista.filter(function (u) {
+      var texto = ((u.nombre || "") + " " + (u.correo || "")).toLowerCase();
+      var okQ = !q || texto.indexOf(q) >= 0;
+      var okR = !rol || String(u.rolID || u.RolID) === String(rol);
+      var okE = !est || String(u.estadoCuenta || "") === est;
+      return okQ && okR && okE;
+    });
+    pintarTabla(filtrados);
+  }
 
-    function pintarTabla() {
-        var tbody = document.getElementById("tbody");
-        if (!lista.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay usuarios</td></tr>';
-        return;
-        }
-        tbody.innerHTML = lista
-        .map(function (u) {
-            var id = u.usuarioID;
-            return (
-            "<tr>" +
-            "<td>" + id + "</td>" +
-            "<td><strong>" + (u.nombre || "") + "</strong></td>" +
-            "<td>" + (u.correo || "—") + "</td>" +
-            "<td>" + (u.nombreRol || "—") + "</td>" +
-            "<td>" + (u.inmobiliariaNombre || "—") + "</td>" +
-            "<td>" + badgeEstado(u.estadoCuenta) + "</td>" +
-            '<td class="acciones">' +
-            '<button type="button" class="btn-sm btn-edit" data-edit="' + id + '">Editar</button>' +
-            "</td></tr>"
-            );
-        })
-        .join("");
-    }
+  function cargar() {
+    return fetch("/api/superadmin/usuarios", { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        lista = json.data || [];
+        pintarStats();
+        aplicarFiltro();
+      })
+      .catch(function () {
+        document.getElementById("tbody").innerHTML =
+          '<tr><td colspan="7" class="loading">Error al cargar</td></tr>';
+      });
+  }
 
-    function cargar() {
-        return fetch("/api/superadmin/usuarios", { credentials: "same-origin" })
-        .then(function (r) { return r.json(); })
-        .then(function (json) {
-            lista = json.data || [];
-            pintarStats();
-            pintarTabla();
-        })
-        .catch(function () {
-            document.getElementById("tbody").innerHTML =
-            '<tr><td colspan="7" class="loading">Error al cargar</td></tr>';
-        });
-    }
-
-    function cargarRoles() {
-        return fetch("/api/superadmin/usuarios?roles=1", { credentials: "same-origin" })
-        .then(function (r) { return r.json(); })
-        .then(function (json) {
-            roles = json.data || [];
-            var sel = document.getElementById("f-rol");
-            sel.innerHTML = roles
+  function cargarRoles() {
+    return fetch("/api/superadmin/usuarios?roles=1", {
+      credentials: "same-origin",
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        roles = json.data || [];
+        var optsFiltro =
+          '<option value="">Todos los roles</option>' +
+          roles
             .map(function (r) {
-                var id = r.rolID ?? r.RolID;
-                var nom = r.nombreRol ?? r.NombreRol;
-                return '<option value="' + id + '">' + nom + "</option>";
+              var id = r.rolID || r.RolID;
+              var nom = r.nombreRol || r.NombreRol || "";
+              return '<option value="' + id + '">' + nom + "</option>";
             })
             .join("");
-        });
-    }
-
-    function cargarInmobiliarias() {
-        return fetch("/api/superadmin/inmobiliarias", { credentials: "same-origin" })
-            .then(function (r) {
-            return r.json();
+        var optsForm =
+          '<option value="">— Rol —</option>' +
+          roles
+            .map(function (r) {
+              var id = r.rolID || r.RolID;
+              var nom = r.nombreRol || r.NombreRol || "";
+              // No ofrecer SuperAdmin al crear/editar otros
+              if (String(nom).toLowerCase().indexOf("super") >= 0) return "";
+              return '<option value="' + id + '">' + nom + "</option>";
             })
-            .then(function (json) {
-            var data = json.data || [];
-            var sel = document.getElementById("f-inmobiliaria");
-            if (!sel) return;
+            .join("");
+        document.getElementById("filtro-rol").innerHTML = optsFiltro;
+        document.getElementById("f-rol").innerHTML = optsForm;
+      });
+  }
 
-            sel.innerHTML = '<option value="">— Ninguna —</option>';
-
-            data.forEach(function (i) {
-                var id = i.inmobiliariaID ?? i.InmobiliariaID;
-                var nombre = i.nombre ?? i.Nombre ?? "";
-                var ciudad = i.ciudad ?? i.Ciudad ?? "";
-                var opt = document.createElement("option");
-                opt.value = String(id);
-                opt.textContent = ciudad ? nombre + " · " + ciudad : nombre;
-                sel.appendChild(opt);
-            });
+  function cargarInmobiliarias() {
+    return fetch("/api/superadmin/inmobiliarias", {
+      credentials: "same-origin",
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        inmobiliarias = json.data || [];
+        document.getElementById("f-inmobiliaria").innerHTML =
+          '<option value="">— Ninguna —</option>' +
+          inmobiliarias
+            .map(function (i) {
+              return (
+                '<option value="' +
+                i.inmobiliariaID +
+                '">' +
+                (i.nombre || "") +
+                "</option>"
+              );
             })
-            .catch(function (err) {
-            console.error("Error cargando inmobiliarias", err);
-            });
+            .join("");
+      });
+  }
+
+  function abrirModal() {
+    var modal = document.getElementById("modal");
+    document.getElementById("form-error").hidden = true;
+    document.body.appendChild(modal);
+    modal.hidden = false;
+  }
+
+  function cerrarModal() {
+    document.getElementById("modal").hidden = true;
+  }
+
+  function limpiar() {
+    document.getElementById("f-id").value = "";
+    document.getElementById("f-nombre").value = "";
+    document.getElementById("f-correo").value = "";
+    document.getElementById("f-correo").disabled = false;
+    document.getElementById("f-password").value = "";
+    document.getElementById("f-telefono").value = "";
+    document.getElementById("f-rol").value = "";
+    document.getElementById("f-inmobiliaria").value = "";
+    document.getElementById("f-estado").value = "Activa";
+    document.getElementById("lbl-password").textContent = "Contraseña *";
+    document.getElementById("modal-titulo").textContent = "Nuevo usuario";
+  }
+
+  function rellenar(u) {
+    if (esSuperAdmin(u)) {
+      alert("Las cuentas SuperAdmin no se pueden editar desde aquí.");
+      return;
     }
+    document.getElementById("f-id").value = u.usuarioID || u.UsuarioID;
+    document.getElementById("f-nombre").value = u.nombre || "";
+    document.getElementById("f-correo").value = u.correo || "";
+    document.getElementById("f-correo").disabled = true;
+    document.getElementById("f-password").value = "";
+    document.getElementById("f-telefono").value = u.telefono || "";
+    document.getElementById("f-rol").value = String(u.rolID || u.RolID || "");
+    document.getElementById("f-inmobiliaria").value = u.inmobiliariaID
+      ? String(u.inmobiliariaID)
+      : "";
+    document.getElementById("f-estado").value = u.estadoCuenta || "Activa";
+    document.getElementById("lbl-password").textContent =
+      "Contraseña (opcional)";
+    document.getElementById("modal-titulo").textContent = "Editar usuario";
+    abrirModal();
+  }
 
-    function abrirModal(editar) {
-        var modal = document.getElementById("modal");
-        document.getElementById("form-error").hidden = true;
+  document.getElementById("btn-nueva").addEventListener("click", function () {
+    limpiar();
+    abrirModal();
+  });
 
-        // Importante: fuera de .page para que no herede filtros/opacidad
-        document.body.appendChild(modal);
-        modal.hidden = false;
+  document.querySelectorAll("[data-cerrar]").forEach(function (el) {
+    el.addEventListener("click", cerrarModal);
+  });
 
-        if (editar) {
-        document.getElementById("modal-titulo").textContent = "Editar usuario";
-        document.getElementById("lbl-password").textContent = "Contraseña (opcional)";
-        document.getElementById("f-correo").disabled = true;
-        } else {
-        document.getElementById("modal-titulo").textContent = "Nuevo usuario";
-        document.getElementById("lbl-password").textContent = "Contraseña *";
-        document.getElementById("f-correo").disabled = false;
-        limpiar();
-        }
-    }
+  document.getElementById("filtro-q").addEventListener("input", aplicarFiltro);
+  document
+    .getElementById("filtro-rol")
+    .addEventListener("change", aplicarFiltro);
+  document
+    .getElementById("filtro-estado")
+    .addEventListener("change", aplicarFiltro);
 
-    function cerrarModal() {
-        document.getElementById("modal").hidden = true;
-    }
-
-    function limpiar() {
-        document.getElementById("f-id").value = "";
-        document.getElementById("f-nombre").value = "";
-        document.getElementById("f-correo").value = "";
-        document.getElementById("f-password").value = "";
-        document.getElementById("f-telefono").value = "";
-        document.getElementById("f-inmobiliaria").value = "";
-        document.getElementById("f-estado").value = "Activa";
-    }
-
-    function rellenar(u) {
-        document.getElementById("f-id").value = u.usuarioID;
-        document.getElementById("f-nombre").value = u.nombre || "";
-        document.getElementById("f-correo").value = u.correo || "";
-        document.getElementById("f-password").value = "";
-        document.getElementById("f-telefono").value = u.telefono || "";
-        document.getElementById("f-rol").value = String(u.rolID || "");
-        document.getElementById("f-inmobiliaria").value = u.inmobiliariaID
-        ? String(u.inmobiliariaID)
-        : "";
-        document.getElementById("f-estado").value = u.estadoCuenta || "Activa";
-    }
-
-    document.getElementById("btn-nueva").addEventListener("click", function () {
-        abrirModal(false);
+  document.getElementById("tbody").addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-edit]");
+    if (!btn) return;
+    var id = Number(btn.getAttribute("data-edit"));
+    var u = lista.find(function (x) {
+      return Number(x.usuarioID || x.UsuarioID) === id;
     });
+    if (!u) return;
+    rellenar(u);
+  });
 
-    document.querySelectorAll("[data-cerrar]").forEach(function (el) {
-        el.addEventListener("click", cerrarModal);
-    });
+  document.getElementById("btn-guardar").addEventListener("click", function () {
+    var err = document.getElementById("form-error");
+    err.hidden = true;
 
-    document.getElementById("tbody").addEventListener("click", function (e) {
-        var btn = e.target.closest("[data-edit]");
-        if (!btn) return;
-        var id = Number(btn.getAttribute("data-edit"));
-        var u = lista.find(function (x) { return x.usuarioID === id; });
-        if (!u) return;
-        rellenar(u);
-        abrirModal(true);
-    });
-
-    document.getElementById("btn-guardar").addEventListener("click", function () {
-        var err = document.getElementById("form-error");
-        err.hidden = true;
-
-        var id = document.getElementById("f-id").value;
-        var payload = {
-        nombre: document.getElementById("f-nombre").value.trim(),
-        correo: document.getElementById("f-correo").value.trim(),
-        telefono: document.getElementById("f-telefono").value.trim() || null,
-        rolID: Number(document.getElementById("f-rol").value),
-        inmobiliariaID: document.getElementById("f-inmobiliaria").value
-            ? Number(document.getElementById("f-inmobiliaria").value)
-            : null,
-        estadoCuenta: document.getElementById("f-estado").value,
-        };
-
-        var pass = document.getElementById("f-password").value;
-        if (!id && !pass) {
-        err.textContent = "La contraseña es obligatoria al crear";
+    var id = document.getElementById("f-id").value;
+    if (id) {
+      var actual = lista.find(function (x) {
+        return Number(x.usuarioID || x.UsuarioID) === Number(id);
+      });
+      if (actual && esSuperAdmin(actual)) {
+        err.textContent = "No se puede editar un SuperAdmin";
         err.hidden = false;
         return;
-        }
-        if (pass) payload.password = pass;
+      }
+    }
 
-        if (!payload.nombre || !payload.correo || !payload.rolID) {
-        err.textContent = "Nombre, correo y rol son obligatorios";
-        err.hidden = false;
-        return;
-        }
+    var nombre = document.getElementById("f-nombre").value.trim();
+    var correo = document.getElementById("f-correo").value.trim();
+    var password = document.getElementById("f-password").value;
+    var telefono = document.getElementById("f-telefono").value.trim();
+    var rolID = document.getElementById("f-rol").value;
+    var inmobiliariaID = document.getElementById("f-inmobiliaria").value;
+    var estadoCuenta = document.getElementById("f-estado").value;
 
-        var url = id
-        ? "/api/superadmin/usuarios?id=" + id
-        : "/api/superadmin/usuarios";
-        var method = id ? "PUT" : "POST";
+    if (!nombre || !correo || !rolID) {
+      err.textContent = "Nombre, correo y rol son obligatorios";
+      err.hidden = false;
+      return;
+    }
+    if (!id && !password) {
+      err.textContent = "La contraseña es obligatoria al crear";
+      err.hidden = false;
+      return;
+    }
 
-        fetch(url, {
-        method: method,
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        })
-        .then(function (r) {
-            return r.json().then(function (data) {
-            if (!r.ok) throw new Error(data.message || data.error || "Error");
-            cerrarModal();
-            return cargar();
-            });
-        })
-        .catch(function (e) {
-            err.textContent = e.message || "Error al guardar";
-            err.hidden = false;
+    var payload = {
+      nombre: nombre,
+      correo: correo,
+      telefono: telefono || null,
+      rolID: Number(rolID),
+      inmobiliariaID: inmobiliariaID ? Number(inmobiliariaID) : null,
+      estadoCuenta: estadoCuenta,
+    };
+    if (password) payload.password = password;
+
+    var url = id
+      ? "/api/superadmin/usuarios?id=" + id
+      : "/api/superadmin/usuarios";
+    var method = id ? "PUT" : "POST";
+
+    fetch(url, {
+      method: method,
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) {
+        return r.json().then(function (data) {
+          if (!r.ok) throw new Error(data.message || data.error || "Error");
+          cerrarModal();
+          return cargar();
         });
-    });
+      })
+      .catch(function (e) {
+        err.textContent = e.message || "Error al guardar";
+        err.hidden = false;
+      });
+  });
 
-    cargarRoles()
-    .then(cargarInmobiliarias)
-    .then(cargar);
+  Promise.all([cargarRoles(), cargarInmobiliarias()]).then(cargar);
 })();
 </script>
