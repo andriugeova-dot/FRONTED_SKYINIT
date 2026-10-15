@@ -1,5 +1,6 @@
 ---
 import PanelAgente from "./PanelAgente.astro";
+import "./propiedades.css";
 ---
 
 <PanelAgente
@@ -13,98 +14,128 @@ import PanelAgente from "./PanelAgente.astro";
     { id: "statOtras", titulo: "Otras", valor: 0, variante: "warn" },
   ]}
 >
-  <div slot="filtros" class="filter-bar mb-4">
-    <div class="row g-3">
-      <div class="col-md-8">
-        <div class="input-group">
-          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" id="inputBuscar" class="form-control border-start-0" placeholder="Buscar por título, ciudad o dirección..." />
-        </div>
+  <section class="filtros" aria-label="Filtros" slot="filtros">
+    <div class="filtro-busqueda">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <input type="search" id="inputBuscar" placeholder="Buscar por título, ciudad o dirección..." />
+    </div>
+    <select id="selectEstado" aria-label="Filtrar por estado">
+      <option value="">Todos los estados</option>
+      <option value="Disponible">Disponible</option>
+      <option value="Reservada">Reservada</option>
+      <option value="En mantenimiento">En mantenimiento</option>
+      <option value="Fuera del mercado">Fuera del mercado</option>
+    </select>
+  </section>
+
+  <p class="contador" id="contador" aria-live="polite" hidden></p>
+
+  <div id="loadingState" class="estado-vacio">
+    <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+    <h3>Cargando...</h3>
+    <p>Estamos trayendo tus propiedades.</p>
+  </div>
+
+  <div id="errorState" class="alert-error" role="alert" hidden></div>
+
+  <div id="emptyState" class="estado-vacio" hidden>
+    <i class="bi bi-house-add" aria-hidden="true"></i>
+    <h3>No hay propiedades</h3>
+    <p>Publica la primera con “Nueva propiedad”.</p>
+  </div>
+
+  <div id="sinResultados" class="estado-vacio" hidden>
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <h3>Sin resultados</h3>
+    <p>Prueba con otra búsqueda o cambia el filtro.</p>
+  </div>
+
+  <div id="gridProps" class="prop-grid" hidden></div>
+</PanelAgente>
+
+<!-- Modal crear / editar -->
+<div id="modalPropiedad" class="sky-modal" hidden>
+  <div class="sky-modal-backdrop" data-cerrar="propiedad"></div>
+  <div class="sky-modal-card" role="dialog" aria-modal="true" aria-labelledby="modalPropiedadTitulo">
+    <h3 id="modalPropiedadTitulo">Nueva propiedad</h3>
+    <div id="modalAlert" class="alert-error" role="alert" hidden></div>
+    <form id="formPropiedad" class="form-grid" novalidate>
+      <input type="hidden" id="campoId" value="" />
+
+      <div class="full">
+        <label for="campoTitulo">Título *</label>
+        <input type="text" id="campoTitulo" required maxlength="150" />
       </div>
-      <div class="col-md-4">
-        <select id="selectEstado" class="form-select">
-          <option value="">Todos los estados</option>
+
+      <div class="full">
+        <label for="campoDesc">Descripción</label>
+        <textarea id="campoDesc" rows="3"></textarea>
+      </div>
+
+      <div>
+        <label for="campoPrecio">Precio (COP) *</label>
+        <input type="number" id="campoPrecio" required min="1" step="0.01" />
+      </div>
+
+      <div>
+        <label for="campoTipo">Tipo de operación *</label>
+        <select id="campoTipo" required>
+          <option value="1">Venta</option>
+          <option value="2">Arriendo</option>
+          <option value="3">Empeño</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="campoHab">Habitaciones</label>
+        <input type="number" id="campoHab" min="0" step="1" />
+      </div>
+
+      <div>
+        <label for="campoCiudad">Ciudad</label>
+        <input type="text" id="campoCiudad" maxlength="80" />
+      </div>
+
+      <div class="full">
+        <label for="campoDireccion">Dirección *</label>
+        <input type="text" id="campoDireccion" required maxlength="200" />
+      </div>
+
+      <div>
+        <label for="campoEstado">Estado</label>
+        <select id="campoEstado">
           <option value="Disponible">Disponible</option>
           <option value="Reservada">Reservada</option>
           <option value="En mantenimiento">En mantenimiento</option>
           <option value="Fuera del mercado">Fuera del mercado</option>
         </select>
       </div>
+    </form>
+    <div class="modal-actions">
+      <button type="button" class="btn-outline" data-cerrar="propiedad">Cancelar</button>
+      <button type="button" class="btn-primary" id="btnGuardarProp">Guardar</button>
     </div>
   </div>
+</div>
 
-  <div id="loadingState" class="text-center py-5">
-    <div class="spinner-border text-success" role="status"><span class="visually-hidden">Cargando...</span></div>
-  </div>
-  <div id="errorState" class="alert alert-danger d-none" role="alert"></div>
-  <div id="emptyState" class="text-center py-5 bg-white rounded border d-none">
-    <i class="bi bi-house display-4 text-muted"></i>
-    <h3 class="mt-3 text-secondary">No hay propiedades</h3>
-    <p class="text-muted">Publica la primera con “Nueva propiedad”.</p>
-  </div>
-  <div id="gridProps" class="props-grid d-none"></div>
-</PanelAgente>
-
-<div class="modal fade" id="modalPropiedad" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header text-white" style="background:#2e8b57;">
-        <h5 class="modal-title" id="modalPropiedadTitulo">Nueva propiedad</h5>
-        <button type="button" class="btn-close btn-close-white" id="btnCerrarModal" aria-label="Cerrar"></button>
-      </div>
-      <form id="formPropiedad">
-        <div class="modal-body">
-          <div id="modalAlert" class="alert alert-danger d-none" role="alert"></div>
-          <input type="hidden" id="campoId" value="" />
-          <div class="row g-3">
-            <div class="col-md-8">
-              <label class="form-label" for="campoTitulo">Título</label>
-              <input class="form-control" id="campoTitulo" required maxlength="150" />
-            </div>
-            <div class="col-md-4">
-              <label class="form-label" for="campoPrecio">Precio (COP)</label>
-              <input class="form-control" id="campoPrecio" type="number" min="1" required />
-            </div>
-            <div class="col-md-6">
-              <label class="form-label" for="campoTipo">Tipo de operación</label>
-              <select class="form-select" id="campoTipo" required>
-                <option value="1">Venta</option>
-                <option value="2">Arriendo</option>
-                <option value="3">Empeño</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label" for="campoEstado">Estado</label>
-              <select class="form-select" id="campoEstado">
-                <option value="Disponible">Disponible</option>
-                <option value="Reservada">Reservada</option>
-                <option value="En mantenimiento">En mantenimiento</option>
-                <option value="Fuera del mercado">Fuera del mercado</option>
-              </select>
-            </div>
-            <div class="col-md-8">
-              <label class="form-label" for="campoDireccion">Dirección</label>
-              <input class="form-control" id="campoDireccion" required maxlength="200" />
-            </div>
-            <div class="col-md-4">
-              <label class="form-label" for="campoCiudad">Ciudad</label>
-              <input class="form-control" id="campoCiudad" maxlength="80" />
-            </div>
-            <div class="col-md-4">
-              <label class="form-label" for="campoHab">Habitaciones</label>
-              <input class="form-control" id="campoHab" type="number" min="0" />
-            </div>
-            <div class="col-12">
-              <label class="form-label" for="campoDesc">Descripción</label>
-              <textarea class="form-control" id="campoDesc" rows="3"></textarea>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" id="btnCancelarModal">Cancelar</button>
-          <button type="submit" class="btn btn-sky-primary" id="btnGuardarProp">Guardar</button>
-        </div>
-      </form>
+<!-- Modal fotos -->
+<div id="modalFotos" class="sky-modal" hidden>
+  <div class="sky-modal-backdrop" data-cerrar="fotos"></div>
+  <div class="sky-modal-card" role="dialog" aria-modal="true" aria-labelledby="modalFotosTitulo">
+    <h3 id="modalFotosTitulo">Fotos de la propiedad</h3>
+    <div id="fotosAlert" class="alert-error" role="alert" hidden></div>
+    <div id="galeriaFotos" class="galeria" aria-live="polite"></div>
+    <label for="inputFoto">Agregar imágenes</label>
+    <input
+      type="file"
+      id="inputFoto"
+      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+      multiple
+    />
+    <p class="form-text">JPG, PNG o WEBP. Máximo 5 MB por archivo. Puedes elegir varias.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-outline" data-cerrar="fotos">Cerrar</button>
+      <button type="button" class="btn-primary" id="btnSubirFoto">Subir</button>
     </div>
   </div>
 </div>
@@ -124,46 +155,118 @@ import PanelAgente from "./PanelAgente.astro";
     imagenPrincipal?: string | null;
   }
 
-  const API = "/api/agente/propiedades";
-  const BACKEND_PUBLIC = "http://localhost:8001";
-
-  const grid = document.getElementById("gridProps") as HTMLElement;
-  const loadingState = document.getElementById("loadingState") as HTMLElement;
-  const errorState = document.getElementById("errorState") as HTMLElement;
-  const emptyState = document.getElementById("emptyState") as HTMLElement;
-  const inputBuscar = document.getElementById("inputBuscar") as HTMLInputElement;
-  const selectEstado = document.getElementById("selectEstado") as HTMLSelectElement;
-  const statTotal = document.getElementById("statTotal") as HTMLElement;
-  const statDisponibles = document.getElementById("statDisponibles") as HTMLElement;
-  const statOtras = document.getElementById("statOtras") as HTMLElement;
-  const modalEl = document.getElementById("modalPropiedad") as HTMLElement;
-  const form = document.getElementById("formPropiedad") as HTMLFormElement;
-  const modalAlert = document.getElementById("modalAlert") as HTMLElement;
-  const modalTitulo = document.getElementById("modalPropiedadTitulo") as HTMLElement;
-
-  let listado: PropiedadAgente[] = [];
-  let modal: { show: () => void; hide: () => void } | null = null;
-
-  function getModal(): { show: () => void; hide: () => void } {
-    if (modal) return modal;
-    const BS = (window as unknown as {
-      bootstrap?: { Modal: new (el: HTMLElement) => { show: () => void; hide: () => void } };
-    }).bootstrap;
-    modal = BS?.Modal
-      ? new BS.Modal(modalEl)
-      : {
-          show() {
-            modalEl.classList.add("show");
-            modalEl.style.display = "block";
-          },
-          hide() {
-            modalEl.classList.remove("show");
-            modalEl.style.display = "none";
-          },
-        };
-    return modal;
+  interface ImagenPropiedad {
+    imagenID: number;
+    url: string;
   }
 
+  const API = "/api/agente/propiedades";
+  const BACKEND_PUBLIC = "http://localhost:8001";
+  const MAX_FOTO_BYTES = 5 * 1024 * 1024;
+  const TIPOS_IMAGEN = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
+
+  function get<T extends HTMLElement>(id: string): T {
+    const node = document.getElementById(id);
+    if (!node) throw new Error(`Falta el elemento #${id}`);
+    return node as T;
+  }
+
+  const grid = get<HTMLElement>("gridProps");
+  const loadingState = get<HTMLElement>("loadingState");
+  const errorState = get<HTMLElement>("errorState");
+  const emptyState = get<HTMLElement>("emptyState");
+  const sinResultados = get<HTMLElement>("sinResultados");
+  const contador = get<HTMLElement>("contador");
+  const inputBuscar = get<HTMLInputElement>("inputBuscar");
+  const selectEstado = get<HTMLSelectElement>("selectEstado");
+  const statTotal = get<HTMLElement>("statTotal");
+  const statDisponibles = get<HTMLElement>("statDisponibles");
+  const statOtras = get<HTMLElement>("statOtras");
+
+  const form = get<HTMLFormElement>("formPropiedad");
+  const modalAlert = get<HTMLElement>("modalAlert");
+  const modalTitulo = get<HTMLElement>("modalPropiedadTitulo");
+  const galeriaFotos = get<HTMLElement>("galeriaFotos");
+  const fotosAlert = get<HTMLElement>("fotosAlert");
+  const modalFotosTitulo = get<HTMLElement>("modalFotosTitulo");
+  const inputFoto = get<HTMLInputElement>("inputFoto");
+  const btnSubirFoto = get<HTMLButtonElement>("btnSubirFoto");
+
+  const campo = {
+    id: get<HTMLInputElement>("campoId"),
+    titulo: get<HTMLInputElement>("campoTitulo"),
+    desc: get<HTMLTextAreaElement>("campoDesc"),
+    precio: get<HTMLInputElement>("campoPrecio"),
+    tipo: get<HTMLSelectElement>("campoTipo"),
+    hab: get<HTMLInputElement>("campoHab"),
+    ciudad: get<HTMLInputElement>("campoCiudad"),
+    direccion: get<HTMLInputElement>("campoDireccion"),
+    estado: get<HTMLSelectElement>("campoEstado"),
+  };
+
+  let listado: PropiedadAgente[] = [];
+  let propiedadFotosId: number | null = null;
+  let fotosCambiaron = false;
+  let subiendoFoto = false;
+
+  // ---------- Modales (apertura, cierre, foco, Escape) — igual que el panel de inmobiliaria ----------
+  const modales = {
+    propiedad: get<HTMLElement>("modalPropiedad"),
+    fotos: get<HTMLElement>("modalFotos"),
+  };
+  type NombreModal = keyof typeof modales;
+
+  const pilaModales: NombreModal[] = [];
+  const focoPrevio = new Map<NombreModal, HTMLElement | null>();
+
+  function mostrarError(node: HTMLElement, msg: string | null) {
+    node.hidden = !msg;
+    node.textContent = msg ?? "";
+  }
+
+  function abrir(nombre: NombreModal) {
+    const modal = modales[nombre];
+    focoPrevio.set(nombre, document.activeElement as HTMLElement | null);
+    modal.hidden = false;
+    pilaModales.push(nombre);
+    const primero = modal.querySelector<HTMLElement>(
+      "input:not([type=hidden]), textarea, select, button.btn-primary, button"
+    );
+    primero?.focus();
+  }
+
+  function cerrar(nombre: NombreModal) {
+    modales[nombre].hidden = true;
+    const i = pilaModales.lastIndexOf(nombre);
+    if (i >= 0) pilaModales.splice(i, 1);
+    focoPrevio.get(nombre)?.focus?.();
+    focoPrevio.delete(nombre);
+    if (nombre === "fotos") {
+      inputFoto.value = "";
+      mostrarError(fotosAlert, null);
+      const recargar = fotosCambiaron;
+      propiedadFotosId = null;
+      fotosCambiaron = false;
+      if (recargar) void cargar(true);
+    }
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-cerrar]").forEach((n) => {
+    n.addEventListener("click", () => {
+      if (n.dataset.cerrar === "fotos" && subiendoFoto) return;
+      cerrar(n.dataset.cerrar as NombreModal);
+    });
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && pilaModales.length) {
+      const top = pilaModales[pilaModales.length - 1];
+      if (top === "fotos" && subiendoFoto) return;
+      cerrar(top);
+    }
+  });
+
+  // ---------- Formato ----------
   function dinero(valor: string | number): string {
     const n = Number(valor);
     if (!Number.isFinite(n)) return "—";
@@ -180,6 +283,16 @@ import PanelAgente from "./PanelAgente.astro";
     return path.startsWith("/") ? `${BACKEND_PUBLIC}${path}` : `${BACKEND_PUBLIC}/${path}`;
   }
 
+  function claseEstado(e: string): string {
+    return e === "Disponible"
+      ? "est-disponible"
+      : e === "Reservada"
+        ? "est-reservada"
+        : e === "En mantenimiento"
+          ? "est-mantenimiento"
+          : "est-fuera";
+  }
+
   function pintarStats(items: PropiedadAgente[]): void {
     const disponibles = items.filter((p) => p.estado === "Disponible").length;
     statTotal.textContent = String(items.length);
@@ -187,15 +300,18 @@ import PanelAgente from "./PanelAgente.astro";
     statOtras.textContent = String(items.length - disponibles);
   }
 
+  // ---------- Tarjetas (mismo markup/clases que el panel de inmobiliaria) ----------
   function render(items: PropiedadAgente[]): void {
     grid.replaceChildren();
-    if (items.length === 0) {
-      grid.classList.add("d-none");
-      emptyState.classList.remove("d-none");
-      return;
-    }
-    emptyState.classList.add("d-none");
-    grid.classList.remove("d-none");
+
+    sinResultados.hidden = !(items.length === 0 && listado.length > 0);
+    grid.hidden = items.length === 0;
+
+    contador.hidden = listado.length === 0;
+    contador.textContent =
+      items.length === listado.length
+        ? `${items.length} ${items.length === 1 ? "propiedad" : "propiedades"}`
+        : `Mostrando ${items.length} de ${listado.length}`;
 
     for (const p of items) {
       const card = document.createElement("article");
@@ -208,57 +324,90 @@ import PanelAgente from "./PanelAgente.astro";
         const img = document.createElement("img");
         img.src = src;
         img.alt = `Foto de ${p.titulo}`;
+        img.loading = "lazy";
         imgWrap.appendChild(img);
       } else {
         const vacio = document.createElement("div");
-        vacio.className = "prop-img-vacio";
-        vacio.textContent = "Sin foto";
+        vacio.className = "prop-img-vacia";
+        const icono = document.createElement("i");
+        icono.className = "bi bi-house-door";
+        icono.setAttribute("aria-hidden", "true");
+        const texto = document.createElement("span");
+        texto.textContent = "Sin fotos";
+        vacio.append(icono, texto);
         imgWrap.appendChild(vacio);
       }
       const badge = document.createElement("span");
-      badge.className = "badge-status";
+      badge.className = `prop-badge ${claseEstado(p.estado)}`;
       badge.textContent = p.estado || "Sin estado";
       imgWrap.appendChild(badge);
 
       const body = document.createElement("div");
       body.className = "prop-body";
+
       const h3 = document.createElement("h3");
+      h3.className = "prop-title";
       h3.textContent = p.titulo || "Sin título";
-      const meta = document.createElement("p");
-      meta.className = "prop-meta";
-      meta.textContent = [p.ciudad, p.direccion].filter(Boolean).join(" · ") || "Sin ubicación";
+
+      const loc = document.createElement("p");
+      loc.className = "prop-loc";
+      const locIcono = document.createElement("i");
+      locIcono.className = "bi bi-geo-alt";
+      locIcono.setAttribute("aria-hidden", "true");
+      loc.appendChild(locIcono);
+      loc.append(" " + ([p.direccion, p.ciudad].filter(Boolean).join(", ") || "Sin ubicación"));
+
       const precio = document.createElement("div");
-      precio.className = "prop-precio";
+      precio.className = "prop-price";
       precio.textContent = dinero(p.precio);
+
       const chips = document.createElement("div");
       chips.className = "prop-chips";
       if (p.tipoOperacion) {
         const chip = document.createElement("span");
+        chip.className = "chip";
         chip.textContent = p.tipoOperacion;
         chips.appendChild(chip);
       }
       if (p.habitaciones != null) {
         const chip = document.createElement("span");
-        chip.textContent = `${p.habitaciones} hab.`;
+        chip.className = "chip";
+        const chipIcono = document.createElement("i");
+        chipIcono.className = "bi bi-door-open";
+        chipIcono.setAttribute("aria-hidden", "true");
+        chip.append(chipIcono, ` ${p.habitaciones} hab.`);
         chips.appendChild(chip);
       }
-      body.append(h3, meta, precio, chips);
+
+      body.append(h3, loc, precio, chips);
 
       const actions = document.createElement("div");
       actions.className = "prop-actions";
+
       const btnEdit = document.createElement("button");
       btnEdit.type = "button";
       btnEdit.className = "btn btn-sm btn-outline-primary flex-grow-1";
-      btnEdit.textContent = "Editar";
+      btnEdit.setAttribute("aria-label", `Editar ${p.titulo}`);
+      btnEdit.innerHTML = '<i class="bi bi-pencil" aria-hidden="true"></i> Editar';
       btnEdit.addEventListener("click", () => abrirEditar(p));
+
+      const btnFotos = document.createElement("button");
+      btnFotos.type = "button";
+      btnFotos.className = "btn btn-sm btn-outline-secondary";
+      btnFotos.setAttribute("aria-label", `Fotos de ${p.titulo}`);
+      btnFotos.innerHTML = '<i class="bi bi-images" aria-hidden="true"></i> Fotos';
+      btnFotos.addEventListener("click", () => abrirFotos(p));
+
       const btnDel = document.createElement("button");
       btnDel.type = "button";
       btnDel.className = "btn btn-sm btn-outline-danger";
-      btnDel.textContent = "Eliminar";
+      btnDel.setAttribute("aria-label", `Eliminar ${p.titulo}`);
+      btnDel.innerHTML = '<i class="bi bi-trash" aria-hidden="true"></i>';
       btnDel.addEventListener("click", () => {
         void eliminar(p);
       });
-      actions.append(btnEdit, btnDel);
+
+      actions.append(btnEdit, btnFotos, btnDel);
 
       card.append(imgWrap, body, actions);
       grid.appendChild(card);
@@ -277,11 +426,15 @@ import PanelAgente from "./PanelAgente.astro";
     render(visibles);
   }
 
-  async function cargar(): Promise<void> {
-    loadingState.classList.remove("d-none");
-    errorState.classList.add("d-none");
-    grid.classList.add("d-none");
-    emptyState.classList.add("d-none");
+  async function cargar(silencioso = false): Promise<void> {
+    if (!silencioso) {
+      loadingState.hidden = false;
+      mostrarError(errorState, null);
+      grid.hidden = true;
+      emptyState.hidden = true;
+      sinResultados.hidden = true;
+      contador.hidden = true;
+    }
     try {
       const res = await fetch(API, {
         credentials: "same-origin",
@@ -301,57 +454,226 @@ import PanelAgente from "./PanelAgente.astro";
       }
       listado = Array.isArray(json.data) ? json.data : [];
       pintarStats(listado);
+      emptyState.hidden = listado.length !== 0;
       filtrar();
     } catch (error) {
-      errorState.textContent = error instanceof Error ? error.message : "Error de conexión";
-      errorState.classList.remove("d-none");
+      mostrarError(errorState, error instanceof Error ? error.message : "Error de conexión");
     } finally {
-      loadingState.classList.add("d-none");
+      loadingState.hidden = true;
     }
   }
 
-  function abrirNueva(): void {
+  // ---------- Galería ----------
+  function pintarGaleria(imagenes: ImagenPropiedad[], mensaje?: string): void {
+    galeriaFotos.replaceChildren();
+    if (mensaje) {
+      const aviso = document.createElement("span");
+      aviso.className = "vacio";
+      aviso.textContent = mensaje;
+      galeriaFotos.appendChild(aviso);
+      return;
+    }
+    if (imagenes.length === 0) {
+      const aviso = document.createElement("span");
+      aviso.className = "vacio";
+      aviso.textContent = "Sin fotos aún. Sube la primera.";
+      galeriaFotos.appendChild(aviso);
+      return;
+    }
+    for (const img of imagenes) {
+      const src = urlImg(img.url);
+      if (!src) continue;
+      const wrap = document.createElement("div");
+      wrap.className = "galeria-item";
+      const foto = document.createElement("img");
+      foto.src = src;
+      foto.alt = "Foto de la propiedad";
+      foto.loading = "lazy";
+      const quitar = document.createElement("button");
+      quitar.type = "button";
+      quitar.className = "btn-del-img";
+      quitar.textContent = "×";
+      quitar.setAttribute("aria-label", "Eliminar foto");
+      quitar.addEventListener("click", () => {
+        void quitarFoto(img.imagenID);
+      });
+      wrap.append(foto, quitar);
+      galeriaFotos.appendChild(wrap);
+    }
+  }
+
+  async function cargarGaleria(propiedadID: number): Promise<void> {
+    mostrarError(fotosAlert, null);
+    pintarGaleria([], "Cargando fotos...");
+    try {
+      const res = await fetch(`${API}/${propiedadID}`, {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      const json = (await res.json()) as {
+        success?: boolean;
+        error?: string;
+        data?: { imagenes?: Array<{ imagenID?: number; url?: string }> };
+      };
+      if (propiedadFotosId !== propiedadID) return;
+      if (!res.ok || json.success === false) {
+        throw new Error(json.error || "No se pudieron cargar las fotos");
+      }
+      const imagenes = (json.data?.imagenes ?? [])
+        .filter((img) => img && img.url && img.imagenID != null)
+        .map((img) => ({ imagenID: Number(img.imagenID), url: String(img.url) }));
+      pintarGaleria(imagenes);
+    } catch (error) {
+      if (propiedadFotosId !== propiedadID) return;
+      pintarGaleria([]);
+      mostrarError(fotosAlert, error instanceof Error ? error.message : "Error de red al cargar las fotos");
+    }
+  }
+
+  function archivoValido(file: File): string | null {
+    if (file.type && !TIPOS_IMAGEN.has(file.type)) return `${file.name}: usa JPG, PNG o WEBP`;
+    if (file.size <= 0) return `${file.name}: el archivo está vacío`;
+    if (file.size > MAX_FOTO_BYTES) return `${file.name}: supera los 5 MB`;
+    return null;
+  }
+
+  async function subirFotos(): Promise<void> {
+    if (propiedadFotosId == null || subiendoFoto) return;
+    mostrarError(fotosAlert, null);
+    const files = Array.from(inputFoto.files ?? []);
+    if (files.length === 0) {
+      mostrarError(fotosAlert, "Elige una o varias imágenes.");
+      return;
+    }
+    const invalidos = files.map(archivoValido).filter((msg): msg is string => msg != null);
+    if (invalidos.length > 0) {
+      mostrarError(fotosAlert, invalidos.join(" "));
+      return;
+    }
+
+    subiendoFoto = true;
+    btnSubirFoto.disabled = true;
+    btnSubirFoto.setAttribute("aria-busy", "true");
+    btnSubirFoto.textContent = "Subiendo…";
+    const errores: string[] = [];
+    const propiedadID = propiedadFotosId;
+    try {
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("imagen", file);
+        try {
+          const res = await fetch(`${API}/${propiedadID}/imagenes`, {
+            method: "POST",
+            credentials: "same-origin",
+            body: fd,
+          });
+          const json = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string };
+          if (!res.ok || json.success === false) {
+            errores.push(`${file.name}: ${json.error || "no se pudo subir"}`);
+          }
+        } catch {
+          errores.push(`${file.name}: error de conexión`);
+        }
+      }
+      inputFoto.value = "";
+      fotosCambiaron = true;
+      await cargarGaleria(propiedadID);
+      if (errores.length > 0) mostrarError(fotosAlert, errores.join(" "));
+    } finally {
+      subiendoFoto = false;
+      btnSubirFoto.disabled = false;
+      btnSubirFoto.removeAttribute("aria-busy");
+      btnSubirFoto.textContent = "Subir";
+    }
+  }
+
+  async function quitarFoto(imagenID: number): Promise<void> {
+    if (propiedadFotosId == null || subiendoFoto) return;
+    if (!confirm("¿Eliminar esta foto? Esta acción no se puede deshacer.")) return;
+    mostrarError(fotosAlert, null);
+    const propiedadID = propiedadFotosId;
+    try {
+      const res = await fetch(`${API}/${propiedadID}/imagenes/${imagenID}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      const json = (await res.json()) as { success?: boolean; error?: string };
+      if (!res.ok || json.success === false) {
+        throw new Error(json.error || "No se pudo eliminar la foto");
+      }
+      fotosCambiaron = true;
+      await cargarGaleria(propiedadID);
+    } catch (error) {
+      mostrarError(fotosAlert, error instanceof Error ? error.message : "Error de red al eliminar");
+    }
+  }
+
+  function abrirFotos(p: PropiedadAgente): void {
+    propiedadFotosId = p.propiedadID;
+    fotosCambiaron = false;
+    modalFotosTitulo.textContent = `Fotos — "${p.titulo || "propiedad"}"`;
+    inputFoto.value = "";
+    pintarGaleria([]);
+    abrir("fotos");
+    void cargarGaleria(p.propiedadID);
+  }
+
+  // ---------- Formulario crear/editar ----------
+  function limpiarFormulario(): void {
     form.reset();
-    (document.getElementById("campoId") as HTMLInputElement).value = "";
+    campo.id.value = "";
+    campo.tipo.value = "1";
+    campo.estado.value = "Disponible";
+    mostrarError(modalAlert, null);
     modalTitulo.textContent = "Nueva propiedad";
-    modalAlert.classList.add("d-none");
-    getModal().show();
+  }
+
+  function abrirNueva(): void {
+    limpiarFormulario();
+    abrir("propiedad");
   }
 
   function abrirEditar(p: PropiedadAgente): void {
-    (document.getElementById("campoId") as HTMLInputElement).value = String(p.propiedadID);
-    (document.getElementById("campoTitulo") as HTMLInputElement).value = p.titulo;
-    (document.getElementById("campoPrecio") as HTMLInputElement).value = String(p.precio ?? "");
-    (document.getElementById("campoTipo") as HTMLSelectElement).value = p.tipoOperacionID
-      ? String(p.tipoOperacionID)
-      : "1";
-    (document.getElementById("campoEstado") as HTMLSelectElement).value = p.estado || "Disponible";
-    (document.getElementById("campoDireccion") as HTMLInputElement).value = p.direccion || "";
-    (document.getElementById("campoCiudad") as HTMLInputElement).value = p.ciudad || "";
-    (document.getElementById("campoHab") as HTMLInputElement).value =
-      p.habitaciones == null ? "" : String(p.habitaciones);
-    (document.getElementById("campoDesc") as HTMLTextAreaElement).value = p.descripcion || "";
+    campo.id.value = String(p.propiedadID);
+    campo.titulo.value = p.titulo || "";
+    campo.desc.value = p.descripcion || "";
+    campo.precio.value = p.precio != null ? String(p.precio) : "";
+    campo.tipo.value = p.tipoOperacionID ? String(p.tipoOperacionID) : "1";
+    campo.hab.value = p.habitaciones == null ? "" : String(p.habitaciones);
+    campo.ciudad.value = p.ciudad || "";
+    campo.direccion.value = p.direccion || "";
+    campo.estado.value = p.estado || "Disponible";
     modalTitulo.textContent = "Editar propiedad";
-    modalAlert.classList.add("d-none");
-    getModal().show();
+    mostrarError(modalAlert, null);
+    abrir("propiedad");
   }
 
-  async function guardar(ev: Event): Promise<void> {
-    ev.preventDefault();
-    const id = (document.getElementById("campoId") as HTMLInputElement).value;
-    const hab = (document.getElementById("campoHab") as HTMLInputElement).value;
+  async function guardar(): Promise<void> {
+    mostrarError(modalAlert, null);
+    if (!form.reportValidity()) return;
+
+    const id = campo.id.value.trim();
     const payload = {
-      titulo: (document.getElementById("campoTitulo") as HTMLInputElement).value.trim(),
-      precio: Number((document.getElementById("campoPrecio") as HTMLInputElement).value),
-      tipoOperacionID: Number((document.getElementById("campoTipo") as HTMLSelectElement).value),
-      direccion: (document.getElementById("campoDireccion") as HTMLInputElement).value.trim(),
-      ciudad: (document.getElementById("campoCiudad") as HTMLInputElement).value.trim() || null,
-      habitaciones: hab ? Number(hab) : null,
-      descripcion: (document.getElementById("campoDesc") as HTMLTextAreaElement).value.trim() || null,
-      estado: (document.getElementById("campoEstado") as HTMLSelectElement).value,
+      titulo: campo.titulo.value.trim(),
+      precio: Number(campo.precio.value),
+      tipoOperacionID: Number(campo.tipo.value),
+      direccion: campo.direccion.value.trim(),
+      ciudad: campo.ciudad.value.trim() || null,
+      habitaciones: campo.hab.value !== "" ? Number(campo.hab.value) : null,
+      descripcion: campo.desc.value.trim() || null,
+      estado: campo.estado.value,
       destacada: false,
     };
-    modalAlert.classList.add("d-none");
+
+    if (!payload.titulo || !payload.direccion) {
+      mostrarError(modalAlert, "Título y dirección no pueden estar vacíos.");
+      return;
+    }
+
+    const btnGuardar = get<HTMLButtonElement>("btnGuardarProp");
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = "Guardando…";
     try {
       const res = await fetch(id ? `${API}/${id}` : API, {
         method: id ? "PUT" : "POST",
@@ -361,65 +683,44 @@ import PanelAgente from "./PanelAgente.astro";
       });
       const json = (await res.json()) as { success?: boolean; error?: string };
       if (!res.ok || json.success === false) throw new Error(json.error || "No se pudo guardar");
-      getModal().hide();
+      cerrar("propiedad");
       await cargar();
     } catch (error) {
-      modalAlert.textContent = error instanceof Error ? error.message : "Error al guardar";
-      modalAlert.classList.remove("d-none");
+      mostrarError(modalAlert, error instanceof Error ? error.message : "Error al guardar");
+    } finally {
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = "Guardar";
     }
   }
 
   async function eliminar(p: PropiedadAgente): Promise<void> {
     if (!confirm(`¿Eliminar "${p.titulo}"? Esta acción no se puede deshacer.`)) return;
-    const res = await fetch(`${API}/${p.propiedadID}`, {
-      method: "DELETE",
-      credentials: "same-origin",
-    });
-    const json = (await res.json()) as { success?: boolean; error?: string };
-    if (!res.ok || json.success === false) {
-      errorState.textContent = json.error || "No se pudo eliminar";
-      errorState.classList.remove("d-none");
-      return;
+    try {
+      const res = await fetch(`${API}/${p.propiedadID}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      });
+      const json = (await res.json()) as { success?: boolean; error?: string };
+      if (!res.ok || json.success === false) {
+        mostrarError(errorState, json.error || "No se pudo eliminar");
+        return;
+      }
+      await cargar();
+    } catch {
+      mostrarError(errorState, "Error de red al eliminar");
     }
-    await cargar();
   }
 
-  document.getElementById("btnNuevaPropiedad")?.addEventListener("click", abrirNueva);
+  // ---------- Eventos ----------
+  get("btnNuevaPropiedad").addEventListener("click", abrirNueva);
   inputBuscar.addEventListener("input", filtrar);
   selectEstado.addEventListener("change", filtrar);
-  form.addEventListener("submit", (ev) => {
-    void guardar(ev);
+  get("btnGuardarProp").addEventListener("click", () => {
+    void guardar();
   });
+  btnSubirFoto.addEventListener("click", () => {
+    void subirFotos();
+  });
+
   void cargar();
-
-  function cerrarModal(): void {
-  getModal().hide();
-  modalAlert.classList.add("d-none");
-  form.reset();
-  (document.getElementById("campoId") as HTMLInputElement).value = "";
-}
-
-document.getElementById("btnCerrarModal")?.addEventListener("click", cerrarModal);
-document.getElementById("btnCancelarModal")?.addEventListener("click", cerrarModal);
-
-// Cerrar al hacer clic fuera del cuadro (solo si no usas Bootstrap)
-modalEl.addEventListener("click", (ev) => {
-  if (ev.target === modalEl) cerrarModal();
-});
 </script>
-
-<style>
-  .props-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
-  .prop-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
-  .prop-img { position: relative; height: 160px; background: #eef2f0; }
-  .prop-img img { width: 100%; height: 100%; object-fit: cover; }
-  .badge-status { position: absolute; top: 10px; left: 10px; border-radius: 999px; padding: 4px 10px; font-size: 0.75rem; font-weight: 600; background: #15803d; color: #fff; }
-  .prop-body { padding: 1rem 1.1rem 0.4rem; flex: 1; }
-  .prop-body h3 { font-size: 1.05rem; margin: 0 0 0.35rem; }
-  .prop-meta { font-size: 0.85rem; color: #6b7280; margin: 0 0 0.5rem; }
-  .prop-precio { font-weight: 700; color: #2e8b57; }
-  .prop-chips { display: flex; gap: 0.4rem; margin-top: 0.55rem; flex-wrap: wrap; }
-  .prop-chips span { background: #f3f4f6; border-radius: 999px; padding: 2px 8px; font-size: 0.75rem; }
-  .prop-actions { display: flex; gap: 0.4rem; padding: 0.85rem 1rem 1rem; }
-  .prop-img-vacio {height: 100%;display: grid;place-items: center;color: #6b7280;font-size: 0.85rem;}
-</style>
