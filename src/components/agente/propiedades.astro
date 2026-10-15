@@ -1,0 +1,425 @@
+---
+import PanelAgente from "./PanelAgente.astro";
+---
+
+<PanelAgente
+  titulo="Mis propiedades"
+  subtitulo="Publicaciones asignadas a tu cuenta de agente."
+  textoAccion="Nueva propiedad"
+  idAccion="btnNuevaPropiedad"
+  stats={[
+    { id: "statTotal", titulo: "Total", valor: 0 },
+    { id: "statDisponibles", titulo: "Disponibles", valor: 0, variante: "ok" },
+    { id: "statOtras", titulo: "Otras", valor: 0, variante: "warn" },
+  ]}
+>
+  <div slot="filtros" class="filter-bar mb-4">
+    <div class="row g-3">
+      <div class="col-md-8">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="inputBuscar" class="form-control border-start-0" placeholder="Buscar por título, ciudad o dirección..." />
+        </div>
+      </div>
+      <div class="col-md-4">
+        <select id="selectEstado" class="form-select">
+          <option value="">Todos los estados</option>
+          <option value="Disponible">Disponible</option>
+          <option value="Reservada">Reservada</option>
+          <option value="En mantenimiento">En mantenimiento</option>
+          <option value="Fuera del mercado">Fuera del mercado</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="loadingState" class="text-center py-5">
+    <div class="spinner-border text-success" role="status"><span class="visually-hidden">Cargando...</span></div>
+  </div>
+  <div id="errorState" class="alert alert-danger d-none" role="alert"></div>
+  <div id="emptyState" class="text-center py-5 bg-white rounded border d-none">
+    <i class="bi bi-house display-4 text-muted"></i>
+    <h3 class="mt-3 text-secondary">No hay propiedades</h3>
+    <p class="text-muted">Publica la primera con “Nueva propiedad”.</p>
+  </div>
+  <div id="gridProps" class="props-grid d-none"></div>
+</PanelAgente>
+
+<div class="modal fade" id="modalPropiedad" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header text-white" style="background:#2e8b57;">
+        <h5 class="modal-title" id="modalPropiedadTitulo">Nueva propiedad</h5>
+        <button type="button" class="btn-close btn-close-white" id="btnCerrarModal" aria-label="Cerrar"></button>
+      </div>
+      <form id="formPropiedad">
+        <div class="modal-body">
+          <div id="modalAlert" class="alert alert-danger d-none" role="alert"></div>
+          <input type="hidden" id="campoId" value="" />
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label" for="campoTitulo">Título</label>
+              <input class="form-control" id="campoTitulo" required maxlength="150" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="campoPrecio">Precio (COP)</label>
+              <input class="form-control" id="campoPrecio" type="number" min="1" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="campoTipo">Tipo de operación</label>
+              <select class="form-select" id="campoTipo" required>
+                <option value="1">Venta</option>
+                <option value="2">Arriendo</option>
+                <option value="3">Empeño</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="campoEstado">Estado</label>
+              <select class="form-select" id="campoEstado">
+                <option value="Disponible">Disponible</option>
+                <option value="Reservada">Reservada</option>
+                <option value="En mantenimiento">En mantenimiento</option>
+                <option value="Fuera del mercado">Fuera del mercado</option>
+              </select>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label" for="campoDireccion">Dirección</label>
+              <input class="form-control" id="campoDireccion" required maxlength="200" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="campoCiudad">Ciudad</label>
+              <input class="form-control" id="campoCiudad" maxlength="80" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="campoHab">Habitaciones</label>
+              <input class="form-control" id="campoHab" type="number" min="0" />
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="campoDesc">Descripción</label>
+              <textarea class="form-control" id="campoDesc" rows="3"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnCancelarModal">Cancelar</button>
+          <button type="submit" class="btn btn-sky-primary" id="btnGuardarProp">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  interface PropiedadAgente {
+    propiedadID: number;
+    titulo: string;
+    precio: string | number;
+    ciudad: string | null;
+    estado: string;
+    tipoOperacion: string;
+    tipoOperacionID?: number;
+    habitaciones: number | null;
+    direccion: string;
+    descripcion: string | null;
+    imagenPrincipal?: string | null;
+  }
+
+  const API = "/api/agente/propiedades";
+  const BACKEND_PUBLIC = "http://localhost:8001";
+
+  const grid = document.getElementById("gridProps") as HTMLElement;
+  const loadingState = document.getElementById("loadingState") as HTMLElement;
+  const errorState = document.getElementById("errorState") as HTMLElement;
+  const emptyState = document.getElementById("emptyState") as HTMLElement;
+  const inputBuscar = document.getElementById("inputBuscar") as HTMLInputElement;
+  const selectEstado = document.getElementById("selectEstado") as HTMLSelectElement;
+  const statTotal = document.getElementById("statTotal") as HTMLElement;
+  const statDisponibles = document.getElementById("statDisponibles") as HTMLElement;
+  const statOtras = document.getElementById("statOtras") as HTMLElement;
+  const modalEl = document.getElementById("modalPropiedad") as HTMLElement;
+  const form = document.getElementById("formPropiedad") as HTMLFormElement;
+  const modalAlert = document.getElementById("modalAlert") as HTMLElement;
+  const modalTitulo = document.getElementById("modalPropiedadTitulo") as HTMLElement;
+
+  let listado: PropiedadAgente[] = [];
+  let modal: { show: () => void; hide: () => void } | null = null;
+
+  function getModal(): { show: () => void; hide: () => void } {
+    if (modal) return modal;
+    const BS = (window as unknown as {
+      bootstrap?: { Modal: new (el: HTMLElement) => { show: () => void; hide: () => void } };
+    }).bootstrap;
+    modal = BS?.Modal
+      ? new BS.Modal(modalEl)
+      : {
+          show() {
+            modalEl.classList.add("show");
+            modalEl.style.display = "block";
+          },
+          hide() {
+            modalEl.classList.remove("show");
+            modalEl.style.display = "none";
+          },
+        };
+    return modal;
+  }
+
+  function dinero(valor: string | number): string {
+    const n = Number(valor);
+    if (!Number.isFinite(n)) return "—";
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 0,
+    }).format(n);
+  }
+
+  function urlImg(path: string | null | undefined): string | null {
+    if (!path || path.trim() === "") return null;
+    if (path.startsWith("http") || path.startsWith("data:")) return path;
+    return path.startsWith("/") ? `${BACKEND_PUBLIC}${path}` : `${BACKEND_PUBLIC}/${path}`;
+  }
+
+  function pintarStats(items: PropiedadAgente[]): void {
+    const disponibles = items.filter((p) => p.estado === "Disponible").length;
+    statTotal.textContent = String(items.length);
+    statDisponibles.textContent = String(disponibles);
+    statOtras.textContent = String(items.length - disponibles);
+  }
+
+  function render(items: PropiedadAgente[]): void {
+    grid.replaceChildren();
+    if (items.length === 0) {
+      grid.classList.add("d-none");
+      emptyState.classList.remove("d-none");
+      return;
+    }
+    emptyState.classList.add("d-none");
+    grid.classList.remove("d-none");
+
+    for (const p of items) {
+      const card = document.createElement("article");
+      card.className = "prop-card";
+
+      const imgWrap = document.createElement("div");
+      imgWrap.className = "prop-img";
+      const src = urlImg(p.imagenPrincipal);
+      if (src) {
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = `Foto de ${p.titulo}`;
+        imgWrap.appendChild(img);
+      } else {
+        const vacio = document.createElement("div");
+        vacio.className = "prop-img-vacio";
+        vacio.textContent = "Sin foto";
+        imgWrap.appendChild(vacio);
+      }
+      const badge = document.createElement("span");
+      badge.className = "badge-status";
+      badge.textContent = p.estado || "Sin estado";
+      imgWrap.appendChild(badge);
+
+      const body = document.createElement("div");
+      body.className = "prop-body";
+      const h3 = document.createElement("h3");
+      h3.textContent = p.titulo || "Sin título";
+      const meta = document.createElement("p");
+      meta.className = "prop-meta";
+      meta.textContent = [p.ciudad, p.direccion].filter(Boolean).join(" · ") || "Sin ubicación";
+      const precio = document.createElement("div");
+      precio.className = "prop-precio";
+      precio.textContent = dinero(p.precio);
+      const chips = document.createElement("div");
+      chips.className = "prop-chips";
+      if (p.tipoOperacion) {
+        const chip = document.createElement("span");
+        chip.textContent = p.tipoOperacion;
+        chips.appendChild(chip);
+      }
+      if (p.habitaciones != null) {
+        const chip = document.createElement("span");
+        chip.textContent = `${p.habitaciones} hab.`;
+        chips.appendChild(chip);
+      }
+      body.append(h3, meta, precio, chips);
+
+      const actions = document.createElement("div");
+      actions.className = "prop-actions";
+      const btnEdit = document.createElement("button");
+      btnEdit.type = "button";
+      btnEdit.className = "btn btn-sm btn-outline-primary flex-grow-1";
+      btnEdit.textContent = "Editar";
+      btnEdit.addEventListener("click", () => abrirEditar(p));
+      const btnDel = document.createElement("button");
+      btnDel.type = "button";
+      btnDel.className = "btn btn-sm btn-outline-danger";
+      btnDel.textContent = "Eliminar";
+      btnDel.addEventListener("click", () => {
+        void eliminar(p);
+      });
+      actions.append(btnEdit, btnDel);
+
+      card.append(imgWrap, body, actions);
+      grid.appendChild(card);
+    }
+  }
+
+  function filtrar(): void {
+    const q = inputBuscar.value.trim().toLowerCase();
+    const estado = selectEstado.value;
+    const visibles = listado.filter((p) => {
+      const texto = `${p.titulo} ${p.ciudad ?? ""} ${p.direccion}`.toLowerCase();
+      const okTexto = q === "" || texto.includes(q);
+      const okEstado = estado === "" || p.estado === estado;
+      return okTexto && okEstado;
+    });
+    render(visibles);
+  }
+
+  async function cargar(): Promise<void> {
+    loadingState.classList.remove("d-none");
+    errorState.classList.add("d-none");
+    grid.classList.add("d-none");
+    emptyState.classList.add("d-none");
+    try {
+      const res = await fetch(API, {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = "/login?redirect=" + encodeURIComponent("/agente/propiedades");
+        return;
+      }
+      const json = (await res.json()) as {
+        success?: boolean;
+        error?: string;
+        data?: PropiedadAgente[];
+      };
+      if (!res.ok || json.success === false) {
+        throw new Error(json.error || "No se pudieron cargar las propiedades");
+      }
+      listado = Array.isArray(json.data) ? json.data : [];
+      pintarStats(listado);
+      filtrar();
+    } catch (error) {
+      errorState.textContent = error instanceof Error ? error.message : "Error de conexión";
+      errorState.classList.remove("d-none");
+    } finally {
+      loadingState.classList.add("d-none");
+    }
+  }
+
+  function abrirNueva(): void {
+    form.reset();
+    (document.getElementById("campoId") as HTMLInputElement).value = "";
+    modalTitulo.textContent = "Nueva propiedad";
+    modalAlert.classList.add("d-none");
+    getModal().show();
+  }
+
+  function abrirEditar(p: PropiedadAgente): void {
+    (document.getElementById("campoId") as HTMLInputElement).value = String(p.propiedadID);
+    (document.getElementById("campoTitulo") as HTMLInputElement).value = p.titulo;
+    (document.getElementById("campoPrecio") as HTMLInputElement).value = String(p.precio ?? "");
+    (document.getElementById("campoTipo") as HTMLSelectElement).value = p.tipoOperacionID
+      ? String(p.tipoOperacionID)
+      : "1";
+    (document.getElementById("campoEstado") as HTMLSelectElement).value = p.estado || "Disponible";
+    (document.getElementById("campoDireccion") as HTMLInputElement).value = p.direccion || "";
+    (document.getElementById("campoCiudad") as HTMLInputElement).value = p.ciudad || "";
+    (document.getElementById("campoHab") as HTMLInputElement).value =
+      p.habitaciones == null ? "" : String(p.habitaciones);
+    (document.getElementById("campoDesc") as HTMLTextAreaElement).value = p.descripcion || "";
+    modalTitulo.textContent = "Editar propiedad";
+    modalAlert.classList.add("d-none");
+    getModal().show();
+  }
+
+  async function guardar(ev: Event): Promise<void> {
+    ev.preventDefault();
+    const id = (document.getElementById("campoId") as HTMLInputElement).value;
+    const hab = (document.getElementById("campoHab") as HTMLInputElement).value;
+    const payload = {
+      titulo: (document.getElementById("campoTitulo") as HTMLInputElement).value.trim(),
+      precio: Number((document.getElementById("campoPrecio") as HTMLInputElement).value),
+      tipoOperacionID: Number((document.getElementById("campoTipo") as HTMLSelectElement).value),
+      direccion: (document.getElementById("campoDireccion") as HTMLInputElement).value.trim(),
+      ciudad: (document.getElementById("campoCiudad") as HTMLInputElement).value.trim() || null,
+      habitaciones: hab ? Number(hab) : null,
+      descripcion: (document.getElementById("campoDesc") as HTMLTextAreaElement).value.trim() || null,
+      estado: (document.getElementById("campoEstado") as HTMLSelectElement).value,
+      destacada: false,
+    };
+    modalAlert.classList.add("d-none");
+    try {
+      const res = await fetch(id ? `${API}/${id}` : API, {
+        method: id ? "PUT" : "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = (await res.json()) as { success?: boolean; error?: string };
+      if (!res.ok || json.success === false) throw new Error(json.error || "No se pudo guardar");
+      getModal().hide();
+      await cargar();
+    } catch (error) {
+      modalAlert.textContent = error instanceof Error ? error.message : "Error al guardar";
+      modalAlert.classList.remove("d-none");
+    }
+  }
+
+  async function eliminar(p: PropiedadAgente): Promise<void> {
+    if (!confirm(`¿Eliminar "${p.titulo}"? Esta acción no se puede deshacer.`)) return;
+    const res = await fetch(`${API}/${p.propiedadID}`, {
+      method: "DELETE",
+      credentials: "same-origin",
+    });
+    const json = (await res.json()) as { success?: boolean; error?: string };
+    if (!res.ok || json.success === false) {
+      errorState.textContent = json.error || "No se pudo eliminar";
+      errorState.classList.remove("d-none");
+      return;
+    }
+    await cargar();
+  }
+
+  document.getElementById("btnNuevaPropiedad")?.addEventListener("click", abrirNueva);
+  inputBuscar.addEventListener("input", filtrar);
+  selectEstado.addEventListener("change", filtrar);
+  form.addEventListener("submit", (ev) => {
+    void guardar(ev);
+  });
+  void cargar();
+
+  function cerrarModal(): void {
+  getModal().hide();
+  modalAlert.classList.add("d-none");
+  form.reset();
+  (document.getElementById("campoId") as HTMLInputElement).value = "";
+}
+
+document.getElementById("btnCerrarModal")?.addEventListener("click", cerrarModal);
+document.getElementById("btnCancelarModal")?.addEventListener("click", cerrarModal);
+
+// Cerrar al hacer clic fuera del cuadro (solo si no usas Bootstrap)
+modalEl.addEventListener("click", (ev) => {
+  if (ev.target === modalEl) cerrarModal();
+});
+</script>
+
+<style>
+  .props-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+  .prop-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+  .prop-img { position: relative; height: 160px; background: #eef2f0; }
+  .prop-img img { width: 100%; height: 100%; object-fit: cover; }
+  .badge-status { position: absolute; top: 10px; left: 10px; border-radius: 999px; padding: 4px 10px; font-size: 0.75rem; font-weight: 600; background: #15803d; color: #fff; }
+  .prop-body { padding: 1rem 1.1rem 0.4rem; flex: 1; }
+  .prop-body h3 { font-size: 1.05rem; margin: 0 0 0.35rem; }
+  .prop-meta { font-size: 0.85rem; color: #6b7280; margin: 0 0 0.5rem; }
+  .prop-precio { font-weight: 700; color: #2e8b57; }
+  .prop-chips { display: flex; gap: 0.4rem; margin-top: 0.55rem; flex-wrap: wrap; }
+  .prop-chips span { background: #f3f4f6; border-radius: 999px; padding: 2px 8px; font-size: 0.75rem; }
+  .prop-actions { display: flex; gap: 0.4rem; padding: 0.85rem 1rem 1rem; }
+  .prop-img-vacio {height: 100%;display: grid;place-items: center;color: #6b7280;font-size: 0.85rem;}
+</style>

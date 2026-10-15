@@ -1,0 +1,62 @@
+---
+interface Stat {
+  id: string;
+  titulo: string;
+  valor: string | number;
+  variante?: "ok" | "warn" | "muted";
+}
+
+interface Props {
+  titulo: string;
+  subtitulo: string;
+  textoAccion?: string;
+  idAccion?: string;
+  stats?: Stat[];
+}
+
+const { titulo, subtitulo, textoAccion, idAccion = "btnAccionPanel", stats = [] } = Astro.props;
+---
+
+<div class="panel-agente">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h1 class="page-title">{titulo}</h1>
+      <p class="page-subtitle">{subtitulo}</p>
+    </div>
+    {textoAccion && (
+      <button class="btn btn-sky-primary d-flex align-items-center gap-2" id={idAccion} type="button">
+        <i class="bi bi-plus-lg"></i>
+        <span>{textoAccion}</span>
+      </button>
+    )}
+  </div>
+
+  {stats.length > 0 && (
+    <div class="row g-3 mb-4">
+      {stats.map((stat) => (
+        <div class="col-md-4">
+          <div class:list={["stat-card", stat.variante && `stat-${stat.variante}`]}>
+            <div class="stat-title">{stat.titulo}</div>
+            <div class="stat-value" id={stat.id}>{stat.valor}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  <slot name="filtros" />
+  <slot />
+</div>
+
+<style is:global>
+  .page-title { font-family: Georgia, serif; font-size: 1.75rem; font-weight: 700; margin: 0; color: #1b3a2a; }
+  .page-subtitle { margin: 0.25rem 0 0; color: #6b7280; }
+  .btn-sky-primary { background: #2e8b57; color: #fff; border: none; }
+  .btn-sky-primary:hover { background: #1b5e20; color: #fff; }
+  .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 1.1rem 1.25rem; }
+  .stat-title { font-size: 0.8rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-value { font-size: 1.8rem; font-weight: 700; color: #111827; }
+  .stat-ok .stat-value { color: #15803d; }
+  .stat-warn .stat-value { color: #b45309; }
+  .filter-bar { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 1rem; }
+</style>

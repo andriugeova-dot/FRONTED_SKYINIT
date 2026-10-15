@@ -37,6 +37,21 @@
     </div>
   </div>
 
+  <div class="filter-bar mb-4">
+    <div class="input-group">
+      <span class="input-group-text bg-white border-end-0">
+        <i class="bi bi-search text-muted"></i>
+      </span>
+      <input
+        type="search"
+        id="inputBuscar"
+        class="form-control border-start-0"
+        placeholder="Buscar por usuario, servicio, estado o ID..."
+        autocomplete="off"
+      />
+    </div>
+  </div>
+
   <div id="loadingState" class="text-center py-5">
     <div class="spinner-border text-success" role="status">
       <span class="visually-hidden">Cargando...</span>
@@ -92,7 +107,7 @@
     <div class="modal-content">
       <div class="modal-header text-white" style="background-color: #2e8b57;">
         <h5 class="modal-title" id="modalEditarTitulo">Editar solicitud</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        <button type="button" class="btn-close btn-close-white" id="btnCerrarModalSolicitud" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
         <div id="modalAlert" class="alert d-none" role="alert"></div>
@@ -115,7 +130,7 @@
         <button type="button" class="btn btn-outline-danger me-auto" id="btnEliminarSolicitud">
           <i class="bi bi-trash"></i> Eliminar solicitud
         </button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-secondary" id="btnCancelarModalSolicitud">Cancelar</button>
         <button type="button" class="btn btn-sky-primary" id="btnGuardarSolicitud">
           <span class="spinner-border spinner-border-sm d-none" id="spinnerGuardar" role="status" aria-hidden="true"></span>
           Guardar cambios
@@ -168,23 +183,42 @@
   const btnEliminar = document.getElementById("btnEliminarSolicitud") as HTMLButtonElement;
   const spinnerGuardar = document.getElementById("spinnerGuardar") as HTMLElement;
   const modalEl = document.getElementById("modalEditarSolicitud") as HTMLElement;
+  const inputBuscar = document.getElementById("inputBuscar") as HTMLInputElement;
 
   let currentPage = 1;
   let totalPages = 1;
+  let listado: SolicitudItem[] = [];
   let modalEdit: { show: () => void; hide: () => void } | null = null;
 
   function getModal(): { show: () => void; hide: () => void } {
     if (modalEdit) return modalEdit;
-    const BS = (window as unknown as { bootstrap?: { Modal: new (el: HTMLElement) => { show: () => void; hide: () => void } } }).bootstrap;
+    const BS = (window as unknown as {
+      bootstrap?: { Modal: new (el: HTMLElement) => { show: () => void; hide: () => void } };
+    }).bootstrap;
     if (BS?.Modal) {
       modalEdit = new BS.Modal(modalEl);
     } else {
       modalEdit = {
-        show: () => { modalEl.classList.add("show"); modalEl.style.display = "block"; },
-        hide: () => { modalEl.classList.remove("show"); modalEl.style.display = "none"; },
+        show: () => {
+          modalEl.classList.add("show");
+          modalEl.style.display = "block";
+          modalEl.removeAttribute("aria-hidden");
+        },
+        hide: () => {
+          modalEl.classList.remove("show");
+          modalEl.style.display = "none";
+          modalEl.setAttribute("aria-hidden", "true");
+        },
       };
     }
     return modalEdit;
+  }
+
+  function cerrarModalSolicitud(): void {
+    getModal().hide();
+    modalAlert.classList.add("d-none");
+    editSolicitudId.value = "";
+    editNotas.value = "";
   }
 
   function mostrarToast(mensaje: string, ok: boolean): void {
@@ -268,20 +302,48 @@
       const btnEdit = document.createElement("button");
       btnEdit.type = "button";
       btnEdit.className = "btn btn-sm btn-outline-primary me-1";
-      btnEdit.innerHTML = '<i class="bi bi-pencil"></i> Editar';
+      btnEdit.textContent = "Editar";
       btnEdit.addEventListener("click", () => abrirEditar(item));
 
       const btnDel = document.createElement("button");
       btnDel.type = "button";
       btnDel.className = "btn btn-sm btn-outline-danger";
-      btnDel.innerHTML = '<i class="bi bi-trash"></i>';
-      btnDel.title = "Eliminar";
-      btnDel.addEventListener("click", () => eliminarSolicitud(item.SolicitudID));
+      btnDel.textContent = "Eliminar";
+      btnDel.addEventListener("click", () => {
+        void eliminarSolicitud(item.SolicitudID);
+      });
 
       tdAcciones.append(btnEdit, btnDel);
       tr.append(tdId, tdUsuario, tdServicio, tdEstado, tdFecha, tdFin, tdAcciones);
       tableBody.appendChild(tr);
     }
+  }
+
+  function coincideBusqueda(item: SolicitudItem, q: string): boolean {
+    if (!q) return true;
+    const texto = [
+      String(item.SolicitudID),
+      item.Usuario,
+      item.Servicio,
+      item.Estado ?? "",
+      item.Notas ?? "",
+    ].join(" ").toLowerCase();
+    return texto.includes(q);
+  }
+
+  function aplicarBusqueda(): void {
+    const q = inputBuscar.value.trim().toLowerCase();
+    const visibles = listado.filter((item) => coincideBusqueda(item, q));
+    statPagina.textContent = String(visibles.length);
+    if (visibles.length === 0) {
+      tableBody.replaceChildren();
+      dataContainer.classList.add("d-none");
+      emptyState.classList.remove("d-none");
+      return;
+    }
+    emptyState.classList.add("d-none");
+    renderizarTabla(visibles);
+    dataContainer.classList.remove("d-none");
   }
 
   function configurarPaginacion(total: number, page: number, limit: number): void {
@@ -300,6 +362,7 @@
   }
 
   async function cargarSolicitudes(page: number): Promise<void> {
+    inputBuscar.value = "";
     loadingState.classList.remove("d-none");
     dataContainer.classList.add("d-none");
     errorState.classList.add("d-none");
@@ -333,19 +396,20 @@
 
       const data = json.data ?? { items: [], total: 0, page: 1, limit: 20 };
       const items = Array.isArray(data.items) ? data.items : [];
-      statPagina.textContent = String(items.length);
+      listado = items;
+
+      configurarPaginacion(
+        Number(data.total) || 0,
+        Number(data.page) || page,
+        Number(data.limit) || 20,
+      );
 
       if (items.length === 0) {
         statTotal.textContent = "0";
+        statPagina.textContent = "0";
         emptyState.classList.remove("d-none");
       } else {
-        renderizarTabla(items);
-        configurarPaginacion(
-          Number(data.total) || 0,
-          Number(data.page) || page,
-          Number(data.limit) || 20,
-        );
-        dataContainer.classList.remove("d-none");
+        aplicarBusqueda();
       }
     } catch (error) {
       errorMessage.textContent = error instanceof Error
@@ -383,7 +447,7 @@
       if (!response.ok || json.ok === false) {
         throw new Error(json.message || "Error al actualizar la solicitud");
       }
-      getModal().hide();
+      cerrarModalSolicitud();
       mostrarToast(
         json.data?.correoEnviado === false
           ? "Estado actualizado, pero el correo no se envió."
@@ -419,7 +483,7 @@
       if (!response.ok || json.ok === false) {
         throw new Error(json.message || "Error al eliminar la solicitud");
       }
-      getModal().hide();
+      cerrarModalSolicitud();
       mostrarToast("Solicitud eliminada correctamente", true);
       await cargarSolicitudes(currentPage);
     } catch (error) {
@@ -434,16 +498,28 @@
   }
 
   btnPrev.addEventListener("click", () => {
-    if (currentPage > 1) cargarSolicitudes(currentPage - 1);
+    if (currentPage > 1) void cargarSolicitudes(currentPage - 1);
   });
   btnNext.addEventListener("click", () => {
-    if (currentPage < totalPages) cargarSolicitudes(currentPage + 1);
+    if (currentPage < totalPages) void cargarSolicitudes(currentPage + 1);
   });
-  btnRefresh.addEventListener("click", () => cargarSolicitudes(currentPage));
-  btnGuardar.addEventListener("click", () => guardarCambios());
-  btnEliminar.addEventListener("click", () => eliminarSolicitud());
+  btnRefresh.addEventListener("click", () => {
+    void cargarSolicitudes(currentPage);
+  });
+  btnGuardar.addEventListener("click", () => {
+    void guardarCambios();
+  });
+  btnEliminar.addEventListener("click", () => {
+    void eliminarSolicitud();
+  });
+  inputBuscar.addEventListener("input", aplicarBusqueda);
+  document.getElementById("btnCerrarModalSolicitud")?.addEventListener("click", cerrarModalSolicitud);
+  document.getElementById("btnCancelarModalSolicitud")?.addEventListener("click", cerrarModalSolicitud);
+  modalEl.addEventListener("click", (ev) => {
+    if (ev.target === modalEl) cerrarModalSolicitud();
+  });
 
-  cargarSolicitudes(currentPage);
+  void cargarSolicitudes(currentPage);
 </script>
 
 <style>
@@ -502,4 +578,11 @@
     border-top: 1px solid #e5e7eb;
     background: #fff;
   }
+
+  .filter-bar {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 1rem;
+}
 </style>
