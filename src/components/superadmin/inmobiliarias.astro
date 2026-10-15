@@ -1,0 +1,455 @@
+---
+import "./usuarios.css";
+---
+
+<style>
+  .usuarios-chips { display:flex; flex-wrap:wrap; gap:0.3rem; }
+  .chip {
+    font-size:0.72rem; padding:0.18rem 0.55rem; border-radius:999px;
+    background:#ede9fe; color:#5b4fc7; font-weight:600; white-space:nowrap;
+  }
+  .chip-none { color:#9ca3af; font-style:italic; font-size:0.8rem; }
+
+  .user-picker {
+    border:1px solid var(--sa-line); border-radius:0 0 8px 8px;
+    max-height:220px; overflow-y:auto; background:#fff;
+  }
+  .user-picker-item {
+    display:flex; align-items:center; gap:0.5rem;
+    padding:0.45rem 0.75rem; cursor:pointer; font-size:0.88rem; transition:background 0.1s;
+  }
+  .user-picker-item:hover { background:#f5f3ff; }
+  .user-picker-item.up-selected { background:#ede9fe; }
+  .user-picker-item.up-selected .up-name { color:#5b4fc7; }
+  .user-picker-item input[type="checkbox"] {
+    width:15px; height:15px; accent-color:var(--sa-acc); flex-shrink:0;
+  }
+  .up-info { display:flex; flex-direction:column; line-height:1.3; }
+  .up-name { font-weight:600; color:#1e1b2e; }
+  .up-meta { font-size:0.75rem; color:#6b7280; }
+  .user-picker-empty { padding:0.75rem; text-align:center; color:#9ca3af; font-size:0.85rem; }
+
+  .picker-search {
+    width:100%; padding:0.4rem 0.7rem; border:none;
+    border:1px solid var(--sa-line); border-bottom:none;
+    border-radius:8px 8px 0 0; font-size:0.85rem; box-sizing:border-box; outline:none;
+  }
+
+  .assigned-header {
+    display:flex; justify-content:space-between; align-items:center; margin-top:0.65rem;
+  }
+  .assigned-header label { margin:0; font-weight:600; font-size:0.85rem; color:#374151; }
+  .btn-link {
+    background:none; border:none; color:var(--sa-acc);
+    font-size:0.78rem; font-weight:600; cursor:pointer; padding:0;
+  }
+  .btn-link:hover { text-decoration:underline; }
+  .asignados-wrap { display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.3rem; min-height:28px; }
+  .chip-rm {
+    display:inline-flex; align-items:center; gap:0.25rem;
+    font-size:0.72rem; padding:0.18rem 0.4rem 0.18rem 0.55rem;
+    border-radius:999px; background:#ede9fe; color:#5b4fc7; font-weight:600;
+  }
+  .chip-rm button {
+    background:none; border:none; padding:0; line-height:1;
+    cursor:pointer; color:#7c3aed; font-size:0.9rem;
+  }
+  .modal-card-wide { width:min(560px, 94vw); }
+  .tag-otra { color:#ef4444; font-size:0.68rem; margin-left:0.25rem; }
+</style>
+
+<div class="page" id="page-inmobiliarias">
+    <header class="page-header">
+        <div>
+            <h1>Inmobiliarias</h1>
+            <p>Gestiona las inmobiliarias registradas y sus usuarios asignados</p>
+        </div>
+        <button type="button" class="btn-nueva" id="btn-nueva-inm">+ Nueva inmobiliaria</button>
+    </header>
+
+    <div class="stats">
+        <div class="stat-card"><span class="stat-label">Total</span><span class="stat-value" id="si-total">—</span></div>
+        <div class="stat-card"><span class="stat-label">Activas</span><span class="stat-value" id="si-activas">—</span></div>
+        <div class="stat-card"><span class="stat-label">Pendientes</span><span class="stat-value" id="si-pendientes">—</span></div>
+        <div class="stat-card"><span class="stat-label">Inactivas</span><span class="stat-value" id="si-inactivas">—</span></div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>ID</th><th>Nombre</th><th>Ciudad</th><th>Contacto</th>
+                    <th>Estado</th><th>Usuarios asignados</th><th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="si-tbody">
+                <tr><td colspan="7" class="loading">Cargando…</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL -->
+<div id="si-modal" class="modal" hidden>
+    <div class="modal-backdrop" id="si-backdrop"></div>
+    <div class="modal-card modal-card-wide">
+        <h3 id="si-modal-titulo">Nueva inmobiliaria</h3>
+        <p id="si-error" class="form-error" hidden></p>
+
+        <input type="hidden" id="si-id" />
+
+        <label>Nombre *</label>
+        <input type="text" id="si-nombre" placeholder="Ej. Inmobiliaria del Norte" />
+
+        <label>Ciudad</label>
+        <input type="text" id="si-ciudad" placeholder="Ej. Bogotá" />
+
+        <label>Correo</label>
+        <input type="email" id="si-correo" placeholder="contacto@inmobiliaria.com" />
+
+        <label>Teléfono</label>
+        <input type="text" id="si-telefono" placeholder="+57 300 000 0000" />
+
+        <label>Contacto (persona)</label>
+        <input type="text" id="si-contacto" placeholder="Nombre del responsable" />
+
+        <label>Descripción</label>
+        <input type="text" id="si-descripcion" placeholder="Breve descripción" />
+
+        <label>Estado</label>
+        <select id="si-estado">
+            <option value="Activa">Activa</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Inactiva">Inactiva</option>
+        </select>
+
+        <!-- Usuarios -->
+        <div class="assigned-header">
+            <label>Usuarios asignados</label>
+            <button type="button" class="btn-link" id="si-toggle-picker">+ Seleccionar usuarios</button>
+        </div>
+        <div class="asignados-wrap" id="si-chips">
+            <span class="chip-none">Ninguno aún</span>
+        </div>
+        <div id="si-picker-wrap" style="margin-top:0.5rem; display:none;">
+            <input type="text" class="picker-search" id="si-picker-search" placeholder="Buscar por nombre, correo o rol…" />
+            <div class="user-picker" id="si-picker-list">
+                <div class="user-picker-empty">Cargando…</div>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button type="button" class="btn-outline" id="si-cancelar">Cancelar</button>
+            <button type="button" class="btn-primary" id="si-guardar">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script is:inline>
+(function () {
+    /* ── estado ─────────────────────────────────────── */
+    var inmList        = [];   // inmobiliarias
+    var usuList        = [];   // usuarios cargados para el picker
+    var asigNuevos     = [];   // ids seleccionados ahora
+    var asigOriginales = [];   // ids antes de editar
+    var pickerVisible  = false;
+
+    /* ── refs (el modal NO se mueve del DOM) ────────── */
+    function el(id) { return document.getElementById(id); }
+
+    /* ── badges ─────────────────────────────────────── */
+    function badge(e) {
+        var s = (e || "").toLowerCase();
+        var c = s === "activa" ? "ok" : s === "pendiente" ? "warn" : "off";
+        return '<span class="badge badge-' + c + '">' + (e || "—") + "</span>";
+    }
+
+    /* ── stats ──────────────────────────────────────── */
+    function pintarStats() {
+        el("si-total").textContent      = inmList.length;
+        el("si-activas").textContent    = inmList.filter(function(i){ return (i.estado||"").toLowerCase()==="activa";    }).length;
+        el("si-pendientes").textContent = inmList.filter(function(i){ return (i.estado||"").toLowerCase()==="pendiente"; }).length;
+        el("si-inactivas").textContent  = inmList.filter(function(i){ return (i.estado||"").toLowerCase()==="inactiva";  }).length;
+    }
+
+    /* ── tabla ──────────────────────────────────────── */
+    function pintarTabla() {
+        var tbody = el("si-tbody");
+        if (!inmList.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay inmobiliarias registradas</td></tr>';
+            return;
+        }
+        tbody.innerHTML = inmList.map(function(inm) {
+            var users = inm.usuariosAsignados || [];
+            var chips = users.length
+                ? users.map(function(u){ return '<span class="chip" title="'+u.nombreRol+'">'+u.nombre+"</span>"; }).join("")
+                : '<span class="chip-none">—</span>';
+            return "<tr>" +
+                "<td>"+inm.inmobiliariaID+"</td>" +
+                "<td><strong>"+(inm.nombre||"")+"</strong></td>" +
+                "<td>"+(inm.ciudad||"—")+"</td>" +
+                "<td>"+(inm.contacto||"—")+"</td>" +
+                "<td>"+badge(inm.estado)+"</td>" +
+                '<td><div class="usuarios-chips">'+chips+"</div></td>" +
+                '<td class="acciones">' +
+                '<button class="btn-sm btn-edit" data-edit="'+inm.inmobiliariaID+'">Editar</button> ' +
+                '<button class="btn-sm" style="color:#5b4fc7;border-color:#c4b5fd;" data-asignar="'+inm.inmobiliariaID+'">Usuarios</button>' +
+                "</td></tr>";
+        }).join("");
+    }
+
+    /* ── cargar inmobiliarias ───────────────────────── */
+    function cargar() {
+        return fetch("/api/superadmin/inmobiliariasAdmin", { credentials: "same-origin" })
+            .then(function(r){ return r.json(); })
+            .then(function(j){
+                inmList = j.data || [];
+                pintarStats();
+                pintarTabla();
+            })
+            .catch(function(){
+                el("si-tbody").innerHTML = '<tr><td colspan="7" class="loading">Error al cargar</td></tr>';
+            });
+    }
+
+    /* ── cargar usuarios disponibles ────────────────── */
+    function cargarUsuarios(inmID) {
+        var url = "/api/superadmin/inmobiliariasAdmin?disponibles=1";
+        if (inmID) url += "&inmobiliariaID=" + inmID;
+        el("si-picker-list").innerHTML = '<div class="user-picker-empty">Cargando usuarios…</div>';
+        return fetch(url, { credentials: "same-origin" })
+            .then(function(r){ return r.json(); })
+            .then(function(j){
+                usuList = j.data || [];
+                renderPicker("");
+            })
+            .catch(function(){
+                el("si-picker-list").innerHTML = '<div class="user-picker-empty">Error al cargar usuarios</div>';
+            });
+    }
+
+    /* ── picker ─────────────────────────────────────── */
+    function renderPicker(filtro) {
+        filtro = (filtro || "").toLowerCase();
+        var fuente = usuList.filter(function(u) {
+            if (!filtro) return true;
+            return (u.nombre||"").toLowerCase().indexOf(filtro) >= 0 ||
+                   (u.correo||"").toLowerCase().indexOf(filtro) >= 0 ||
+                   (u.nombreRol||"").toLowerCase().indexOf(filtro) >= 0;
+        });
+
+        if (!fuente.length) {
+            el("si-picker-list").innerHTML = '<div class="user-picker-empty">Sin resultados</div>';
+            return;
+        }
+
+        // asignados primero
+        fuente.sort(function(a,b){
+            var aA = asigNuevos.indexOf(a.usuarioID) >= 0 ? 0 : 1;
+            var bA = asigNuevos.indexOf(b.usuarioID) >= 0 ? 0 : 1;
+            return aA - bA;
+        });
+
+        el("si-picker-list").innerHTML = fuente.map(function(u) {
+            var marcado = asigNuevos.indexOf(u.usuarioID) >= 0;
+            var enOtra  = u.inmobiliariaID !== null && !marcado;
+            return '<label class="user-picker-item'+(marcado?" up-selected":"")+'">' +
+                '<input type="checkbox" class="up-chk" data-uid="'+u.usuarioID+'"'+(marcado?" checked":"")+' />' +
+                '<span class="up-info">' +
+                  '<span class="up-name">'+(u.nombre||"")+"</span>" +
+                  '<span class="up-meta">'+(u.correo||"")+" · "+(u.nombreRol||"")+(enOtra?'<span class="tag-otra">(en otra inmobiliaria)</span>':"")+"</span>" +
+                "</span></label>";
+        }).join("");
+    }
+
+    /* ── chips de asignados ─────────────────────────── */
+    function renderChips() {
+        var wrap = el("si-chips");
+        if (!asigNuevos.length) {
+            wrap.innerHTML = '<span class="chip-none">Ninguno aún</span>';
+            return;
+        }
+        var todos = usuList.concat(inmList.flatMap(function(i){ return i.usuariosAsignados||[]; }));
+        wrap.innerHTML = asigNuevos.map(function(uid) {
+            var u = todos.find(function(x){ return x.usuarioID === uid; });
+            return '<span class="chip-rm">'+(u ? u.nombre : "ID "+uid)+
+                '<button type="button" data-rm="'+uid+'">×</button></span>';
+        }).join("");
+    }
+
+    /* ── modal ──────────────────────────────────────── */
+    function abrirModal(titulo) {
+        el("si-modal-titulo").textContent = titulo;
+        el("si-error").hidden = true;
+        el("si-modal").hidden = false;
+    }
+    function cerrarModal() {
+        el("si-modal").hidden = true;
+        ocultarPicker();
+        asigNuevos = []; asigOriginales = [];
+    }
+
+    function limpiarModal() {
+        el("si-id").value=""; el("si-nombre").value=""; el("si-ciudad").value="";
+        el("si-correo").value=""; el("si-telefono").value=""; el("si-contacto").value="";
+        el("si-descripcion").value=""; el("si-estado").value="Activa";
+        asigNuevos=[]; asigOriginales=[];
+        renderChips();
+    }
+
+    function rellenarModal(inm) {
+        el("si-id").value           = inm.inmobiliariaID;
+        el("si-nombre").value       = inm.nombre || "";
+        el("si-ciudad").value       = inm.ciudad || "";
+        el("si-correo").value       = inm.correo || "";
+        el("si-telefono").value     = inm.telefono || "";
+        el("si-contacto").value     = inm.contacto || "";
+        el("si-descripcion").value  = inm.descripcion || "";
+        el("si-estado").value       = inm.estado || "Activa";
+        asigOriginales = (inm.usuariosAsignados||[]).map(function(u){ return u.usuarioID; });
+        asigNuevos = asigOriginales.slice();
+        renderChips();
+    }
+
+    /* ── picker toggle ──────────────────────────────── */
+    function mostrarPicker() {
+        pickerVisible = true;
+        el("si-picker-wrap").style.display = "block";
+        el("si-picker-search").value = "";
+        el("si-toggle-picker").textContent = "▲ Cerrar lista";
+        renderPicker("");
+    }
+    function ocultarPicker() {
+        pickerVisible = false;
+        el("si-picker-wrap").style.display = "none";
+        el("si-toggle-picker").textContent = "+ Seleccionar usuarios";
+    }
+
+    /* ── guardar ────────────────────────────────────── */
+    function guardar() {
+        var err = el("si-error");
+        err.hidden = true;
+        var id     = el("si-id").value;
+        var nombre = el("si-nombre").value.trim();
+        if (!nombre) { err.textContent="El nombre es obligatorio"; err.hidden=false; return; }
+
+        var payload = {
+            nombre:      nombre,
+            ciudad:      el("si-ciudad").value.trim()||null,
+            correo:      el("si-correo").value.trim()||null,
+            telefono:    el("si-telefono").value.trim()||null,
+            contacto:    el("si-contacto").value.trim()||null,
+            descripcion: el("si-descripcion").value.trim()||null,
+            estado:      el("si-estado").value,
+        };
+
+        var prom;
+        if (id) {
+            prom = fetch("/api/superadmin/inmobiliariasAdmin?id="+id, {
+                method:"PUT", credentials:"same-origin",
+                headers:{"Content-Type":"application/json"},
+                body: JSON.stringify(payload),
+            }).then(function(r){ return r.json(); }).then(function(d){
+                if (!d.success) throw new Error(d.message||"Error");
+                // sincronizar asignaciones
+                var agregar = asigNuevos.filter(function(u){ return asigOriginales.indexOf(u)<0; });
+                var quitar  = asigOriginales.filter(function(u){ return asigNuevos.indexOf(u)<0; });
+                if (!agregar.length && !quitar.length) return;
+                return fetch("/api/superadmin/inmobiliariasAdmin?id="+id, {
+                    method:"PATCH", credentials:"same-origin",
+                    headers:{"Content-Type":"application/json"},
+                    body: JSON.stringify({ agregar:agregar, quitar:quitar }),
+                }).then(function(r){ return r.json(); });
+            });
+        } else {
+            payload.usuariosAsignados = asigNuevos.slice();
+            prom = fetch("/api/superadmin/inmobiliariasAdmin", {
+                method:"POST", credentials:"same-origin",
+                headers:{"Content-Type":"application/json"},
+                body: JSON.stringify(payload),
+            }).then(function(r){ return r.json(); }).then(function(d){
+                if (!d.success) throw new Error(d.message||"Error");
+            });
+        }
+
+        prom.then(function(){ cerrarModal(); cargar(); })
+            .catch(function(e){ err.textContent=e.message||"Error al guardar"; err.hidden=false; });
+    }
+
+    /* ── eventos (todos con getElementById, sin mover el modal) ── */
+    el("btn-nueva-inm").addEventListener("click", function() {
+        limpiarModal();
+        abrirModal("Nueva inmobiliaria");
+        cargarUsuarios(null);
+    });
+
+    el("si-cancelar").addEventListener("click", cerrarModal);
+    el("si-backdrop").addEventListener("click", cerrarModal);
+    el("si-guardar").addEventListener("click", guardar);
+
+    el("si-toggle-picker").addEventListener("click", function() {
+        if (pickerVisible) { ocultarPicker(); } else { mostrarPicker(); }
+    });
+
+    el("si-picker-search").addEventListener("input", function() {
+        renderPicker(this.value);
+    });
+
+    // checkboxes del picker — delegado en la lista
+    el("si-picker-list").addEventListener("change", function(e) {
+        var cb = e.target.closest(".up-chk");
+        if (!cb) return;
+        var uid = Number(cb.getAttribute("data-uid"));
+        if (cb.checked) {
+            if (asigNuevos.indexOf(uid) < 0) asigNuevos.push(uid);
+        } else {
+            asigNuevos = asigNuevos.filter(function(x){ return x!==uid; });
+        }
+        renderChips();
+        // re-render para actualizar up-selected sin quitar el elemento
+        var label = cb.closest(".user-picker-item");
+        if (label) {
+            label.classList.toggle("up-selected", cb.checked);
+            var nameEl = label.querySelector(".up-name");
+            if (nameEl) nameEl.style.color = cb.checked ? "#5b4fc7" : "";
+        }
+    });
+
+    // quitar chip
+    el("si-chips").addEventListener("click", function(e) {
+        var btn = e.target.closest("[data-rm]");
+        if (!btn) return;
+        var uid = Number(btn.getAttribute("data-rm"));
+        asigNuevos = asigNuevos.filter(function(x){ return x!==uid; });
+        renderChips();
+        // desmarcar en el picker si está visible
+        var cb = el("si-picker-list").querySelector('.up-chk[data-uid="'+uid+'"]');
+        if (cb) { cb.checked=false; cb.closest(".user-picker-item").classList.remove("up-selected"); }
+    });
+
+    // botones editar / usuarios en la tabla
+    el("si-tbody").addEventListener("click", function(e) {
+        var btnEdit = e.target.closest("[data-edit]");
+        if (btnEdit) {
+            var id  = Number(btnEdit.getAttribute("data-edit"));
+            var inm = inmList.find(function(x){ return x.inmobiliariaID===id; });
+            if (!inm) return;
+            rellenarModal(inm);
+            abrirModal("Editar inmobiliaria");
+            cargarUsuarios(id);
+            return;
+        }
+        var btnAsig = e.target.closest("[data-asignar]");
+        if (btnAsig) {
+            var id2  = Number(btnAsig.getAttribute("data-asignar"));
+            var inm2 = inmList.find(function(x){ return x.inmobiliariaID===id2; });
+            if (!inm2) return;
+            rellenarModal(inm2);
+            abrirModal("Asignar usuarios — "+inm2.nombre);
+            cargarUsuarios(id2).then(mostrarPicker);
+        }
+    });
+
+    cargar();
+})();
+</script>
