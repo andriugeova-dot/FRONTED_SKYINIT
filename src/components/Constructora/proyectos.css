@@ -280,3 +280,17 @@
     .btn-borrar-img:hover {
     background: #b91c1c;
     }
+    .toolbar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    }
+    .toolbar input,
+    .toolbar select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    min-width: 180px;
+    font-size: 0.9rem;
+    }

@@ -171,3 +171,22 @@
     font-weight: 600;
     cursor: pointer;
     }
+    .toolbar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    }
+    .toolbar input,
+    .toolbar select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    min-width: 180px;
+    font-size: 0.9rem;
+    }
+        .hint-sa {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    font-weight: 600;
+    }

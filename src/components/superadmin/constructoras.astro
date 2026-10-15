@@ -1,0 +1,519 @@
+---
+import "./constructoras.css";
+---
+
+<div class="page" id="page-sa-constructoras">
+    <header class="page-header">
+        <div>
+        <h1>Constructoras</h1>
+        <p>Todas las constructoras, inmobiliarias vinculadas y cuentas de acceso para el panel</p>
+        </div>
+        <button type="button" class="btn-nueva" id="btn-nueva">+ Nueva constructora</button>
+    </header>
+    <div class="toolbar">
+        <input type="search" id="filtro-q" placeholder="Buscar nombre, ciudad, correo…" />
+        <select id="filtro-estado">
+            <option value="">Todos los estados</option>
+            <option value="Activo">Activo</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Inactivo">Inactivo</option>
+        </select>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+        <span class="stat-label">Total</span>
+        <span class="stat-value" id="stat-total">—</span>
+        </div>
+        <div class="stat-card">
+        <span class="stat-label">Activas</span>
+        <span class="stat-value" id="stat-activas">—</span>
+        </div>
+        <div class="stat-card">
+        <span class="stat-label">Con cuenta</span>
+        <span class="stat-value" id="stat-cuenta">—</span>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="tabla">
+        <thead>
+            <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Ciudad</th>
+            <th>Estado</th>
+            <th>Inmobiliarias</th>
+            <th>Acceso panel</th>
+            <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tbody">
+            <tr><td colspan="7" class="loading">Cargando…</td></tr>
+        </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="modal" hidden>
+    <div class="modal-backdrop" data-cerrar></div>
+    <div class="modal-card">
+        <h3 id="modal-titulo">Nueva constructora</h3>
+        <p id="form-error" class="form-error" hidden></p>
+        <input type="hidden" id="f-id" value="" />
+
+        <label>Nombre *</label>
+        <input type="text" id="f-nombre" />
+
+        <label>Descripción *</label>
+        <textarea id="f-descripcion" rows="2"></textarea>
+
+        <div class="fila">
+        <div>
+            <label>Ciudad</label>
+            <input type="text" id="f-ciudad" />
+        </div>
+        <div>
+            <label>Estado</label>
+            <select id="f-estado">
+            <option value="Activo">Activo</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Inactivo">Inactivo</option>
+            </select>
+        </div>
+        </div>
+
+        <div class="fila">
+        <div>
+            <label>Teléfono</label>
+            <input type="text" id="f-telefono" />
+        </div>
+        <div>
+            <label>Correo empresa</label>
+            <input type="email" id="f-correo" />
+        </div>
+        </div>
+
+        <label>Contacto</label>
+        <input type="text" id="f-contacto" />
+
+        <label>Inmobiliarias</label>
+        <div id="inmo-checks" class="checks"></div>
+
+        <div class="cuenta-box">
+            <h4>Cuenta de acceso al panel</h4>
+            <p id="cuenta-actual" class="hint">Sin cuenta asignada</p>
+
+            <label>Asignar usuario existente (rol Constructora)</label>
+            <select id="f-user-existente">
+                <option value="">— Elegir usuario existente —</option>
+            </select>
+
+            <hr class="sep" />
+
+            <label>
+                <input type="checkbox" id="f-crear-cuenta" />
+                Crear cuenta nueva
+            </label>
+
+            <div id="cuenta-fields" hidden>
+                <label>Correo de login *</label>
+                <input type="email" id="f-user-correo" />
+                <label>Contraseña temporal *</label>
+                <input type="password" id="f-user-pass" autocomplete="new-password" />
+                <label>Nombre del usuario</label>
+                <input type="text" id="f-user-nombre" placeholder="Opcional" />
+            </div>
+
+            <label id="lbl-quitar" hidden>
+                <input type="checkbox" id="f-quitar-cuenta" />
+                Quitar cuenta de acceso
+            </label>
+        </div>
+
+        <div class="modal-actions">
+        <button type="button" class="btn-outline" data-cerrar>Cancelar</button>
+        <button type="button" class="btn-primary" id="btn-guardar">Guardar</button>
+        </div>
+    </div>
+</div>
+<script is:inline>
+(function () {
+  var lista = [];
+  var inmobiliarias = [];
+  var usuariosConstructora = [];
+
+  function badgeEstado(e) {
+    var s = String(e || "").toLowerCase();
+    var cls =
+      s.indexOf("activ") >= 0 ? "ok" : s.indexOf("pend") >= 0 ? "warn" : "off";
+    return '<span class="badge badge-' + cls + '">' + (e || "—") + "</span>";
+  }
+
+  function pintarStats() {
+    document.getElementById("stat-total").textContent = String(lista.length);
+    document.getElementById("stat-activas").textContent = String(
+      lista.filter(function (c) {
+        return String(c.estado || "").toLowerCase().indexOf("activ") >= 0;
+      }).length,
+    );
+    document.getElementById("stat-cuenta").textContent = String(
+      lista.filter(function (c) {
+        return c.usuarioID || c.usuarioCorreo;
+      }).length,
+    );
+  }
+
+  function pintarTabla(items) {
+    items = items || lista;
+    var tbody = document.getElementById("tbody");
+    if (!items.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="7" class="loading">Sin resultados</td></tr>';
+      return;
+    }
+    tbody.innerHTML = items
+      .map(function (c) {
+        var id = c.constructoraID;
+        var inmos = c.inmobiliariaNombres || "—";
+        var acceso = c.usuarioCorreo
+          ? '<span class="acceso-ok">' + c.usuarioCorreo + "</span>"
+          : '<span class="acceso-off">Sin cuenta</span>';
+        return (
+          "<tr>" +
+          "<td>" + id + "</td>" +
+          "<td><strong>" + (c.nombre || "") + "</strong></td>" +
+          "<td>" + (c.ciudad || "—") + "</td>" +
+          "<td>" + badgeEstado(c.estado) + "</td>" +
+          "<td class='inmo-cell'>" + inmos + "</td>" +
+          "<td>" + acceso + "</td>" +
+          '<td><button type="button" class="btn-sm" data-edit="' +
+          id +
+          '">Editar</button></td>' +
+          "</tr>"
+        );
+      })
+      .join("");
+  }
+
+  function aplicarFiltro() {
+    var q = (document.getElementById("filtro-q").value || "")
+      .toLowerCase()
+      .trim();
+    var est = document.getElementById("filtro-estado").value;
+    var filtradas = lista.filter(function (c) {
+      var texto = [
+        c.nombre,
+        c.ciudad,
+        c.correo,
+        c.usuarioCorreo,
+        c.inmobiliariaNombres,
+      ]
+        .join(" ")
+        .toLowerCase();
+      var okQ = !q || texto.indexOf(q) >= 0;
+      var okE = !est || String(c.estado || "") === est;
+      return okQ && okE;
+    });
+    pintarTabla(filtradas);
+  }
+
+  function cargar() {
+    return fetch("/api/superadmin/constructoras", {
+      credentials: "same-origin",
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        lista = json.data || [];
+        pintarStats();
+        aplicarFiltro();
+      })
+      .catch(function () {
+        document.getElementById("tbody").innerHTML =
+          '<tr><td colspan="7" class="loading">Error al cargar</td></tr>';
+      });
+  }
+
+  function cargarInmobiliarias() {
+    return fetch("/api/superadmin/inmobiliarias", {
+      credentials: "same-origin",
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        inmobiliarias = json.data || [];
+        var box = document.getElementById("inmo-checks");
+        if (!box) return;
+        box.innerHTML = inmobiliarias
+          .map(function (i) {
+            var id = i.inmobiliariaID;
+            var nom = i.nombre || "";
+            var ciu = i.ciudad ? " · " + i.ciudad : "";
+            return (
+              '<label class="check-item">' +
+              '<input type="checkbox" name="inmo" value="' +
+              id +
+              '" /> ' +
+              nom +
+              ciu +
+              "</label>"
+            );
+          })
+          .join("");
+      })
+      .catch(function () {
+        console.error("No se cargaron inmobiliarias");
+      });
+  }
+
+  function pintarSelectUsuarios() {
+    var sel = document.getElementById("f-user-existente");
+    if (!sel) return;
+    sel.innerHTML =
+      '<option value="">— Elegir usuario existente —</option>' +
+      usuariosConstructora
+        .map(function (u) {
+          var id = u.usuarioID || u.UsuarioID;
+          var nom = u.nombre || "";
+          var cor = u.correo || "";
+          return (
+            '<option value="' + id + '">' + nom + " · " + cor + "</option>"
+          );
+        })
+        .join("");
+  }
+
+  function cargarUsuariosConstructora() {
+    return fetch("/api/superadmin/usuarios", { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        var all = json.data || [];
+        usuariosConstructora = all.filter(function (u) {
+          var rol = String(u.nombreRol || u.rol || "").toLowerCase();
+          var rolId = Number(u.rolID || 0);
+          return rol.indexOf("constructora") >= 0 || rolId === 5;
+        });
+        pintarSelectUsuarios();
+      })
+      .catch(function (e) {
+        console.error(e);
+      });
+  }
+
+  function getInmoSeleccionadas() {
+    var ids = [];
+    document
+      .querySelectorAll('#inmo-checks input[name="inmo"]:checked')
+      .forEach(function (el) {
+        ids.push(Number(el.value));
+      });
+    return ids;
+  }
+
+  function setInmoSeleccionadas(ids) {
+    var set = {};
+    (ids || []).forEach(function (id) {
+      set[String(id)] = true;
+    });
+    document
+      .querySelectorAll('#inmo-checks input[name="inmo"]')
+      .forEach(function (el) {
+        el.checked = !!set[el.value];
+      });
+  }
+
+  function abrirModal() {
+    var modal = document.getElementById("modal");
+    document.getElementById("form-error").hidden = true;
+    document.body.appendChild(modal);
+    modal.hidden = false;
+  }
+
+  function cerrarModal() {
+    document.getElementById("modal").hidden = true;
+  }
+
+  function limpiar() {
+    document.getElementById("f-id").value = "";
+    document.getElementById("f-nombre").value = "";
+    document.getElementById("f-descripcion").value = "";
+    document.getElementById("f-ciudad").value = "";
+    document.getElementById("f-estado").value = "Activo";
+    document.getElementById("f-telefono").value = "";
+    document.getElementById("f-correo").value = "";
+    document.getElementById("f-contacto").value = "";
+    setInmoSeleccionadas([]);
+    document.getElementById("cuenta-actual").textContent =
+      "Sin cuenta asignada";
+    document.getElementById("f-crear-cuenta").checked = false;
+    document.getElementById("cuenta-fields").hidden = true;
+    document.getElementById("f-user-correo").value = "";
+    document.getElementById("f-user-pass").value = "";
+    document.getElementById("f-user-nombre").value = "";
+    document.getElementById("f-quitar-cuenta").checked = false;
+    document.getElementById("lbl-quitar").hidden = true;
+    var sel = document.getElementById("f-user-existente");
+    if (sel) sel.value = "";
+    document.getElementById("modal-titulo").textContent = "Nueva constructora";
+  }
+
+  function rellenar(c) {
+    document.getElementById("f-id").value = c.constructoraID;
+    document.getElementById("f-nombre").value = c.nombre || "";
+    document.getElementById("f-descripcion").value = c.descripcion || "";
+    document.getElementById("f-ciudad").value = c.ciudad || "";
+    document.getElementById("f-estado").value = c.estado || "Activo";
+    document.getElementById("f-telefono").value = c.telefono || "";
+    document.getElementById("f-correo").value = c.correo || "";
+    document.getElementById("f-contacto").value = c.contacto || "";
+    var ids = (c.inmobiliarias || []).map(function (i) {
+      return i.inmobiliariaID;
+    });
+    if (!ids.length && c.inmobiliariaID) ids = [c.inmobiliariaID];
+    setInmoSeleccionadas(ids);
+    if (c.usuarioCorreo) {
+      document.getElementById("cuenta-actual").textContent =
+        "Actual: " +
+        c.usuarioCorreo +
+        (c.usuarioNombre ? " (" + c.usuarioNombre + ")" : "");
+      document.getElementById("lbl-quitar").hidden = false;
+    } else {
+      document.getElementById("cuenta-actual").textContent =
+        "Sin cuenta asignada";
+      document.getElementById("lbl-quitar").hidden = true;
+    }
+    document.getElementById("f-crear-cuenta").checked = false;
+    document.getElementById("cuenta-fields").hidden = true;
+    document.getElementById("f-quitar-cuenta").checked = false;
+    var sel = document.getElementById("f-user-existente");
+    if (sel) sel.value = c.usuarioID ? String(c.usuarioID) : "";
+    document.getElementById("modal-titulo").textContent = "Editar constructora";
+  }
+
+  var elCrear = document.getElementById("f-crear-cuenta");
+  if (elCrear) {
+    elCrear.addEventListener("change", function () {
+      document.getElementById("cuenta-fields").hidden = !this.checked;
+      if (this.checked) {
+        document.getElementById("f-quitar-cuenta").checked = false;
+        var s = document.getElementById("f-user-existente");
+        if (s) s.value = "";
+      }
+    });
+  }
+
+  var elQuitar = document.getElementById("f-quitar-cuenta");
+  if (elQuitar) {
+    elQuitar.addEventListener("change", function () {
+      if (this.checked) {
+        document.getElementById("f-crear-cuenta").checked = false;
+        document.getElementById("cuenta-fields").hidden = true;
+        var s = document.getElementById("f-user-existente");
+        if (s) s.value = "";
+      }
+    });
+  }
+
+  document.getElementById("btn-nueva").addEventListener("click", function () {
+    limpiar();
+    abrirModal();
+  });
+
+  document.querySelectorAll("[data-cerrar]").forEach(function (el) {
+    el.addEventListener("click", cerrarModal);
+  });
+
+  document.getElementById("filtro-q").addEventListener("input", aplicarFiltro);
+  document
+    .getElementById("filtro-estado")
+    .addEventListener("change", aplicarFiltro);
+
+  document.getElementById("tbody").addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-edit]");
+    if (!btn) return;
+    var id = Number(btn.getAttribute("data-edit"));
+    var c = lista.find(function (x) {
+      return Number(x.constructoraID) === id;
+    });
+    if (!c) return;
+    rellenar(c);
+    abrirModal();
+  });
+
+  document.getElementById("btn-guardar").addEventListener("click", function () {
+    var err = document.getElementById("form-error");
+    err.hidden = true;
+    var id = document.getElementById("f-id").value;
+    var payload = {
+      nombre: document.getElementById("f-nombre").value.trim(),
+      descripcion: document.getElementById("f-descripcion").value.trim(),
+      ciudad: document.getElementById("f-ciudad").value.trim() || null,
+      estado: document.getElementById("f-estado").value,
+      telefono: document.getElementById("f-telefono").value.trim() || null,
+      correo: document.getElementById("f-correo").value.trim() || null,
+      contacto: document.getElementById("f-contacto").value.trim() || null,
+      inmobiliariaIDs: getInmoSeleccionadas(),
+      usuario: null,
+    };
+    if (!payload.nombre || !payload.descripcion) {
+      err.textContent = "Nombre y descripción son obligatorios";
+      err.hidden = false;
+      return;
+    }
+    if (document.getElementById("f-quitar-cuenta").checked) {
+      payload.usuario = { accion: "quitar" };
+    } else if (document.getElementById("f-crear-cuenta").checked) {
+      var uc = document.getElementById("f-user-correo").value.trim();
+      var up = document.getElementById("f-user-pass").value;
+      if (!uc || !up) {
+        err.textContent = "Correo y contraseña de acceso son obligatorios";
+        err.hidden = false;
+        return;
+      }
+      payload.usuario = {
+        accion: "crear",
+        correo: uc,
+        password: up,
+        nombre:
+          document.getElementById("f-user-nombre").value.trim() ||
+          payload.nombre,
+      };
+    } else {
+      var uidEl = document.getElementById("f-user-existente");
+      var uid = uidEl ? uidEl.value : "";
+      if (uid) {
+        payload.usuario = { accion: "asignar", usuarioID: Number(uid) };
+      }
+    }
+    var url = id
+      ? "/api/superadmin/constructoras?id=" + id
+      : "/api/superadmin/constructoras";
+    var method = id ? "PUT" : "POST";
+    fetch(url, {
+      method: method,
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) {
+        return r.json().then(function (data) {
+          if (!r.ok) throw new Error(data.message || data.error || "Error");
+          cerrarModal();
+          return cargarUsuariosConstructora().then(cargar);
+        });
+      })
+      .catch(function (e) {
+        err.textContent = e.message || "Error al guardar";
+        err.hidden = false;
+      });
+  });
+
+  cargarInmobiliarias().then(cargarUsuariosConstructora).then(cargar);
+})();
+</script>

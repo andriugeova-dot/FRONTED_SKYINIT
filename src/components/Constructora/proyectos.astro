@@ -13,6 +13,16 @@ import "./proyectos.css";
     <div id="grid-proyectos" class="ag-theme-quartz grid-box"></div>
 </div>
 
+<div class="toolbar">
+    <input type="search" id="filtro-q" placeholder="Buscar proyecto o ubicación…" />
+    <select id="filtro-estado">
+        <option value="">Todos los estados</option>
+        <option value="Planificado">Planificado</option>
+        <option value="En construcción">En construcción</option>
+        <option value="Finalizado">Finalizado</option>
+    </select>
+</div>
+
 <!-- MODAL FOTO (div, no dialog) -->
 <div id="modal-foto" class="sky-modal" hidden>
     <div class="sky-modal-backdrop" data-cerrar="foto"></div>
@@ -175,6 +185,45 @@ import "./proyectos.css";
                     pintarGaleria([]);
                     });
         }
+        
+        function aplicarFiltroProyectos() {
+            var qEl = document.getElementById("filtro-q");
+            var eEl = document.getElementById("filtro-estado");
+            if (!qEl) return;
+            var q = (qEl.value || "").toLowerCase().trim();
+            var est = eEl ? eEl.value : "";
+            var filtrados = (window._listaProyectos || []).filter(function (p) {
+                var texto = [
+                p.nombre,
+                p.ubicacion,
+                p.estado,
+                p.estadoNombre,
+                ]
+                .join(" ")
+                .toLowerCase();
+                var okQ = !q || texto.indexOf(q) >= 0;
+                var okE =
+                !est ||
+                String(p.estado || p.estadoNombre || "") === est;
+                return okQ && okE;
+            });
+            if (window.gridApi) {
+                window.gridApi.setGridOption("rowData", filtrados);
+            }
+        }
+
+            // Al cargar proyectos:
+            // window._listaProyectos = data;
+            // aplicarFiltroProyectos();
+
+            document.getElementById("filtro-q") &&
+            document
+                .getElementById("filtro-q")
+                .addEventListener("input", aplicarFiltroProyectos);
+            document.getElementById("filtro-estado") &&
+            document
+                .getElementById("filtro-estado")
+                .addEventListener("change", aplicarFiltroProyectos);
 
         function cargar() {
         fetch("/api/panel/constructora/proyectos", { credentials: "same-origin" })

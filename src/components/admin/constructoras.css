@@ -286,6 +286,187 @@
     font-size: 0.85rem;
     margin: 0.75rem 0 0;
     }
+    .toolbar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.toolbar input,
+.toolbar select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--p-line, #e5e7eb);
+  border-radius: 10px;
+  min-width: 180px;
+  font-size: 0.9rem;
+}
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.card-c {
+  background: #fff;
+  border: 1px solid var(--p-line, #e5e7eb);
+  border-radius: 14px;
+  padding: 1.1rem 1.15rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.card-c-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.card-c-top h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--p-ink, #1b3a2a);
+}
+.card-c-city,
+.card-c-mail {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+.card-c-desc {
+  margin: 0.4rem 0 0.6rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  flex: 1;
+}
+.card-c-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: auto;
+}
+.badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+.badge-ok { background: #dcfce7; color: #166534; }
+.badge-warn { background: #fef3c7; color: #92400e; }
+.badge-off { background: #f3f4f6; color: #6b7280; }
+.empty {
+  color: #9ca3af;
+  text-align: center;
+  padding: 2rem;
+  grid-column: 1 / -1;
+}
+
+/* Modal por encima del sidebar */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal[hidden] { display: none !important; }
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1;
+}
+.modal-card {
+  position: relative;
+  z-index: 2;
+  width: min(440px, 94vw);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff !important;
+  border-radius: 14px;
+  padding: 1.35rem 1.4rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+.modal-card h3 { margin: 0 0 1rem; }
+.modal-card label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0.55rem 0 0.25rem;
+}
+.modal-card input,
+.modal-card select,
+.modal-card textarea {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+.fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+}
+.btn-outline {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+.btn-primary {
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  background: var(--p-acc, #2e8b57);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.form-error {
+  background: #fef2f2;
+  color: #991b1b;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+.card-c-top {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+.card-c-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f3f4f6;
+}
+.card-c-logo.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #1b5e20;
+  background: #e8f5e9;
+}
+.card-c-info {
+  flex: 1;
+  min-width: 0;
+}
+.card-c-info h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
 
     @media (max-width: 600px) {
     .row-2 {
