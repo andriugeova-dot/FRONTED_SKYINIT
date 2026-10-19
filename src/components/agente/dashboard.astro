@@ -1,0 +1,175 @@
+---
+import "../admin/dashboard.css";
+import { COOKIE_NAME, getTokenSSR } from "../../utils/auth";
+
+const BACKEND = import.meta.env.BACKEND_URL ?? "http://localhost:8001";
+const token = getTokenSSR(Astro.cookies);
+
+type ResumenDashboard = {
+    totales: {
+        propiedades: number;
+        misPropiedades: number;
+        destacadas: number;
+        proyectos: number;
+        constructoras: number;
+    };
+    propiedadesPorEstado: { estado: string; total: number }[];
+    proyectosPorEstado: { estadoProyectoID: number; total: number }[];
+    message?: string;
+};
+
+let resumen: ResumenDashboard | null = null;
+let errorCarga: string | null = null;
+
+if (token) {
+    try {
+        const res = await fetch(`${BACKEND}/agente/dashboard`, {
+        headers: {
+            Cookie: `${COOKIE_NAME}=${token}`,
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+        },
+        });
+        if (res.ok) {
+        resumen = await res.json();
+        } else {
+        errorCarga = `No se pudieron cargar las estadísticas (${res.status})`;
+        }
+    } catch {
+        errorCarga = "No se pudo conectar con el backend";
+    }
+    } else {
+    errorCarga = "Sesión no válida";
+}
+
+const nombreEstadoProy = (id: number) =>
+     id === 3 ? "Finalizados" : id === 2 ? "En construcción" : "Planificados";
+
+const iconoEstadoProp = (estado: string) => {
+    if (estado === "Disponible") return "bi-house-check";
+    if (estado === "Reservada") return "bi-hourglass-split";
+    if (estado === "Mantenimiento") return "bi-cone-striped";
+    return "bi-slash-circle";
+};
+
+const iconoEstadoProy = (id: number) => {
+    if (id === 3) return "bi-flag-fill";
+    if (id === 2) return "bi-hammer";
+    return "bi-clipboard2-pulse";
+};
+---
+
+<div class="panel-body">
+    <div class="topbar-panel">
+        <h1>Panel agente</h1>
+        <p>Resumen de tu inmobiliaria y propiedades a cargo.</p>
+    </div>
+
+    {errorCarga && (
+        <div class="alert-error" role="alert">
+        <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+        {errorCarga}
+        </div>
+    )}
+
+    {resumen && (
+        <>
+        {resumen.message && (
+            <div class="alert-error" role="alert">{resumen.message}</div>
+        )}
+
+        <section class="stats-grid" aria-label="Totales">
+            <div class="stat-card">
+            <i class="bi bi-houses stat-icon" aria-hidden="true"></i>
+            <div class="stat-info">
+                <span class="stat-label">Propiedades (inmobiliaria)</span>
+                <span class="stat-value">{resumen.totales.propiedades}</span>
+            </div>
+            </div>
+            <div class="stat-card">
+            <i class="bi bi-person-badge stat-icon" aria-hidden="true"></i>
+            <div class="stat-info">
+                <span class="stat-label">Mis propiedades</span>
+                <span class="stat-value">{resumen.totales.misPropiedades}</span>
+            </div>
+            </div>
+            <div class="stat-card">
+            <i class="bi bi-star-fill stat-icon" aria-hidden="true"></i>
+            <div class="stat-info">
+                <span class="stat-label">Destacadas</span>
+                <span class="stat-value">{resumen.totales.destacadas}</span>
+            </div>
+            </div>
+            <div class="stat-card">
+            <i class="bi bi-building-fill-up stat-icon" aria-hidden="true"></i>
+            <div class="stat-info">
+                <span class="stat-label">Proyectos</span>
+                <span class="stat-value">{resumen.totales.proyectos}</span>
+            </div>
+            </div>
+            <div class="stat-card">
+            <i class="bi bi-hammer stat-icon" aria-hidden="true"></i>
+            <div class="stat-info">
+                <span class="stat-label">Constructoras</span>
+                <span class="stat-value">{resumen.totales.constructoras}</span>
+            </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2><i class="bi bi-grid-1x2" aria-hidden="true"></i> Accesos rápidos</h2>
+            <div class="accesos-grid">
+            <a href="/agente/propiedades" class="acceso-btn">
+                <i class="bi bi-houses" aria-hidden="true"></i> Propiedades
+            </a>
+            <a href="/agente/proyectos" class="acceso-btn">
+                <i class="bi bi-building-fill-up" aria-hidden="true"></i> Proyectos
+            </a>
+            <a href="/agente/perfil" class="acceso-btn">
+                <i class="bi bi-person-fill" aria-hidden="true"></i> Perfil
+            </a>
+            </div>
+        </section>
+
+        <div class="estados-grid">
+            <section class="card">
+            <h2><i class="bi bi-houses" aria-hidden="true"></i> Propiedades por estado</h2>
+            <div class="breakdown-list">
+                {resumen.propiedadesPorEstado.length === 0 ? (
+                <p class="empty-hint">Sin propiedades</p>
+                ) : (
+                resumen.propiedadesPorEstado.map((p) => (
+                    <div class="breakdown-row">
+                    <span class="breakdown-dot">
+                        <i class={`bi ${iconoEstadoProp(p.estado)}`} aria-hidden="true"></i>
+                    </span>
+                    <span class="breakdown-label">{p.estado}</span>
+                    <span class="breakdown-value">{p.total}</span>
+                    </div>
+                ))
+                )}
+            </div>
+            </section>
+
+            <section class="card">
+            <h2><i class="bi bi-building-fill-up" aria-hidden="true"></i> Proyectos por estado</h2>
+            <div class="breakdown-list">
+                {resumen.proyectosPorEstado.length === 0 ? (
+                <p class="empty-hint">Sin proyectos</p>
+                ) : (
+                resumen.proyectosPorEstado.map((p) => (
+                    <div class="breakdown-row">
+                    <span class="breakdown-dot">
+                        <i class={`bi ${iconoEstadoProy(p.estadoProyectoID)}`} aria-hidden="true"></i>
+                    </span>
+                    <span class="breakdown-label">{nombreEstadoProy(p.estadoProyectoID)}</span>
+                    <span class="breakdown-value">{p.total}</span>
+                    </div>
+                ))
+                )}
+            </div>
+            </section>
+        </div>
+        </>
+    )}
+</div>
