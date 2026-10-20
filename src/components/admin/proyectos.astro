@@ -23,14 +23,17 @@ type FilaProyecto = {
     imagenPrincipal: string | null;
 };
 
-type Opcion = { id: number; nombre: string };
+type Opcion = { id: number; nombre: string; estado: string};
 
 let filas: FilaProyecto[] = [];
 let constructoras: Opcion[] = [];
 let errorCarga: string | null = null;
 
 if (token) {
-    const auth = { Cookie: `${COOKIE_NAME}=${token}`, Accept: "application/json" };
+    const auth = {
+        Cookie: `${COOKIE_NAME}=${token}`,
+        Accept: "application/json",
+    };
     try {
         const [resProy, resConstr] = await Promise.all([
             fetch(`${BACKEND}/proyectos?orden=fecha`, { headers: auth }),
@@ -39,7 +42,9 @@ if (token) {
 
         if (resProy.ok) {
             const data = await resProy.json();
-            const lista = Array.isArray(data) ? data : (data.proyectos ?? data.data ?? []);
+            const lista = Array.isArray(data)
+                ? data
+                : (data.proyectos ?? data.data ?? []);
             filas = (lista as Record<string, any>[]).map((p) => ({
                 proyectoID: Number(p.proyectoID),
                 nombre: String(p.nombre ?? ""),
@@ -48,7 +53,9 @@ if (token) {
                 estadoProyectoID: Number(p.estadoProyectoID) || 1,
                 estadoProyecto: String(p.estadoProyecto ?? ""),
                 porcentajeAvance: Number(p.porcentajeAvance) || 0,
-                fechaInicio: p.fechaInicio ? String(p.fechaInicio).slice(0, 10) : null,
+                fechaInicio: p.fechaInicio
+                    ? String(p.fechaInicio).slice(0, 10)
+                    : null,
                 fechaFin: p.fechaFin ? String(p.fechaFin).slice(0, 10) : null,
                 constructoraID: p.constructoraID ?? null,
                 constructoraNombre: p.constructoraNombre ?? null,
@@ -62,7 +69,8 @@ if (token) {
             const c = await resConstr.json();
             constructoras = (c.data ?? []).map((x: any) => ({
                 id: Number(x.constructoraID),
-                nombre: x.estado && x.estado !== "Activo" ? `${x.nombre} (${x.estado})` : String(x.nombre),
+                nombre: String(x.nombre),
+                estado: String(x.estado ?? "Activo"),
             }));
         }
     } catch {
@@ -71,15 +79,24 @@ if (token) {
 } else {
     errorCarga = "Sesión no válida";
 }
-const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const norm = (s: string) =>
+    s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
 
 const textoBusqueda = (p: FilaProyecto) =>
-    norm([p.nombre, p.ubicacion, p.constructoraNombre].filter(Boolean).join(" "));
+    norm(
+        [p.nombre, p.ubicacion, p.constructoraNombre].filter(Boolean).join(" "),
+    );
 
 const urlImg = (path?: string | null) => {
     if (!path) return null;
     if (/^https?:\/\//i.test(path)) return path;
-    return BACKEND_PUBLIC.replace(/\/$/, "") + (path.startsWith("/") ? path : "/" + path);
+    return (
+        BACKEND_PUBLIC.replace(/\/$/, "") +
+        (path.startsWith("/") ? path : "/" + path)
+    );
 };
 
 const fmtFecha = (s: string | null) => {
@@ -89,13 +106,23 @@ const fmtFecha = (s: string | null) => {
 };
 
 const nombreEstado = (p: FilaProyecto) =>
-    p.estadoProyecto || (p.estadoProyectoID === 3 ? "Finalizado" : p.estadoProyectoID === 2 ? "En construcción" : "Planificado");
+    p.estadoProyecto ||
+    (p.estadoProyectoID === 3
+        ? "Finalizado"
+        : p.estadoProyectoID === 2
+          ? "En construcción"
+          : "Planificado");
 
 // 1 Planificado (azul) · 2 En construcción (ámbar) · 3 Finalizado (verde)
 const claseEstado = (id: number) =>
-    id === 3 ? "est-disponible" : id === 2 ? "est-reservada" : "est-mantenimiento";
+    id === 3
+        ? "est-disponible"
+        : id === 2
+          ? "est-reservada"
+          : "est-mantenimiento";
 
-const pct = (p: FilaProyecto) => Math.max(0, Math.min(100, Math.round(p.porcentajeAvance)));
+const pct = (p: FilaProyecto) =>
+    Math.max(0, Math.min(100, Math.round(p.porcentajeAvance)));
 
 // Resumen
 const total = filas.length;
@@ -117,9 +144,13 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
         </button>
     </header>
 
-    {errorCarga && (
-        <div class="alert-error" role="alert">{errorCarga}</div>
-    )}
+    {
+        errorCarga && (
+            <div class="alert-error" role="alert">
+                {errorCarga}
+            </div>
+        )
+    }
 
     <section class="stats" aria-label="Resumen">
         <div class="stat-card">
@@ -143,11 +174,20 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
     <section class="filtros" aria-label="Filtros">
         <div class="filtro-busqueda">
             <i class="bi bi-search" aria-hidden="true"></i>
-            <input type="search" id="filtro-buscar" placeholder="Buscar por nombre, ubicación o constructora..." />
+            <input
+                type="search"
+                id="filtro-buscar"
+                placeholder="Buscar por nombre, ubicación o constructora..."
+            />
         </div>
         <select id="filtro-constructora" aria-label="Filtrar por constructora">
             <option value="">Todas las constructoras</option>
-            {constructoras.map((c) => <option value={c.id}>{c.nombre}</option>)}
+            {constructoras.map((c) => (
+            <option value={c.id}>
+                {c.estado !== "Activo" ? `${c.nombre} (${c.estado})`: c.nombre}
+                </option>
+            ))
+            }
             <option value="sin">Sin constructora</option>
         </select>
         <select id="filtro-estado" aria-label="Filtrar por estado">
@@ -159,16 +199,19 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
     </section>
 
     <p class="contador" id="contador" aria-live="polite">
-        {total} {total === 1 ? "proyecto" : "proyectos"}
+        {total}
+        {total === 1 ? "proyecto" : "proyectos"}
     </p>
 
-    {total === 0 && !errorCarga && (
-        <div class="estado-vacio">
-            <i class="bi bi-buildings" aria-hidden="true"></i>
-            <h3>No hay proyectos registrados</h3>
-            <p>Crea el primero con “Nuevo proyecto”.</p>
-        </div>
-    )}
+    {
+        total === 0 && !errorCarga && (
+            <div class="estado-vacio">
+                <i class="bi bi-buildings" aria-hidden="true" />
+                <h3>No hay proyectos registrados</h3>
+                <p>Crea el primero con “Nuevo proyecto”.</p>
+            </div>
+        )
+    }
 
     <div class="estado-vacio" id="sin-resultados" hidden>
         <i class="bi bi-search" aria-hidden="true"></i>
@@ -177,75 +220,131 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
     </div>
 
     <div class="prop-grid" id="grid-proyectos">
-        {filas.map((p) => (
-            <article
-                class="prop-card"
-                data-id={p.proyectoID}
-                data-estado={p.estadoProyectoID}
-                data-constructora={p.constructoraID ?? "sin"}
-                data-busqueda={textoBusqueda(p)}
-            >
-                <div class="prop-img">
-                    {urlImg(p.imagenPrincipal) ? (
-                        <img src={urlImg(p.imagenPrincipal)!} alt={`Imagen de ${p.nombre}`} loading="lazy" />
-                    ) : (
-                        <div class="prop-img-vacia">
-                            <i class="bi bi-buildings" aria-hidden="true"></i>
-                            <span>Sin imagen</span>
-                        </div>
-                    )}
-                    <span class={`prop-badge ${claseEstado(p.estadoProyectoID)}`}>{nombreEstado(p)}</span>
-                </div>
-
-                <div class="prop-body">
-                    <h3 class="prop-title">{p.nombre}</h3>
-                    <p class="prop-loc">
-                        <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                        {p.ubicacion || "Sin ubicación"}
-                    </p>
-
-                    <div class="proy-progress">
-                        <div class="proy-progress-top">
-                            <span>Avance</span>
-                            <strong>{pct(p)}%</strong>
-                        </div>
-                        <div class="proy-bar" role="progressbar" aria-valuenow={pct(p)} aria-valuemin="0" aria-valuemax="100">
-                            <span style={`width:${pct(p)}%`}></span>
-                        </div>
+        {
+            filas.map((p) => (
+                <article
+                    class="prop-card"
+                    data-id={p.proyectoID}
+                    data-estado={p.estadoProyectoID}
+                    data-constructora={p.constructoraID ?? "sin"}
+                    data-busqueda={textoBusqueda(p)}
+                >
+                    <div class="prop-img">
+                        {urlImg(p.imagenPrincipal) ? (
+                            <img
+                                src={urlImg(p.imagenPrincipal)!}
+                                alt={`Imagen de ${p.nombre}`}
+                                loading="lazy"
+                            />
+                        ) : (
+                            <div class="prop-img-vacia">
+                                <i class="bi bi-buildings" aria-hidden="true" />
+                                <span>Sin imagen</span>
+                            </div>
+                        )}
+                        <span
+                            class={`prop-badge ${claseEstado(p.estadoProyectoID)}`}
+                        >
+                            {nombreEstado(p)}
+                        </span>
                     </div>
 
-                    <div class="prop-chips">
-                        <span class="chip"><i class="bi bi-calendar-event" aria-hidden="true"></i> {fmtFecha(p.fechaInicio)}</span>
-                        <span class="chip"><i class="bi bi-flag" aria-hidden="true"></i> {fmtFecha(p.fechaFin)}</span>
+                    <div class="prop-body">
+                        <h3 class="prop-title">{p.nombre}</h3>
+                        <p class="prop-loc">
+                            <i class="bi bi-geo-alt" aria-hidden="true" />
+                            {p.ubicacion || "Sin ubicación"}
+                        </p>
+
+                        <div class="proy-progress">
+                            <div class="proy-progress-top">
+                                <span>Avance</span>
+                                <strong>{pct(p)}%</strong>
+                            </div>
+                            <div
+                                class="proy-bar"
+                                role="progressbar"
+                                aria-valuenow={pct(p)}
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                            >
+                                <span style={`width:${pct(p)}%`} />
+                            </div>
+                        </div>
+
+                        <div class="prop-chips">
+                            <span class="chip">
+                                <i
+                                    class="bi bi-calendar-event"
+                                    aria-hidden="true"
+                                />{" "}
+                                {fmtFecha(p.fechaInicio)}
+                            </span>
+                            <span class="chip">
+                                <i class="bi bi-flag" aria-hidden="true" />{" "}
+                                {fmtFecha(p.fechaFin)}
+                            </span>
+                        </div>
+
+                        <dl class="prop-meta una-col">
+                            <div>
+                                <dt>Constructora</dt>
+                                <dd>{p.constructoraNombre ?? "Sin asignar"}</dd>
+                            </div>
+                        </dl>
                     </div>
 
-                    <dl class="prop-meta una-col">
-                        <div>
-                            <dt>Constructora</dt>
-                            <dd>{p.constructoraNombre ?? "Sin asignar"}</dd>
-                        </div>
-                    </dl>
-                </div>
-
-                <div class="prop-actions">
-                    <button type="button" class="btn btn-sm btn-outline-primary flex-grow-1" data-accion="editar" data-id={p.proyectoID} aria-label={`Editar ${p.nombre}`}>
-                        <i class="bi bi-pencil" aria-hidden="true"></i> Editar
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" data-accion="eliminar" data-id={p.proyectoID} aria-label={`Eliminar ${p.nombre}`}>
-                        <i class="bi bi-trash" aria-hidden="true"></i>
-                    </button>
-                </div>
-            </article>
-        ))}
+                    <div class="prop-actions">
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary flex-grow-1"
+                            data-accion="editar"
+                            data-id={p.proyectoID}
+                            aria-label={`Editar ${p.nombre}`}
+                        >
+                            <i class="bi bi-pencil" aria-hidden="true" /> Editar
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-secondary"
+                            data-accion="fotos"
+                            data-id={p.proyectoID}
+                            aria-label={`Fotos de ${p.nombre}`}
+                        >
+                            <i class="bi bi-images" aria-hidden="true" /> Fotos
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            data-accion="eliminar"
+                            data-id={p.proyectoID}
+                            aria-label={`Eliminar ${p.nombre}`}
+                        >
+                            <i class="bi bi-trash" aria-hidden="true" />
+                        </button>
+                    </div>
+                </article>
+            ))
+        }
     </div>
 </div>
 
-<script is:inline type="application/json" id="proyectos-data" set:html={filasJson} />
+<script
+    is:inline
+    type="application/json"
+    id="proyectos-data"
+    set:html={filasJson}
+/>
 
 <!-- Modal crear / editar -->
 <div id="modal-proyecto" class="sky-modal" hidden>
     <div class="sky-modal-backdrop" data-cerrar="proyecto"></div>
-    <div class="sky-modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div
+        class="sky-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-titulo"
+    >
         <h3 id="modal-titulo">Nuevo proyecto</h3>
         <div id="form-error" class="alert-error" role="alert" hidden></div>
         <form id="form-proyecto" class="form-grid" novalidate>
@@ -258,7 +357,8 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
 
             <div class="full">
                 <label for="campo-descripcion">Descripción</label>
-                <textarea id="campo-descripcion" rows="3" maxlength="500"></textarea>
+                <textarea id="campo-descripcion" rows="3" maxlength="500"
+                ></textarea>
             </div>
 
             <div class="full">
@@ -270,7 +370,12 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
                 <label for="campo-constructora">Constructora encargada *</label>
                 <select id="campo-constructora" required>
                     <option value="">Selecciona una constructora</option>
-                    {constructoras.map((c) => <option value={c.id}>{c.nombre}</option>)}
+                    {
+                        constructoras
+                              .filter((c) => c.estado === "Activo")
+                              .map((c) => <option value={c.id}>{c.nombre}</option>)
+    
+                    }
                 </select>
             </div>
 
@@ -294,30 +399,68 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
                 <label for="campo-fin">Fecha de fin</label>
                 <input type="date" id="campo-fin" />
             </div>
-
-            <div class="full" id="grupo-imagen">
-                <label for="campo-imagen">Imagen del proyecto *</label>
-                <input type="file" id="campo-imagen" accept="image/jpeg,image/png,image/webp" />
-                <p class="campo-nota">jpg, png o webp · máximo 5 MB</p>
-            </div>
         </form>
         <div class="modal-actions">
-            <button type="button" class="btn-outline" data-cerrar="proyecto">Cancelar</button>
-            <button type="button" class="btn-primary" id="btn-guardar-proyecto">Guardar</button>
+            <button type="button" class="btn-outline" data-cerrar="proyecto"
+                >Cancelar</button
+            >
+            <button type="button" class="btn-primary" id="btn-guardar-proyecto"
+                >Guardar</button
+            >
         </div>
     </div>
 </div>
 
-<!-- Modal confirmar eliminar -->
+<!-- Modal fotos -->
+<div id="modal-fotos" class="sky-modal" hidden>
+    <div class="sky-modal-backdrop" data-cerrar="fotos"></div>
+    <div
+        class="sky-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titulo-fotos"
+    >
+        <h3 id="titulo-fotos">Fotos del proyecto</h3>
+        <div id="fotos-error" class="alert-error" role="alert" hidden></div>
+        <div id="fotos-ok" class="alert-ok" role="status" hidden></div>
+        <div id="galeria-fotos" class="galeria"></div>
+        <label for="input-foto">Agregar imagen</label>
+        <input
+            type="file"
+            id="input-foto"
+            accept="image/jpeg,image/png,image/webp"
+        />
+        <div class="modal-actions">
+            <button type="button" class="btn-outline" data-cerrar="fotos"
+                >Cerrar</button
+            >
+            <button type="button" class="btn-primary" id="btn-subir-foto"
+                >Subir</button
+            >
+        </div>
+    </div>
+</div>
+
+<!-- Modal confirmar eliminar (proyecto o foto) -->
 <div id="modal-eliminar" class="sky-modal" hidden>
     <div class="sky-modal-backdrop" data-cerrar="eliminar"></div>
-    <div class="sky-modal-card" role="alertdialog" aria-modal="true" aria-labelledby="titulo-eliminar" aria-describedby="texto-eliminar">
+    <div
+        class="sky-modal-card"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="titulo-eliminar"
+        aria-describedby="texto-eliminar"
+    >
         <h3 id="titulo-eliminar">Eliminar proyecto</h3>
         <p id="texto-eliminar">¿Seguro que deseas eliminar este proyecto?</p>
         <div id="eliminar-error" class="alert-error" role="alert" hidden></div>
         <div class="modal-actions">
-            <button type="button" class="btn-outline" data-cerrar="eliminar">Cancelar</button>
-            <button type="button" class="btn-danger" id="btn-confirmar-eliminar">Eliminar</button>
+            <button type="button" class="btn-outline" data-cerrar="eliminar"
+                >Cancelar</button
+            >
+            <button type="button" class="btn-danger" id="btn-confirmar-eliminar"
+                >Eliminar</button
+            >
         </div>
     </div>
 </div>
@@ -329,6 +472,7 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
         descripcion?: string | null;
         ubicacion?: string | null;
         estadoProyectoID?: number;
+        constructoraNombre?: string | null;
         fechaInicio?: string | null;
         fechaFin?: string | null;
         constructoraID?: number | null;
@@ -341,8 +485,11 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
     // ---------- Datos completos (para editar) ----------
     const proyectos = new Map<number, Proy>();
     try {
-        const raw = document.getElementById("proyectos-data")?.textContent ?? "[]";
-        (JSON.parse(raw) as Proy[]).forEach((p) => proyectos.set(p.proyectoID, p));
+        const raw =
+            document.getElementById("proyectos-data")?.textContent ?? "[]";
+        (JSON.parse(raw) as Proy[]).forEach((p) =>
+            proyectos.set(p.proyectoID, p),
+        );
     } catch {
         /* sin datos precargados */
     }
@@ -356,6 +503,7 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
 
     const modales = {
         proyecto: get<HTMLElement>("modal-proyecto"),
+        fotos: get<HTMLElement>("modal-fotos"),
         eliminar: get<HTMLElement>("modal-eliminar"),
     };
     type NombreModal = keyof typeof modales;
@@ -370,13 +518,24 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
         estado: get<HTMLSelectElement>("campo-estado"),
         inicio: get<HTMLInputElement>("campo-inicio"),
         fin: get<HTMLInputElement>("campo-fin"),
-        imagen: get<HTMLInputElement>("campo-imagen"),
     };
-    const grupoImagen = get<HTMLElement>("grupo-imagen");
     const formError = get<HTMLElement>("form-error");
     const eliminarError = get<HTMLElement>("eliminar-error");
 
-    let idAEliminar: number | null = null;
+    const fotosError = get<HTMLElement>("fotos-error");
+    const fotosOk = get<HTMLElement>("fotos-ok");
+    const galeria = get<HTMLElement>("galeria-fotos");
+    const inputFoto = get<HTMLInputElement>("input-foto");
+    const root = document.querySelector<HTMLElement>(".page");
+    const BACKEND_PUBLIC = (root?.dataset.backend ?? "").replace(/\/$/, "");
+
+    type Imagen = { imagenID: number | null; url: string };
+    type Pendiente =
+        | { tipo: "proyecto"; id: number }
+        | { tipo: "foto"; proyectoId: number; imagenId: string };
+
+    let pendiente: Pendiente | null = null;
+    let proyectoFotosId: number | null = null;
 
     // ---------- Modales (apertura, cierre, foco, Escape) ----------
     const pilaModales: NombreModal[] = [];
@@ -393,7 +552,9 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
         modal.hidden = false;
         pilaModales.push(nombre);
         modal
-            .querySelector<HTMLElement>("input:not([type=hidden]), textarea, select, button.btn-danger, button")
+            .querySelector<HTMLElement>(
+                "input:not([type=hidden]), textarea, select, button.btn-danger, button",
+            )
             ?.focus();
     }
 
@@ -406,7 +567,9 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
     }
 
     document.querySelectorAll<HTMLElement>("[data-cerrar]").forEach((n) => {
-        n.addEventListener("click", () => cerrar(n.dataset.cerrar as NombreModal));
+        n.addEventListener("click", () =>
+            cerrar(n.dataset.cerrar as NombreModal),
+        );
     });
 
     document.addEventListener("keydown", (e) => {
@@ -418,11 +581,18 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
     // ---------- Red ----------
     async function pedir(url: string, init: RequestInit) {
         const res = await fetch(url, { credentials: "same-origin", ...init });
-        const data = (await res.json().catch(() => ({}))) as Record<string, any>;
+        const data = (await res.json().catch(() => ({}))) as Record<
+            string,
+            any
+        >;
         return { ok: res.ok, status: res.status, data };
     }
 
-    function mensajeError(data: Record<string, any>, status: number, porDefecto: string) {
+    function mensajeError(
+        data: Record<string, any>,
+        status: number,
+        porDefecto: string,
+    ) {
         const detalle = (data.error ?? data.message) as string | undefined;
         return detalle ? String(detalle) : `${porDefecto} (${status})`;
     }
@@ -442,9 +612,15 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
     }
 
     // ---------- Filtros ----------
-    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const norm = (s: string) =>
+        s
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
     const grid = get<HTMLElement>("grid-proyectos");
-    const tarjetas = Array.from(grid.querySelectorAll<HTMLElement>(".prop-card"));
+    const tarjetas = Array.from(
+        grid.querySelectorAll<HTMLElement>(".prop-card"),
+    );
     const filtroBuscar = get<HTMLInputElement>("filtro-buscar");
     const filtroConstructora = get<HTMLSelectElement>("filtro-constructora");
     const filtroEstado = get<HTMLSelectElement>("filtro-estado");
@@ -480,34 +656,173 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
     // ---------- Formulario ----------
     function prepararCrear() {
         form.reset();
+        opcionActualTemporal();
         campo.id.value = "";
         campo.estado.value = "1";
         campo.constructora.value = "";
-        grupoImagen.hidden = false;
-        campo.imagen.required = true; // la imagen solo se pide al crear
         mostrarError(formError, null);
         get("modal-titulo").textContent = "Nuevo proyecto";
     }
 
     function prepararEditar(p: Proy) {
         form.reset();
+        opcionActualTemporal(p);
         campo.id.value = String(p.proyectoID);
         campo.nombre.value = p.nombre ?? "";
         campo.descripcion.value = p.descripcion ?? "";
         campo.ubicacion.value = p.ubicacion ?? "";
-        campo.constructora.value = p.constructoraID != null ? String(p.constructoraID) : "";
+        campo.constructora.value =
+            p.constructoraID != null ? String(p.constructoraID) : "";
         campo.estado.value = String(p.estadoProyectoID ?? 1);
         campo.inicio.value = p.fechaInicio ?? "";
         campo.fin.value = p.fechaFin ?? "";
-        grupoImagen.hidden = true;
-        campo.imagen.required = false;
         mostrarError(formError, null);
         get("modal-titulo").textContent = "Editar proyecto";
     }
 
-    // ---------- Acciones de las tarjetas ----------
+    // ---------- Galería de fotos ----------
+    function urlImg(path: unknown): string | null {
+        if (!path) return null;
+        const u = String(path);
+        if (/^https?:\/\//i.test(u)) return u;
+        return BACKEND_PUBLIC + (u.startsWith("/") ? u : "/" + u);
+    }
+
+    function normalizar(imagenes: unknown[]): Imagen[] {
+        return (imagenes ?? []).map((item) => {
+            if (typeof item === "string") return { imagenID: null, url: item };
+            const o = item as Record<string, unknown>;
+            const id = o.imagenID ?? o.imagenId;
+            return {
+                imagenID: id != null ? Number(id) : null,
+                url: String(o.url ?? ""),
+            };
+        });
+    }
+
+    // Actualiza la imagen de la tarjeta en la página, sin recargar
+    function actualizarTarjeta(id: number, lista: Imagen[]) {
+        const cont = grid.querySelector<HTMLElement>(
+            `.prop-card[data-id="${id}"] .prop-img`,
+        );
+        if (!cont) return;
+        cont.querySelector("img, .prop-img-vacia")?.remove();
+
+        const primera = [...lista].sort(
+            (a, b) => (a.imagenID ?? 0) - (b.imagenID ?? 0),
+        )[0];
+        const src = urlImg(primera?.url);
+
+        if (src) {
+            const img = document.createElement("img");
+            img.src = src;
+            img.alt = "Imagen del proyecto";
+            cont.prepend(img);
+        } else {
+            const vacia = document.createElement("div");
+            vacia.className = "prop-img-vacia";
+            const icono = document.createElement("i");
+            icono.className = "bi bi-buildings";
+            icono.setAttribute("aria-hidden", "true");
+            const texto = document.createElement("span");
+            texto.textContent = "Sin imagen";
+            vacia.append(icono, texto);
+            cont.prepend(vacia);
+        }
+    }
+
+    // Aviso de éxito (se oculta solo)
+    let okTimer: number | undefined;
+    function mostrarOk(msg: string | null) {
+        window.clearTimeout(okTimer);
+        fotosOk.hidden = !msg;
+        fotosOk.textContent = msg ?? "";
+        if (msg) okTimer = window.setTimeout(() => mostrarOk(null), 3500);
+    }
+
+    function pintarGaleria(lista: Imagen[]) {
+        galeria.replaceChildren();
+
+        if (!lista.length) {
+            const vacio = document.createElement("span");
+            vacio.className = "vacio";
+            vacio.textContent = "Sin fotos aún. Sube la primera.";
+            galeria.appendChild(vacio);
+            return;
+        }
+
+        lista.forEach((item) => {
+            const src = urlImg(item.url);
+            if (!src) return;
+            const wrap = document.createElement("div");
+            wrap.className = "galeria-item";
+
+            const img = document.createElement("img");
+            img.src = src;
+            img.alt = "Foto del proyecto";
+            img.loading = "lazy";
+            wrap.appendChild(img);
+
+            if (item.imagenID != null) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn-del-img";
+                btn.textContent = "×";
+                btn.setAttribute("aria-label", "Eliminar foto");
+                btn.dataset.skyDelImg = String(item.imagenID);
+                wrap.appendChild(btn);
+            }
+            galeria.appendChild(wrap);
+        });
+    }
+
+    // Requiere la ruta Astro: src/pages/api/inmobiliarias/proyectos/[id]/detalle.ts
+    async function cargarGaleria(id: number) {
+        mostrarError(fotosError, null);
+        try {
+            const { ok, status, data } = await pedir(`${API}/${id}/detalle`, {
+                method: "GET",
+            });
+            if (!ok) {
+                pintarGaleria([]);
+                mostrarError(
+                    fotosError,
+                    mensajeError(
+                        data,
+                        status,
+                        "No se pudieron cargar las fotos",
+                    ),
+                );
+                return;
+            }
+            const proy = (data.proyecto ?? data.data ?? data) as {
+                imagenes?: unknown[];
+            };
+            const lista = normalizar(proy.imagenes ?? []);
+            pintarGaleria(lista);
+            actualizarTarjeta(id, lista);
+        } catch {
+            pintarGaleria([]);
+            mostrarError(fotosError, "Error de red al cargar las fotos");
+        }
+    }
+
+    function abrirFotos(p: Proy) {
+        proyectoFotosId = p.proyectoID;
+        mostrarOk(null);
+        get("titulo-fotos").textContent =
+            `Fotos — "${p.nombre || "#" + p.proyectoID}"`;
+        inputFoto.value = "";
+        pintarGaleria([]);
+        abrir("fotos");
+        cargarGaleria(p.proyectoID);
+    }
+
+    // ---------- Acciones de las tarjetas (Editar / Fotos / Eliminar) ----------
     grid.addEventListener("click", (e) => {
-        const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-accion]");
+        const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>(
+            "[data-accion]",
+        );
         if (!btn) return;
         const p = proyectos.get(Number(btn.dataset.id));
         if (!p) return;
@@ -515,8 +830,11 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
         if (btn.dataset.accion === "editar") {
             prepararEditar(p);
             abrir("proyecto");
+        } else if (btn.dataset.accion === "fotos") {
+            abrirFotos(p);
         } else if (btn.dataset.accion === "eliminar") {
-            idAEliminar = p.proyectoID;
+            pendiente = { tipo: "proyecto", id: p.proyectoID };
+            get("titulo-eliminar").textContent = "Eliminar proyecto";
             get("texto-eliminar").textContent =
                 `¿Eliminar el proyecto "${p.nombre || "#" + p.proyectoID}"? También se borrarán sus avances y su imagen. Esta acción no se puede deshacer.`;
             mostrarError(eliminarError, null);
@@ -542,31 +860,20 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
                 mostrarError(formError, "El nombre no puede estar vacío.");
                 return;
             }
-            if (campo.inicio.value && campo.fin.value && campo.fin.value < campo.inicio.value) {
-                mostrarError(formError, "La fecha de fin no puede ser anterior a la de inicio.");
+            if (
+                campo.inicio.value &&
+                campo.fin.value &&
+                campo.fin.value < campo.inicio.value
+            ) {
+                mostrarError(
+                    formError,
+                    "La fecha de fin no puede ser anterior a la de inicio.",
+                );
                 return;
             }
 
             const id = campo.id.value.trim();
             const creando = !id;
-
-            // Validar la imagen ANTES de crear nada
-            let archivo: File | undefined;
-            if (creando) {
-                archivo = campo.imagen.files?.[0];
-                if (!archivo) {
-                    mostrarError(formError, "Debes subir una imagen del proyecto.");
-                    return;
-                }
-                if (!TIPOS_FOTO.includes(archivo.type)) {
-                    mostrarError(formError, "Formato de imagen no soportado (usa jpg, png o webp).");
-                    return;
-                }
-                if (archivo.size > MAX_FOTO_BYTES) {
-                    mostrarError(formError, "La imagen no puede superar los 5 MB.");
-                    return;
-                }
-            }
 
             const payload = {
                 nombre,
@@ -575,7 +882,7 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
                 estadoProyectoID: Number(campo.estado.value),
                 fechaInicio: campo.inicio.value || null,
                 fechaFin: campo.fin.value || null,
-                constructoraID: Number(campo.constructora.value),
+                constructoraID: campo.constructora.value ? Number(campo.constructora.value) : null,
             };
 
             btnGuardar.textContent = "Guardando…";
@@ -586,63 +893,142 @@ const filasJson = JSON.stringify(filas).replace(/</g, "\\u003c");
                     body: JSON.stringify(payload),
                 });
                 if (!r.ok) {
-                    mostrarError(formError, mensajeError(r.data, r.status, "No se pudo guardar"));
+                    mostrarError(
+                        formError,
+                        mensajeError(r.data, r.status, "No se pudo guardar"),
+                    );
                     return;
-                }
-
-                if (creando && archivo) {
-                    const proyectoID = Number(r.data.proyectoID);
-                    if (!proyectoID) {
-                        mostrarError(
-                            formError,
-                            "El proyecto se creó, pero el servidor no devolvió su ID y no se pudo subir la imagen. Revisa los cambios del backend."
-                        );
-                        return;
-                    }
-
-                    btnGuardar.textContent = "Subiendo imagen…";
-                    const fd = new FormData();
-                    fd.append("imagen", archivo);
-                    const up = await pedir(`${API}/${proyectoID}/imagenes`, { method: "POST", body: fd });
-
-                    if (!up.ok) {
-                        // Si la imagen falla, se revierte la creación para no dejar un proyecto sin imagen
-                        const del = await pedir(`${API}/${proyectoID}`, { method: "DELETE" });
-                        const motivo = mensajeError(up.data, up.status, "No se pudo subir la imagen");
-                        mostrarError(
-                            formError,
-                            del.ok
-                                ? `${motivo}. El proyecto no se creó; inténtalo de nuevo.`
-                                : `${motivo}. El proyecto quedó creado sin imagen y no se pudo revertir: elimínalo desde su tarjeta y vuelve a crearlo.`
-                        );
-                        return;
-                    }
                 }
 
                 window.location.reload();
             } catch {
                 mostrarError(formError, "Error de red al guardar");
             }
-        })
+        }),
     );
 
-    // ---------- Confirmar eliminar ----------
+    // ---------- Confirmar eliminar (proyecto o foto) ----------
     const btnEliminar = get<HTMLButtonElement>("btn-confirmar-eliminar");
     btnEliminar.addEventListener("click", () =>
         conBloqueo(btnEliminar, async () => {
-            if (idAEliminar == null) return;
+            if (!pendiente) return;
             mostrarError(eliminarError, null);
             btnEliminar.textContent = "Eliminando…";
+
+            const url =
+                pendiente.tipo === "proyecto"
+                    ? `${API}/${pendiente.id}`
+                    : `${API}/${pendiente.proyectoId}/imagenes/${pendiente.imagenId}`;
+
             try {
-                const r = await pedir(`${API}/${idAEliminar}`, { method: "DELETE" });
+                const r = await pedir(url, { method: "DELETE" });
                 if (!r.ok) {
-                    mostrarError(eliminarError, mensajeError(r.data, r.status, "No se pudo eliminar"));
+                    mostrarError(
+                        eliminarError,
+                        mensajeError(r.data, r.status, "No se pudo eliminar"),
+                    );
                     return;
                 }
-                window.location.reload();
+                if (pendiente.tipo === "proyecto") {
+                    window.location.reload();
+                } else {
+                    const pid = pendiente.proyectoId;
+                    pendiente = null;
+                    cerrar("eliminar");
+                    await cargarGaleria(pid);
+                    mostrarOk("Foto eliminada correctamente.");
+                }
             } catch {
                 mostrarError(eliminarError, "Error de red al eliminar");
             }
-        })
+        }),
     );
+
+    // ---------- Eliminar foto (abre la confirmación) ----------
+    galeria.addEventListener("click", (ev) => {
+        const del = (ev.target as HTMLElement | null)?.closest<HTMLElement>(
+            "[data-sky-del-img]",
+        );
+        if (!del || proyectoFotosId == null) return;
+        const imagenId = del.dataset.skyDelImg;
+        if (!imagenId) return;
+
+        pendiente = { tipo: "foto", proyectoId: proyectoFotosId, imagenId };
+        get("titulo-eliminar").textContent = "Eliminar foto";
+        get("texto-eliminar").textContent =
+            "¿Eliminar esta foto? Esta acción no se puede deshacer.";
+        mostrarError(eliminarError, null);
+        abrir("eliminar");
+    });
+
+    // ---------- Subir foto ----------
+    const btnSubir = get<HTMLButtonElement>("btn-subir-foto");
+    btnSubir.addEventListener("click", () =>
+        conBloqueo(btnSubir, async () => {
+            if (proyectoFotosId == null) return;
+            mostrarError(fotosError, null);
+            mostrarOk(null);
+
+            const file = inputFoto.files?.[0];
+            if (!file) {
+                mostrarError(fotosError, "Elige una imagen.");
+                return;
+            }
+            if (!TIPOS_FOTO.includes(file.type)) {
+                mostrarError(
+                    fotosError,
+                    "Formato no soportado (usa jpg, png o webp).",
+                );
+                return;
+            }
+            if (file.size > MAX_FOTO_BYTES) {
+                mostrarError(
+                    fotosError,
+                    "La imagen no puede superar los 5 MB.",
+                );
+                return;
+            }
+
+            btnSubir.textContent = "Subiendo…";
+            const fd = new FormData();
+            fd.append("imagen", file);
+            try {
+                const r = await pedir(`${API}/${proyectoFotosId}/imagenes`, {
+                    method: "POST",
+                    body: fd,
+                });
+                if (!r.ok) {
+                    mostrarError(
+                        fotosError,
+                        mensajeError(
+                            r.data,
+                            r.status,
+                            "No se pudo subir la foto",
+                        ),
+                    );
+                    return;
+                }
+                inputFoto.value = "";
+                await cargarGaleria(proyectoFotosId);
+                mostrarOk("Foto subida correctamente.");
+            } catch {
+                mostrarError(fotosError, "Error de red al subir");
+            }
+        }),
+    );
+    function opcionActualTemporal(p?: Proy) {
+    campo.constructora.querySelector("option[data-temporal]")?.remove();
+    if (!p || p.constructoraID == null) return;
+
+    const yaExiste = Array.from(campo.constructora.options).some(
+        (o) => o.value === String(p.constructoraID),
+    );
+    if (yaExiste) return;
+
+    const op = document.createElement("option");
+    op.value = String(p.constructoraID);
+    op.textContent = `${p.constructoraNombre ?? "Constructora #" + p.constructoraID} (no activa)`;
+    op.dataset.temporal = "1";
+    campo.constructora.appendChild(op);
+}
 </script>

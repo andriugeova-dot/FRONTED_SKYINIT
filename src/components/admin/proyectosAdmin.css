@@ -45,3 +45,53 @@
     background: #fff;
     padding: 0.4rem;
 }
+
+/* ---------- Imágenes dentro del modal Editar ---------- */
+.fotos-edicion {
+    margin-top: 1.1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--p-line);
+}
+
+.fotos-edicion[hidden] {
+    display: none;
+}
+
+.fotos-edicion h4 {
+    margin: 0 0 0.6rem;
+    font-size: 0.95rem;
+    color: var(--p-ink);
+}
+
+.fotos-edicion label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--p-muted);
+    margin-bottom: 0.25rem;
+}
+
+.subir-fila {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.subir-fila input[type="file"] {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.85rem;
+}
+/* Aviso de éxito en el modal de fotos */
+.alert-ok {
+    background: #f0fdf4;
+    color: #15803d;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+}
+
+.alert-ok[hidden] {
+    display: none;
+}
