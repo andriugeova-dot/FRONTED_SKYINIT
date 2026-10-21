@@ -2,6 +2,8 @@
 import "./proyectos.css";
 ---
 
+
+
 <div class="page">
     <header class="page-header">
         <div>
@@ -10,18 +12,20 @@ import "./proyectos.css";
         </div>
     </header>
 
+    <div class="toolbar">
+        <input type="search" id="filtro-q" placeholder="Buscar proyecto o ubicación…" />
+        <select id="filtro-estado">
+            <option value="">Todos los estados</option>
+            <option value="Planificado">Planificado</option>
+            <option value="En construcción">En construcción</option>
+            <option value="Finalizado">Finalizado</option>
+        </select>
+    </div>
+
     <div id="grid-proyectos" class="ag-theme-quartz grid-box"></div>
 </div>
 
-<div class="toolbar">
-    <input type="search" id="filtro-q" placeholder="Buscar proyecto o ubicación…" />
-    <select id="filtro-estado">
-        <option value="">Todos los estados</option>
-        <option value="Planificado">Planificado</option>
-        <option value="En construcción">En construcción</option>
-        <option value="Finalizado">Finalizado</option>
-    </select>
-</div>
+
 
 <!-- MODAL FOTO (div, no dialog) -->
 <div id="modal-foto" class="sky-modal" hidden>
