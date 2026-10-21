@@ -271,7 +271,7 @@ if (token) {
                         (p) => `
             <div class="property-card">
                 <div class="property-image">
-                    <img src="${resolverImgTarjeta(p.imagenPrincipal)}" alt="${p.titulo ?? ""}" loading="lazy" />
+                    ${p.imagenPrincipal ? `<img src="${resolverImgTarjeta(p.imagenPrincipal)}" alt="${p.titulo ?? ''}" loading="lazy" />` : `<div class="card-img-placeholder">🏠</div>`}
                     <span class="badge-tipo ${claseBadgePag(p.tipoOperacion)}">${p.tipoOperacion}</span>
                     <button type="button" class="btn-favorito favorito-inactivo" data-id="${p.propiedadID}" aria-label="Guardar en favoritos">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
