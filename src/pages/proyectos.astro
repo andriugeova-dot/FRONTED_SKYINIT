@@ -279,7 +279,7 @@ function resolverImagenTarjeta(url: string | null) {
                         (p) => `
             <div class="property-card">
                 <div class="property-image">
-                    <img src="${resolverImgProy(p.imagenPrincipal)}" alt="${p.nombre ?? ""}" loading="lazy" />
+                    ${p.imagenPrincipal ? `<img src="${resolverImgProy(p.imagenPrincipal)}" alt="${p.nombre ?? ''}" loading="lazy" />` : `<div class="card-img-placeholder">🏗️</div>`}
                     <span class="badge-tipo ${claseBadgeEstadoPag(p.estadoProyecto)}">${p.estadoProyecto}</span>
                 </div>
                 <div class="property-info">

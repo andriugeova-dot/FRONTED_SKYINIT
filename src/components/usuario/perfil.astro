@@ -38,7 +38,9 @@ function obtenerIniciales(nombre: string): string {
 }
 
 const fotoSrc = usuario.fotoPerfil
-    ? `http://localhost:8001${usuario.fotoPerfil}`
+    ? (usuario.fotoPerfil.startsWith("http")
+        ? usuario.fotoPerfil
+        : `http://localhost:8001${usuario.fotoPerfil.startsWith("/") ? usuario.fotoPerfil : "/" + usuario.fotoPerfil}`)
     : null;
 
 const fechaFormateada = usuario.fechaRegistro

@@ -41,6 +41,7 @@ const iniciales = nombre
   .slice(0, 2)
   .toUpperCase();
 ---
+
 {
   soloNav ? (
     <header id="header" class="header--solo-nav">
@@ -58,9 +59,9 @@ const iniciales = nombre
     <a href="/constructoras">Constructoras</a>
 
     {autenticado ? (
-      <div class="user-profile">
+      <div class="user-profile" id="navUserProfile">
         {foto ? (
-          <img src={foto} alt="Perfil" class="profile-pic" id="btnUserMenu" />
+          <img src={foto} alt="Perfil" class="profile-pic" id="btnUserMenu" referrerpolicy="no-referrer" />
         ) : (
           <button type="button" class="profile-pic profile-iniciales" id="btnUserMenu">
             {iniciales}
@@ -93,9 +94,9 @@ const iniciales = nombre
     <a href="/constructoras">Constructoras</a>
 
     {autenticado ? (
-      <div class="user-profile">
+      <div class="user-profile" id="navUserProfile">
         {foto ? (
-          <img src={foto} alt="Perfil" class="profile-pic" id="btnUserMenu" />
+          <img src={foto} alt="Perfil" class="profile-pic" id="btnUserMenu" referrerpolicy="no-referrer" />
         ) : (
           <button type="button" class="profile-pic profile-iniciales" id="btnUserMenu">
             {iniciales}
@@ -137,4 +138,40 @@ const iniciales = nombre
   document.getElementById("btnLogout")?.addEventListener("click", async () => {
     try { await logoutRequest(); } finally { window.location.href = "/"; }
   });
+
+  // Fallback client-side: si la imagen SSR falla (ej. foto Google bloqueada por error),
+  // cargar perfil desde el API del lado cliente y reemplazar por iniciales
+  const profileImg = document.querySelector<HTMLImageElement>(".profile-pic[src]");
+  if (profileImg) {
+    profileImg.addEventListener("error", async () => {
+      // Intentar cargar foto nuevamente via API cliente
+      try {
+        const res = await fetch("/api/perfil", { credentials: "same-origin" });
+        if (res.ok) {
+          const data = await res.json();
+          const u = data.usuario ?? data;
+          const nuevaFoto: string | null = u.fotoPerfil
+            ? (u.fotoPerfil.startsWith("http") ? u.fotoPerfil : `http://localhost:8001${u.fotoPerfil.startsWith("/") ? u.fotoPerfil : "/" + u.fotoPerfil}`)
+            : null;
+          if (nuevaFoto && nuevaFoto !== profileImg.src) {
+            profileImg.src = nuevaFoto;
+          } else {
+            // Mostrar iniciales como fallback
+            const nombre: string = u.nombre ?? "U";
+            const ini = nombre.split(/\s+/).map((p: string) => p[0]).join("").slice(0, 2).toUpperCase();
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "profile-pic profile-iniciales";
+            btn.id = "btnUserMenu";
+            btn.textContent = ini;
+            btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              document.getElementById("user-menu")?.classList.toggle("active");
+            });
+            profileImg.replaceWith(btn);
+          }
+        }
+      } catch { /* mantener imagen rota */ }
+    });
+  }
 </script>
