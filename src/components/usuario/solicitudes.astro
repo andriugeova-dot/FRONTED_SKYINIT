@@ -1,7 +1,3 @@
----
-// Componente: Solicitudes del usuario
----
-
 <div class="solicitudes-page">
     <div class="page-header">
         <div>
@@ -26,11 +22,11 @@
         </a>
     </div>
 
-    <div id="listaSolicitudes" class="lista-solicitudes"></div>
+    <div id="listaSolicitudes" class="sol-grid"></div>
 </div>
 
 <style is:global>
-.solicitudes-page { display: flex; flex-direction: column; gap: 1.5rem; }
+.solicitudes-page { display: flex; flex-direction: column; gap: 1.75rem; }
 
 .page-header {
     display: flex;
@@ -67,74 +63,78 @@
 }
 .btn-nueva-solicitud:hover { background: #0f4c6b; color: #fff; }
 
-/* Lista */
-.lista-solicitudes { display: flex; flex-direction: column; gap: 0.85rem; }
+/* ── GRID 3 columnas ── */
+.sol-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+}
 
+/* ── TARJETA ── */
 .sol-card {
     background: #fff;
-    border-radius: 14px;
+    border-radius: 18px;
     border: 1.5px solid #e5e7eb;
-    padding: 1.25rem 1.5rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s, transform 0.2s;
+    position: relative;
+}
+.sol-card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.09);
+    transform: translateY(-4px);
+}
+
+/* Franja de color superior según estado */
+.sol-card-top {
+    height: 6px;
+    width: 100%;
+}
+.sol-card-top.top-pendiente  { background: #fcd34d; }
+.sol-card-top.top-en-proceso { background: #60a5fa; }
+.sol-card-top.top-completado { background: #34d399; }
+.sol-card-top.top-cancelado  { background: #f87171; }
+.sol-card-top.top-default    { background: #d1d5db; }
+
+.sol-card-body {
+    padding: 20px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+}
+
+/* Cabecera con icono y estado */
+.sol-card-head {
     display: flex;
     align-items: flex-start;
-    gap: 1.25rem;
-    transition: box-shadow 0.2s;
+    justify-content: space-between;
+    gap: 10px;
 }
-.sol-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
 
 .sol-icono {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
     background: #fffbeb;
     color: #f59e0b;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     flex-shrink: 0;
 }
 
-.sol-info { flex: 1; min-width: 0; }
-.sol-servicio {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #1f2937;
-    margin: 0 0 4px;
-}
-.sol-inmobiliaria {
-    font-size: 0.8rem;
-    color: #6b7280;
-    margin: 0 0 6px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-.sol-notas {
-    font-size: 0.8rem;
-    color: #9ca3af;
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 350px;
-}
-
-.sol-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-    flex-shrink: 0;
-}
 .sol-estado {
     display: inline-flex;
-    padding: 3px 12px;
+    padding: 4px 13px;
     border-radius: 20px;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 .estado-pendiente  { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
 .estado-en-proceso { background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; }
@@ -142,9 +142,55 @@
 .estado-cancelado  { background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; }
 .estado-default    { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
 
-.sol-fecha { font-size: 0.75rem; color: #9ca3af; }
+/* Contenido */
+.sol-servicio {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    line-height: 1.35;
+}
 
-/* Estados */
+.sol-inmobiliaria {
+    font-size: 0.82rem;
+    color: #6b7280;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sol-inmobiliaria i { color: #9ca3af; }
+
+.sol-notas {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin: 0;
+    font-style: italic;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.45;
+}
+
+/* Pie */
+.sol-card-footer {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.sol-fecha {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ESTADOS DE CARGA */
 .estado-carga {
     display: flex;
     align-items: center;
@@ -189,9 +235,12 @@
 }
 .btn-ir-servicios:hover { background: #0f4c6b; color: #fff; }
 
-@media (max-width: 600px) {
-    .sol-card { flex-direction: column; }
-    .sol-meta { align-items: flex-start; }
+/* RESPONSIVE */
+@media (max-width: 1100px) {
+    .sol-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+    .sol-grid { grid-template-columns: 1fr; }
 }
 </style>
 
@@ -210,6 +259,10 @@ function estadoClass(estado: string): string {
     if (e.includes("complet") || e.includes("finaliz"))  return "estado-completado";
     if (e.includes("cancel"))      return "estado-cancelado";
     return "estado-default";
+}
+
+function topClass(estado: string): string {
+    return estadoClass(estado).replace("estado-", "top-");
 }
 
 async function cargarSolicitudes() {
@@ -231,25 +284,37 @@ function renderSolicitudes(lista: any[]) {
         return;
     }
     const contenedor = document.getElementById("listaSolicitudes")!;
-    contenedor.innerHTML = lista.map(s => `
+    contenedor.innerHTML = lista.map(s => {
+        const estado = s.estadoReparacion ?? s.estado ?? "Pendiente";
+        const fecha = formatFecha(s.fechaSolicitud ?? "");
+        return `
         <div class="sol-card">
-            <div class="sol-icono"><i class="bi bi-tools"></i></div>
-            <div class="sol-info">
+            <div class="sol-card-top ${topClass(estado)}"></div>
+            <div class="sol-card-body">
+                <div class="sol-card-head">
+                    <div class="sol-icono"><i class="bi bi-tools"></i></div>
+                    <span class="sol-estado ${estadoClass(estado)}">${estado}</span>
+                </div>
+
                 <p class="sol-servicio">${s.nombreServicio ?? s.servicio ?? "Servicio de mantenimiento"}</p>
+
                 <p class="sol-inmobiliaria">
                     <i class="bi bi-building"></i>
                     ${s.inmobiliaria ?? s.nombreInmobiliaria ?? "Inmobiliaria"}
                 </p>
+
                 ${s.notas ? `<p class="sol-notas">"${s.notas}"</p>` : ""}
+
+                ${fecha ? `
+                <div class="sol-card-footer">
+                    <span class="sol-fecha">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:#9ca3af"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+                        ${fecha}
+                    </span>
+                </div>` : ""}
             </div>
-            <div class="sol-meta">
-                <span class="sol-estado ${estadoClass(s.estadoReparacion ?? s.estado ?? "")}">
-                    ${s.estadoReparacion ?? s.estado ?? "Pendiente"}
-                </span>
-                <span class="sol-fecha">${formatFecha(s.fechaSolicitud ?? "")}</span>
-            </div>
-        </div>
-    `).join("");
+        </div>`;
+    }).join("");
 }
 
 cargarSolicitudes();

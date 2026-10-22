@@ -1,6 +1,9 @@
 ---
+import Navbar from "../components/menu/Navbar.astro";
+import FooterMenu from "../components/menu/FooterMenu.astro";
+import "../components/menu/menu.css";
+import { getTokenSSR, COOKIE_NAME } from "../utils/auth";
 import Propiedades from "../components/propiedades/propiedades.astro"; 
-
 
 const BACKEND_URL = "http://127.0.0.1:8001";
 

@@ -1,4 +1,10 @@
 ---
+interface InmobiliariaInfo {
+    inmobiliariaID: number | null;
+    nombre: string;
+    ciudad: string | null;
+}
+
 interface ConstructoraItem {
     constructoraID: number;
     nombre: string;
@@ -7,40 +13,131 @@ interface ConstructoraItem {
     telefono?: string | null;
     correo?: string | null;
     logo?: string | null;
+    inmobiliariaID?: number | null;
     inmobiliariaNombre?: string | null;
     inmobiliariaCiudad?: string | null;
 }
+
+interface ConstructoraAgrupada {
+    constructoraID: number;
+    nombre: string;
+    descripcion: string | null;
+    ciudad: string | null;
+    telefono: string | null;
+    correo: string | null;
+    logo: string | null;
+    inmobiliarias: InmobiliariaInfo[];
+}
+
 interface Grupo {
     nombre: string;
     ciudad: string | null;
     items: ConstructoraItem[];
 }
+
 const { grupos = [] } = Astro.props as { grupos: Grupo[] };
+
+// Deduplicar: agrupar por constructoraID
+const mapaC = new Map<number, ConstructoraAgrupada>();
+for (const g of grupos) {
+    for (const c of g.items) {
+        if (!mapaC.has(c.constructoraID)) {
+            mapaC.set(c.constructoraID, {
+                constructoraID: c.constructoraID,
+                nombre: c.nombre,
+                descripcion: c.descripcion ?? null,
+                ciudad: c.ciudad ?? null,
+                telefono: c.telefono ?? null,
+                correo: c.correo ?? null,
+                logo: c.logo ?? null,
+                inmobiliarias: [],
+            });
+        }
+        const entry = mapaC.get(c.constructoraID)!;
+        if (
+            c.inmobiliariaID != null &&
+            !entry.inmobiliarias.some((i) => i.inmobiliariaID === c.inmobiliariaID)
+        ) {
+            entry.inmobiliarias.push({
+                inmobiliariaID: c.inmobiliariaID,
+                nombre: c.inmobiliariaNombre ?? "Sin nombre",
+                ciudad: c.inmobiliariaCiudad ?? null,
+            });
+        }
+    }
+}
+
+const constructorasUnicas: ConstructoraAgrupada[] = Array.from(mapaC.values());
 ---
 
 <section class="resultados-section contenedor">
-    <!-- Datos serializados para paginación JS -->
-    <script id="constructoras-grupos-data" type="application/json" set:html={JSON.stringify(grupos)}></script>
+    <script
+        id="constructoras-data"
+        type="application/json"
+        set:html={JSON.stringify(constructorasUnicas)}
+    ></script>
 
     <div id="constructoras-grid" class="properties"></div>
-    <nav id="paginacion-constructoras" class="paginacion-constructoras" aria-label="Paginación de constructoras"></nav>
+    <nav
+        id="paginacion-constructoras"
+        class="paginacion-constructoras"
+        aria-label="Paginación de constructoras"
+    ></nav>
 </section>
+
+<!-- Modal detalle constructora -->
+<div id="modal-constructora" class="modal-overlay" aria-hidden="true">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+        <button class="modal-cerrar" id="modal-cerrar" aria-label="Cerrar">&times;</button>
+
+        <div class="modal-header">
+            <div id="modal-logo-wrap" class="modal-logo-wrap"></div>
+            <div class="modal-header-info">
+                <h2 id="modal-titulo" class="modal-nombre"></h2>
+                <p id="modal-ciudad" class="modal-ciudad"></p>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <p id="modal-descripcion" class="modal-descripcion"></p>
+
+            <div class="modal-contacto" id="modal-contacto"></div>
+
+            <div id="modal-inmobiliarias-wrap" class="modal-inmob-section">
+                <h3 class="modal-inmob-titulo">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"
+                        ><path
+                            d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"
+                        ></path></svg
+                    >
+                    Inmobiliarias asociadas
+                </h3>
+                <div id="modal-inmobiliarias-lista" class="modal-inmob-lista"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
     const BACKEND_CONST = "http://localhost:8001";
     const ITEMS_POR_PAG_C = 12;
     let paginaC = 1;
 
-    interface ConstructoraItemJS {
+    interface InmobiliariaInfoJS {
+        inmobiliariaID: number | null;
+        nombre: string;
+        ciudad: string | null;
+    }
+
+    interface ConstructoraAgrupadaJS {
         constructoraID: number;
         nombre: string;
-        descripcion?: string | null;
-        ciudad?: string | null;
-        telefono?: string | null;
-        correo?: string | null;
-        logo?: string | null;
-        _grupoNombre: string;
-        _grupoCiudad: string | null;
+        descripcion: string | null;
+        ciudad: string | null;
+        telefono: string | null;
+        correo: string | null;
+        logo: string | null;
+        inmobiliarias: InmobiliariaInfoJS[];
     }
 
     function logoUrlJS(logo: string | null | undefined): string | null {
@@ -50,53 +147,159 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         return `${BACKEND_CONST}/uploads/constructoras/${encodeURIComponent(logo)}`;
     }
 
-    const rawGrupos: any[] = JSON.parse(
-        (document.getElementById("constructoras-grupos-data") as HTMLScriptElement).textContent ?? "[]"
+    const todosItems: ConstructoraAgrupadaJS[] = JSON.parse(
+        (document.getElementById("constructoras-data") as HTMLScriptElement).textContent ?? "[]",
     );
 
-    const todosItems: ConstructoraItemJS[] = rawGrupos.flatMap((g) =>
-        (g.items ?? []).map((c: any) => ({ ...c, _grupoNombre: g.nombre, _grupoCiudad: g.ciudad }))
-    );
-
-    function renderCardC(c: ConstructoraItemJS) {
+    /* ── TARJETAS ── */
+    function renderCardC(c: ConstructoraAgrupadaJS) {
         const src = logoUrlJS(c.logo);
         const imgHtml = src
             ? `<img src="${src}" alt="${c.nombre}" loading="lazy" referrerpolicy="no-referrer" />`
             : `<div class="card-img-placeholder"><span>${(c.nombre || "C").slice(0, 2).toUpperCase()}</span></div>`;
+
+        const nInmob = c.inmobiliarias.length;
+        const badgeInmob =
+            nInmob > 0
+                ? `<span class="badge-inmob-count">${nInmob} inmobiliaria${nInmob > 1 ? "s" : ""}</span>`
+                : "";
+
         return `
-            <article class="property-card">
+            <article class="property-card constructora-clickable" data-id="${c.constructoraID}" tabindex="0" role="button" aria-label="Ver detalle de ${c.nombre}">
                 <div class="property-image constructora-img">
                     ${imgHtml}
-                    <span class="badge-tipo badge-venta badge-constructora">${c._grupoNombre}</span>
+                    ${badgeInmob}
                 </div>
                 <div class="property-info">
                     <h2 class="constructora-nombre">${c.nombre}</h2>
                     ${c.ciudad ? `<p class="location"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:4px;color:#2e8b57"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${c.ciudad}</p>` : ""}
                     ${c.descripcion ? `<p class="description">${c.descripcion}</p>` : ""}
-                    ${(c.telefono || c.correo) ? `<p class="contacto-info">${[c.telefono, c.correo].filter(Boolean).join(" · ")}</p>` : ""}
+                    <span class="btn-ver-mas">Ver información →</span>
                 </div>
             </article>`;
     }
 
-    function renderGridC(items: ConstructoraItemJS[]) {
+    function renderGridC(items: ConstructoraAgrupadaJS[]) {
         const grid = document.getElementById("constructoras-grid")!;
         if (!items.length) {
             grid.innerHTML = `<p class="sin-resultados">No hay constructoras activas por ahora.</p>`;
             return;
         }
         grid.innerHTML = items.map(renderCardC).join("");
+
+        // Click / teclado en cada tarjeta
+        grid.querySelectorAll<HTMLElement>(".constructora-clickable").forEach((el) => {
+            const open = () => {
+                const id = Number(el.dataset.id);
+                const c = todosItems.find((x) => x.constructoraID === id);
+                if (c) abrirModal(c);
+            };
+            el.addEventListener("click", open);
+            el.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    open();
+                }
+            });
+        });
     }
 
+    /* ── MODAL ── */
+    function abrirModal(c: ConstructoraAgrupadaJS) {
+        const overlay = document.getElementById("modal-constructora")!;
+        const src = logoUrlJS(c.logo);
+
+        // Logo
+        const logoWrap = document.getElementById("modal-logo-wrap")!;
+        logoWrap.innerHTML = src
+            ? `<img src="${src}" alt="${c.nombre}" class="modal-logo-img" referrerpolicy="no-referrer" />`
+            : `<div class="modal-logo-placeholder">${(c.nombre || "C").slice(0, 2).toUpperCase()}</div>`;
+
+        // Datos básicos
+        document.getElementById("modal-titulo")!.textContent = c.nombre;
+        const ciudadEl = document.getElementById("modal-ciudad")!;
+        ciudadEl.innerHTML = c.ciudad
+            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;margin-right:4px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${c.ciudad}`
+            : "";
+
+        document.getElementById("modal-descripcion")!.textContent = c.descripcion ?? "";
+
+        // Contacto
+        const contactoEl = document.getElementById("modal-contacto")!;
+        const items: string[] = [];
+        if (c.telefono)
+            items.push(
+                `<span class="contacto-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>${c.telefono}</span>`,
+            );
+        if (c.correo)
+            items.push(
+                `<span class="contacto-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>${c.correo}</span>`,
+            );
+        contactoEl.innerHTML = items.join("");
+
+        // Inmobiliarias
+        const listaEl = document.getElementById("modal-inmobiliarias-lista")!;
+        const wrap = document.getElementById("modal-inmobiliarias-wrap")!;
+        if (c.inmobiliarias.length === 0) {
+            wrap.style.display = "none";
+        } else {
+            wrap.style.display = "";
+            listaEl.innerHTML = c.inmobiliarias
+                .map(
+                    (i) => `
+                <div class="inmob-chip">
+                    <div class="inmob-chip-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+                    </div>
+                    <div class="inmob-chip-text">
+                        <strong>${i.nombre}</strong>
+                        ${i.ciudad ? `<span>${i.ciudad}</span>` : ""}
+                    </div>
+                </div>`,
+                )
+                .join("");
+        }
+
+        overlay.setAttribute("aria-hidden", "false");
+        overlay.classList.add("modal-visible");
+        document.body.style.overflow = "hidden";
+    }
+
+    function cerrarModal() {
+        const overlay = document.getElementById("modal-constructora")!;
+        overlay.classList.remove("modal-visible");
+        overlay.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+    }
+
+    document.getElementById("modal-cerrar")!.addEventListener("click", cerrarModal);
+    document.getElementById("modal-constructora")!.addEventListener("click", (e) => {
+        if (e.target === e.currentTarget) cerrarModal();
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cerrarModal();
+    });
+
+    /* ── PAGINACIÓN ── */
     function renderPaginacionC(total: number) {
         const nav = document.getElementById("paginacion-constructoras")!;
         const totalPaginas = Math.ceil(total / ITEMS_POR_PAG_C);
-        if (totalPaginas <= 1) { nav.innerHTML = ""; return; }
+        if (totalPaginas <= 1) {
+            nav.innerHTML = "";
+            return;
+        }
 
         let html = `<div class="paginas">`;
         html += `<button class="pag-btn pag-prev" ${paginaC === 1 ? "disabled" : ""}>&#8592; Anterior</button>`;
         const visible = new Set<number>();
-        visible.add(1); visible.add(totalPaginas);
-        for (let i = Math.max(2, paginaC - 1); i <= Math.min(totalPaginas - 1, paginaC + 1); i++) visible.add(i);
+        visible.add(1);
+        visible.add(totalPaginas);
+        for (
+            let i = Math.max(2, paginaC - 1);
+            i <= Math.min(totalPaginas - 1, paginaC + 1);
+            i++
+        )
+            visible.add(i);
         const sorted = Array.from(visible).sort((a, b) => a - b);
         let prev = 0;
         for (const n of sorted) {
@@ -116,11 +319,17 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
             });
         });
         nav.querySelector(".pag-prev")?.addEventListener("click", () => {
-            if (paginaC > 1) { paginaC--; irAPaginaC(); }
+            if (paginaC > 1) {
+                paginaC--;
+                irAPaginaC();
+            }
         });
         nav.querySelector(".pag-next")?.addEventListener("click", () => {
             const tp = Math.ceil(todosItems.length / ITEMS_POR_PAG_C);
-            if (paginaC < tp) { paginaC++; irAPaginaC(); }
+            if (paginaC < tp) {
+                paginaC++;
+                irAPaginaC();
+            }
         });
     }
 
@@ -151,7 +360,6 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         padding-right: 30px;
     }
 
-    /* Grid idéntico al de propiedades */
     .properties {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -159,6 +367,7 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         padding-bottom: 16px;
     }
 
+    /* TARJETA */
     .property-card {
         background: white;
         border-radius: 16px;
@@ -168,14 +377,18 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         display: flex;
         flex-direction: column;
         position: relative;
+        cursor: pointer;
     }
-
     .property-card:hover {
         transform: translateY(-6px);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
     }
+    .property-card:focus-visible {
+        outline: 3px solid var(--verde);
+        outline-offset: 2px;
+    }
 
-    /* Zona imagen */
+    /* Imagen */
     .property-image.constructora-img {
         position: relative;
         width: 100%;
@@ -183,19 +396,16 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         overflow: hidden;
         background: #e8f0ea;
     }
-
     .property-image.constructora-img img {
         width: 100%;
         height: 100%;
         object-fit: cover;
         transition: transform 0.6s ease;
     }
-
     .property-card:hover .property-image.constructora-img img {
         transform: scale(1.08);
     }
 
-    /* Placeholder cuando no hay logo */
     .card-img-placeholder {
         width: 100%;
         height: 100%;
@@ -204,7 +414,6 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         justify-content: center;
         background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
     }
-
     .card-img-placeholder span {
         font-size: 2.4rem;
         font-weight: 800;
@@ -212,8 +421,8 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         letter-spacing: -1px;
     }
 
-    /* Badge inmobiliaria (equivalente al badge-tipo) */
-    .badge-constructora {
+    /* Badge nº inmobiliarias */
+    .badge-inmob-count {
         position: absolute;
         top: 14px;
         left: 14px;
@@ -237,7 +446,6 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         gap: 6px;
         flex: 1;
     }
-
     .constructora-nombre {
         margin: 0;
         font-size: 1.1rem;
@@ -245,14 +453,12 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         color: #1a1a1a;
         line-height: 1.3;
     }
-
     .location {
         margin: 0;
         color: var(--verde);
         font-size: 0.88rem;
         font-weight: 600;
     }
-
     .description {
         margin: 2px 0 0;
         font-size: 0.88rem;
@@ -263,12 +469,16 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
-
-    .contacto-info {
-        margin: 4px 0 0;
-        font-size: 0.8rem;
-        color: #6c757d;
+    .btn-ver-mas {
+        margin-top: 8px;
+        display: inline-block;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--verde);
+        letter-spacing: 0.02em;
+        transition: color 0.2s;
     }
+    .property-card:hover .btn-ver-mas { color: var(--verde-dark); }
 
     .sin-resultados {
         text-align: center;
@@ -277,7 +487,192 @@ const { grupos = [] } = Astro.props as { grupos: Grupo[] };
         grid-column: 1 / -1;
     }
 
-    /* Paginación */
+    /* ── MODAL ── */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(4px);
+    }
+    .modal-overlay.modal-visible {
+        display: flex;
+    }
+
+    .modal-box {
+        background: #fff;
+        border-radius: 20px;
+        width: 100%;
+        max-width: 620px;
+        max-height: 88vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        position: relative;
+        animation: modalIn 0.22s ease;
+    }
+    @keyframes modalIn {
+        from { transform: translateY(18px) scale(0.97); opacity: 0; }
+        to   { transform: none; opacity: 1; }
+    }
+
+    .modal-cerrar {
+        position: sticky;
+        top: 12px;
+        float: right;
+        margin: 12px 14px 0 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: #f3f4f6;
+        color: #374151;
+        font-size: 1.25rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: background 0.2s;
+        z-index: 10;
+    }
+    .modal-cerrar:hover { background: #e5e7eb; }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 28px 28px 0;
+        clear: both;
+    }
+
+    .modal-logo-wrap { flex-shrink: 0; }
+    .modal-logo-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 14px;
+        object-fit: cover;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .modal-logo-placeholder {
+        width: 80px;
+        height: 80px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--verde-dark);
+    }
+
+    .modal-header-info { flex: 1; min-width: 0; }
+    .modal-nombre {
+        margin: 0 0 6px;
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #111;
+        line-height: 1.25;
+    }
+    .modal-ciudad {
+        margin: 0;
+        color: var(--verde);
+        font-size: 0.9rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+
+    .modal-body {
+        padding: 20px 28px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .modal-descripcion {
+        margin: 0;
+        font-size: 0.93rem;
+        color: #4b5563;
+        line-height: 1.6;
+    }
+
+    .modal-contacto {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .contacto-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f3f4f6;
+        color: #374151;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: 20px;
+    }
+    .contacto-chip svg { color: var(--verde); flex-shrink: 0; }
+
+    /* Inmobiliarias */
+    .modal-inmob-section { }
+    .modal-inmob-titulo {
+        margin: 0 0 12px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+    .modal-inmob-titulo svg { color: var(--verde); }
+
+    .modal-inmob-lista {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .inmob-chip {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #f9fafb;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+    .inmob-chip-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: #ecfdf5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: var(--verde);
+    }
+    .inmob-chip-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+    .inmob-chip-text strong {
+        font-size: 0.92rem;
+        color: #1f2937;
+        font-weight: 700;
+    }
+    .inmob-chip-text span {
+        font-size: 0.8rem;
+        color: #6b7280;
+    }
+
+    /* PAGINACIÓN */
     .paginacion-constructoras {
         display: flex;
         justify-content: center;
