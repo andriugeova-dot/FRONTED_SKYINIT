@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
 const BACKEND = import.meta.env.BACKEND_URL ?? "http://localhost:8001";
-const URL_LISTADO = `${BACKEND}/api/propiedades/admin/listado`;
+const URL_LISTADO = `${BACKEND}/api/propiedades/inmobiliaria/mis-propiedades`;
 const URL_CREAR = `${BACKEND}/api/propiedades`; 
 export const GET: APIRoute = async ({ request, url})=> {
     try {

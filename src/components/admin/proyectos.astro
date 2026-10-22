@@ -36,7 +36,7 @@ if (token) {
     };
     try {
         const [resProy, resConstr] = await Promise.all([
-            fetch(`${BACKEND}/proyectos?orden=fecha`, { headers: auth }),
+            fetch(`${BACKEND}/proyectos/inmobiliaria/mis-proyectos`, { headers: auth }),
             fetch(`${BACKEND}/constructoras`, { headers: auth }),
         ]);
 
