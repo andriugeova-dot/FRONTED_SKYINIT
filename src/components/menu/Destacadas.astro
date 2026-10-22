@@ -87,8 +87,9 @@ function formatPrecio(n: number | string) {
                 ? "badge-arriendo"
                 : "badge-default";
             const sufijo = tipo.includes("arriendo") ? "/ mes" : "COP";
-            const imagen = p.imagenes?.[0]
-              ? (p.imagenes[0].startsWith("http") ? p.imagenes[0] : `http://localhost:8001${p.imagenes[0]}`)
+            const imgRaw = (p as any).imagenPrincipal ?? p.imagenes?.[0] ?? null;
+            const imagen = imgRaw
+              ? (imgRaw.startsWith("http") ? imgRaw : `http://localhost:8001${imgRaw}`)
               : "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80";
             const ubicacion = p.ciudad || p.direccion || "Colombia";
 

@@ -1,7 +1,9 @@
 ---
 import Navbar from "../components/menu/Navbar.astro";
+import FooterMenu from "../components/menu/FooterMenu.astro";
 import "../components/propiedades/propiedades.css";
 import "../components/proyectos/proyectos.css";
+import "../components/menu/menu.css";
 import { getTokenSSR, COOKIE_NAME } from "../utils/auth";
 
 const BACKEND_URL = "http://127.0.0.1:8001";
@@ -683,5 +685,6 @@ function resolverImagenTarjeta(url: string | null) {
                 if (e.target === modal) modal.classList.remove("active");
             });
         </script>
+        <FooterMenu />
     </body>
 </html>

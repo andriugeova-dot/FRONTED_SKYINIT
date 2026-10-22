@@ -1,7 +1,7 @@
 ---
 import Navbar from "../components/menu/Navbar.astro";
+import FooterMenu from "../components/menu/FooterMenu.astro";
 import "../components/menu/menu.css";
-
 ---
 
 <!doctype html>
@@ -157,8 +157,6 @@ function renderUserMenu() {
     nav.innerHTML = `<a href="/login" class="btn-registrar">Iniciar Sesión</a>`;
   }
 }
-
-
 
 // ── Catálogo de servicios ───────────────────────────
 function formatoPrecio(precio: string | number) {
@@ -449,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(cambiarFondo, 7500);
 });
 		</script>
+        <FooterMenu />
 	</body>
 </html>
 
