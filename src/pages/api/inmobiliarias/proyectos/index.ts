@@ -11,7 +11,7 @@ const json = (data: unknown, status: number) =>
 export const GET: APIRoute = async ({ request, url }) => {
     try {
         const queryString = url.search;
-        const res = await fetch(`${BACKEND}/proyectos${queryString}`, {
+        const res = await fetch(`${BACKEND}/proyectos/inmobiliaria/mis-proyectos`, {
             method: "GET",
             headers: {
                 Cookie: request.headers.get("cookie") || "",

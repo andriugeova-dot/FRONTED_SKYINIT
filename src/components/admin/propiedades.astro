@@ -38,7 +38,7 @@ if (token) {
     const auth = { Cookie: `${COOKIE_NAME}=${token}`, Accept: "application/json" };
     try {
         const [resProps, resAgentes, resConstr] = await Promise.all([
-            fetch(`${BACKEND}/api/propiedades/admin/listado`, { headers: auth }),
+            fetch(`${BACKEND}/api/propiedades/inmobiliaria/mis-propiedades`, { headers: auth }),
             fetch(`${BACKEND}/api/propiedades/admin/agentes`, { headers: auth }),
             fetch(`${BACKEND}/constructoras`, { headers: auth }),
         ]);
