@@ -11,16 +11,6 @@ import "./constructoras.css";
     <button type="button" class="btn-nueva" id="btn-nueva">+ Nueva constructora</button>
   </header>
 
-  <div class="toolbar">
-    <input type="search" id="filtro-q" placeholder="Buscar nombre o ciudad…" />
-    <select id="filtro-estado">
-      <option value="">Todos los estados</option>
-      <option value="Activo">Activo</option>
-      <option value="Pendiente">Pendiente</option>
-      <option value="Inactivo">Inactivo</option>
-    </select>
-  </div>
-
   <div class="stats">
     <div class="stat-card">
       <span class="stat-label">Total</span>
@@ -35,6 +25,18 @@ import "./constructoras.css";
       <span class="stat-value" id="stat-pendientes">—</span>
     </div>
   </div>
+
+  <div class="toolbar">
+    <input type="search" id="filtro-q" placeholder="Buscar nombre o ciudad…" />
+    <select id="filtro-estado">
+      <option value="">Todos los estados</option>
+      <option value="Activo">Activo</option>
+      <option value="Pendiente">Pendiente</option>
+      <option value="Inactivo">Inactivo</option>
+    </select>
+  </div>
+
+
 
   <div id="grid-cards" class="cards-grid">
     <p class="empty">Cargando…</p>
@@ -99,21 +101,23 @@ import "./constructoras.css";
     var s = String(e || "").toLowerCase();
     if (s.indexOf("activ") >= 0) return "badge-ok";
     if (s.indexOf("pend") >= 0) return "badge-warn";
+    if (s.indexOf("inactiv") >= 0) return "badge-off";
     return "badge-off";
   }
 
   function pintarStats() {
-    var total = lista.length;
-    var activas = lista.filter(function (c) {
-      return String(c.estado || "").toLowerCase().indexOf("activ") >= 0;
-    }).length;
-    var pendientes = lista.filter(function (c) {
-      return String(c.estado || "").toLowerCase().indexOf("pend") >= 0;
-    }).length;
-    document.getElementById("stat-total").textContent = String(total);
-    document.getElementById("stat-activas").textContent = String(activas);
-    document.getElementById("stat-pendientes").textContent = String(pendientes);
-  }
+  var total = lista.length;
+  var activas = lista.filter(function (c) {
+    return String(c.estado || "").toLowerCase().indexOf("activ") >= 0;
+  }).length;
+  var pendientes = lista.filter(function (c) {
+    return String(c.estado || "").toLowerCase().indexOf("pend") >= 0;
+  }).length;
+  // No cuentes Inactivo como Activa
+  document.getElementById("stat-total").textContent = String(total);
+  document.getElementById("stat-activas").textContent = String(activas);
+  document.getElementById("stat-pendientes").textContent = String(pendientes);
+}
 
   function urlLogo(logo) {
   if (!logo) return "";
@@ -162,7 +166,9 @@ function pintarCards(items) {
 }
 
   function aplicarFiltro() {
-    var q = (document.getElementById("filtro-q").value || "").toLowerCase().trim();
+    var q = (document.getElementById("filtro-q").value || "")
+      .toLowerCase()
+      .trim();
     var est = document.getElementById("filtro-estado").value;
     var filtradas = lista.filter(function (c) {
       var okQ =
@@ -184,6 +190,11 @@ function pintarCards(items) {
       .then(function (json) {
         lista = json.data || [];
         pintarStats();
+        // Default: mostrar solo Activo (una sola vez al cargar)
+        if (!document.getElementById("filtro-estado").dataset.init) {
+          document.getElementById("filtro-estado").value = "Activo";
+          document.getElementById("filtro-estado").dataset.init = "1";
+        }
         aplicarFiltro();
       })
       .catch(function () {
