@@ -1,4 +1,5 @@
 ---
+import Navbar from "../menu/Navbar.astro";
 import "./propiedades.css";
 
 interface Propiedad {
@@ -13,11 +14,6 @@ interface Propiedad {
     imagenPrincipal: string | null;
 }
 
-interface Usuario {
-    nombre?: string;
-    fotoPerfil?: string | null;
-}
-
 interface Filtros {
     query: string;
     tipoOperacion: string;
@@ -27,78 +23,14 @@ interface Filtros {
 
 interface Props {
     propiedades: Propiedad[];
-    usuario: Usuario | null;
     filtros: Filtros;
 }
 
-const { propiedades, usuario, filtros } = Astro.props;
-
-const formatoPesos = new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    minimumFractionDigits: 0,
-});
-
-function claseBadge(tipo: string) {
-    const t = (tipo ?? "").toLowerCase();
-    if (t.includes("venta")) return "badge-venta";
-    if (t.includes("arriendo")) return "badge-arriendo";
-    return "badge-default";
-}
-
-const BACKEND_URL = "http://localhost:8001";
-function resolverImagenTarjeta(url: string | null) {
-    if (!url) return "/img/no-image.png";
-    return url.startsWith("/uploads") ? `${BACKEND_URL}${url}` : url;
-}
+const { propiedades, filtros } = Astro.props;
 ---
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Propiedades - SkyInit</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap"
-        rel="stylesheet"
-    />
-</head>
 <header id="header">
-    <div class="topbar">
-        <div class="logo">SkyInit</div>
-        <div class="menu-toggle" id="menuToggle">&#9776;</div>
-        <nav id="menu">
-            <a href="/">Inicio</a>
-            <a href="/propiedades">Propiedades</a>
-            <a href="/proyectos">Proyectos</a>
-            <a href="/servicios">Servicios</a>
-            <a href="/constructoras">Constructoras</a>
-            {
-                usuario ? (
-                    <div class="user-profile">
-                        <img
-                            src={
-                                usuario.fotoPerfil ?? "/img/default-avatar.svg"
-                            }
-                            alt="Avatar"
-                            class="profile-pic"
-                            id="profilePic"
-                        />
-                        <div id="user-menu" class="user-menu">
-                            <div class="user-menu-name">{usuario.nombre}</div>
-                            <a href="/usuario">⚙️ Ajustes</a>
-                            <a href="#" id="btnLogout">
-                                🚪 Cerrar sesión
-                            </a>
-                        </div>
-                    </div>
-                ) : (
-                    <a href="/login" class="btn-registrar">
-                        Iniciar Sesión
-                    </a>
-                )
-            }
-        </nav>
-    </div>
+    <Navbar />
 
     <div class="hero-inner">
         <div class="hero-eyebrow">Catálogo completo</div>
@@ -243,11 +175,6 @@ function resolverImagenTarjeta(url: string | null) {
         </div>
     </div>
 </div>
-
-<link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap"
-    rel="stylesheet"
-/>
 
 <script>
     const BACKEND_URL = "http://localhost:8001";
@@ -396,21 +323,6 @@ function resolverImagenTarjeta(url: string | null) {
     // Render inicial
     irAPagina();
 
-    // ── MENÚS ────────────────────────────────────────────────────────────────
-    document.getElementById("menuToggle")?.addEventListener("click", () => {
-        document.getElementById("menu")?.classList.toggle("active");
-    });
-    document.getElementById("profilePic")?.addEventListener("click", () => {
-        document.getElementById("user-menu")?.classList.toggle("active");
-    });
-    document
-        .getElementById("btnLogout")
-        ?.addEventListener("click", async (e) => {
-            e.preventDefault();
-            await fetch("/api/logout", { method: "POST" });
-            window.location.href = "/login";
-        });
-
     // Fondo del hero (decorativo)
     const heroImages = [
         "https://images.unsplash.com/photo-1600585154340-be6161a56a0c",
@@ -551,173 +463,59 @@ function resolverImagenTarjeta(url: string | null) {
     }
 
     function adjuntarEventosModal() {
-        document
-            .querySelectorAll<HTMLElement>(".link-detalle-propiedad")
-            .forEach((enlace) => {
-                enlace.addEventListener("click", async (e) => {
-                    e.preventDefault();
-                    const propiedadId = enlace.dataset.id;
-                    try {
-                        const response = await fetch(
-                            `${BACKEND_URL}/api/propiedades/${propiedadId}`,
-                        );
-                        if (!response.ok)
-                            throw new Error("No se pudo cargar la info");
-                        const { propiedad } = await response.json();
-                        (
-                            document.getElementById(
-                                "modalTitulo",
-                            ) as HTMLElement
-                        ).textContent = propiedad.titulo;
-                        (
-                            document.getElementById(
-                                "modalImagen",
-                            ) as HTMLImageElement
-                        ).src = resolverImagen(propiedad.imagenes?.[0]?.url);
-                        (
-                            document.getElementById(
-                                "modalDescripcion",
-                            ) as HTMLElement
-                        ).textContent = propiedad.descripcion ?? "";
-                        (
-                            document.getElementById(
-                                "modalPrecio",
-                            ) as HTMLElement
-                        ).textContent = formatoPesos.format(
-                            Number(propiedad.precio),
-                        );
-                        (
-                            document.getElementById(
-                                "modalUbicacion",
-                            ) as HTMLElement
-                        ).textContent =
-                            `Ubicación: ${propiedad.direccion}${propiedad.ciudad ? `, ${propiedad.ciudad}` : ""}`;
-                        (
-                            document.getElementById(
-                                "modalTipoOperacion",
-                            ) as HTMLElement
-                        ).textContent = `Operación: ${propiedad.tipoOperacion}`;
-                        (
-                            document.getElementById(
-                                "modalHabitaciones",
-                            ) as HTMLElement
-                        ).textContent = propiedad.habitaciones
-                            ? `Habitaciones: ${propiedad.habitaciones}`
-                            : "Habitaciones: No especificado";
-                        const agenteWrap = document.getElementById(
-                            "modalAgenteWrap",
-                        ) as HTMLElement;
-                        const nombreEl = document.getElementById(
-                            "modalAgenteNombre",
-                        ) as HTMLElement;
-                        const telEl = document.getElementById(
-                            "modalAgenteTelefono",
-                        );
-                        const agenteNombre =
-                            propiedad.agenteNombre ??
-                            propiedad.agente?.nombre ??
-                            null;
-                        const agenteCorreo =
-                            propiedad.agenteCorreo ??
-                            propiedad.agente?.correo ??
-                            "";
-                        const agenteTelefono =
-                            propiedad.agenteTelefono ??
-                            propiedad.agente?.telefono ??
-                            "";
-                        if (agenteNombre || agenteCorreo || agenteTelefono) {
-                            nombreEl.textContent = agenteNombre
-                                ? agenteCorreo
-                                    ? `${agenteNombre} (${agenteCorreo})`
-                                    : agenteNombre
-                                : agenteCorreo || "Agente";
-                            if (telEl)
-                                telEl.textContent = agenteTelefono
-                                    ? `Tel: ${agenteTelefono}`
-                                    : "";
-                            agenteWrap.style.display = "flex";
-                        } else {
-                            nombreEl.textContent = "Sin agente asignado";
-                            if (telEl) telEl.textContent = "";
-                            agenteWrap.style.display = "flex";
-                        }
-                        const constructoraWrap = document.getElementById(
-                            "modalConstructoraWrap",
-                        ) as HTMLElement;
-                        if (propiedad.constructoraNombre) {
-                            (
-                                document.getElementById(
-                                    "modalConstructoraNombre",
-                                ) as HTMLElement
-                            ).textContent = propiedad.constructoraNombre;
-                            constructoraWrap.style.display = "flex";
-                        } else {
-                            constructoraWrap.style.display = "none";
-                        }
-                        modal.classList.add("active");
-                    } catch (error) {
-                        console.error("Error cargando los detalles:", error);
-                        alert(
-                            "Hubo un error al cargar la información de la propiedad",
-                        );
-    document.querySelectorAll<HTMLElement>(".link-detalle-propiedad").forEach((enlace) => {
-        enlace.addEventListener("click", async (e) => {
-            e.preventDefault();
-            const propiedadId = enlace.dataset.id; 
-            (document.getElementById("modalTitulo") as HTMLElement).textContent = "Cargando...";
-            (document.getElementById("modalDescripcion") as HTMLElement).textContent = "";
-            (document.getElementById("modalAgenteNombre") as HTMLElement).textContent = "";
-            (document.getElementById("modalImagen") as HTMLImageElement).src = "";
-            const telElReset = document.getElementById("modalAgenteTelefono");
-            if (telElReset) telElReset.textContent = "";
-            modal.classList.add("active");
+        document.querySelectorAll<HTMLElement>(".link-detalle-propiedad").forEach((enlace) => {
+            enlace.addEventListener("click", async (e) => {
+                e.preventDefault();
+                const propiedadId = enlace.dataset.id;
 
+                // Mostrar modal con estado de carga
+                (document.getElementById("modalTitulo") as HTMLElement).textContent = "Cargando...";
+                (document.getElementById("modalDescripcion") as HTMLElement).textContent = "";
+                (document.getElementById("modalAgenteNombre") as HTMLElement).textContent = "";
+                (document.getElementById("modalImagen") as HTMLImageElement).src = "";
+                const telElReset = document.getElementById("modalAgenteTelefono");
+                if (telElReset) telElReset.textContent = "";
+                modal.classList.add("active");
 
-            try {
-                const response = await fetch(`${BACKEND_URL}/api/propiedades/${propiedadId}`);
-                if (!response.ok) throw new Error("No se pudo cargar la info");
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/propiedades/${propiedadId}`);
+                    if (!response.ok) throw new Error("No se pudo cargar la info");
 
-                const { propiedad } = await response.json();
+                    const { propiedad } = await response.json();
 
-                (document.getElementById("modalTitulo") as HTMLElement).textContent = propiedad.titulo;
-                 (document.getElementById("modalImagen") as HTMLImageElement).src = resolverImagen(propiedad.imagenes?.[0]?.url);
-                (document.getElementById("modalDescripcion") as HTMLElement).textContent = propiedad.descripcion ?? "";
-                (document.getElementById("modalPrecio") as HTMLElement).textContent = formatoPesos.format(Number(propiedad.precio));
-                (document.getElementById("modalUbicacion") as HTMLElement).textContent =
-                    `Ubicación: ${propiedad.direccion}${propiedad.ciudad ? `, ${propiedad.ciudad}` : ""}`;
-                (document.getElementById("modalTipoOperacion") as HTMLElement).textContent = `Operación: ${propiedad.tipoOperacion}`;
-                (document.getElementById("modalHabitaciones") as HTMLElement).textContent = propiedad.habitaciones
-                    ? `Habitaciones: ${propiedad.habitaciones}`
-                    : "Habitaciones: No especificado";
+                    (document.getElementById("modalTitulo") as HTMLElement).textContent = propiedad.titulo;
+                    (document.getElementById("modalImagen") as HTMLImageElement).src = resolverImagen(propiedad.imagenes?.[0]?.url);
+                    (document.getElementById("modalDescripcion") as HTMLElement).textContent = propiedad.descripcion ?? "";
+                    (document.getElementById("modalPrecio") as HTMLElement).textContent = formatoPesos.format(Number(propiedad.precio));
+                    (document.getElementById("modalUbicacion") as HTMLElement).textContent =
+                        `Ubicación: ${propiedad.direccion}${propiedad.ciudad ? `, ${propiedad.ciudad}` : ""}`;
+                    (document.getElementById("modalTipoOperacion") as HTMLElement).textContent = `Operación: ${propiedad.tipoOperacion}`;
+                    (document.getElementById("modalHabitaciones") as HTMLElement).textContent = propiedad.habitaciones
+                        ? `Habitaciones: ${propiedad.habitaciones}`
+                        : "Habitaciones: No especificado";
 
-         const agenteWrap = document.getElementById("modalAgenteWrap") as HTMLElement;
-         const nombreEl = document.getElementById("modalAgenteNombre") as HTMLElement;
-         const telEl = document.getElementById("modalAgenteTelefono");
+                    // Agente
+                    const agenteWrap = document.getElementById("modalAgenteWrap") as HTMLElement;
+                    const nombreEl = document.getElementById("modalAgenteNombre") as HTMLElement;
+                    const telEl = document.getElementById("modalAgenteTelefono");
+                    const fotoEl = document.getElementById("modalAgenteFoto") as HTMLImageElement;
 
-         const agenteNombre = propiedad.agenteNombre ?? propiedad.agente?.nombre ?? null;
-         const agenteCorreo = propiedad.agenteCorreo ?? propiedad.agente?.correo ?? "";
-         const agenteTelefono = propiedad.agenteTelefono ?? propiedad.agente?.telefono ?? "";
+                    const agenteNombre = propiedad.agenteNombre ?? propiedad.agente?.nombre ?? null;
+                    const agenteTelefono = propiedad.agenteTelefono ?? propiedad.agente?.telefono ?? "";
+                    const agenteFoto = propiedad.agenteFoto ?? propiedad.agente?.fotoPerfil ?? null;
 
-           if (agenteNombre || agenteCorreo || agenteTelefono) {
-                if (agenteNombre) {
-                    nombreEl.textContent = agenteCorreo
-                        ? `${agenteNombre} (${agenteCorreo})`
-                        : agenteNombre;
-                } else if (agenteCorreo) {
-                    nombreEl.textContent = agenteCorreo;
-                } else {
-                    nombreEl.textContent = "Agente";
-                }
+                    if (fotoEl) {
+                        fotoEl.onerror = () => { fotoEl.src = "/img/default-avatar.svg"; };
+                        fotoEl.src = agenteFoto
+                            ? resolverImagen(agenteFoto)
+                            : "/img/default-avatar.svg";
+                    }
 
-                if (telEl) {
-                    telEl.textContent = agenteTelefono ? `Tel: ${agenteTelefono}` : "";
-                }
-                agenteWrap.style.display = "flex";
-            } else {
-                nombreEl.textContent = "Sin agente asignado";
-                if (telEl) telEl.textContent = "";
-                agenteWrap.style.display = "flex";
-            }
+                    nombreEl.textContent = agenteNombre ?? "Sin agente asignado";
+                    if (telEl) telEl.textContent = agenteTelefono ? `Tel: ${agenteTelefono}` : "";
+                    agenteWrap.style.display = "flex";
+
+                    // Constructora
                     const constructoraWrap = document.getElementById("modalConstructoraWrap") as HTMLElement;
                     if (propiedad.constructoraNombre) {
                         (document.getElementById("modalConstructoraNombre") as HTMLElement).textContent = propiedad.constructoraNombre;
@@ -725,8 +523,13 @@ function resolverImagenTarjeta(url: string | null) {
                     } else {
                         constructoraWrap.style.display = "none";
                     }
-                });
+
+                } catch (error) {
+                    console.error("Error cargando los detalles:", error);
+                    alert("Hubo un error al cargar la información de la propiedad");
+                }
             });
+        });
     }
 
     closeBtn.addEventListener("click", () => modal.classList.remove("active"));

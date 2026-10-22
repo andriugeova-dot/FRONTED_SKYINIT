@@ -11,9 +11,12 @@ type ResumenDashboard = {
     proyectos: number;
     constructoras: number;
     servicios: number;
+    serviciosActivos: number;
+    solicitudesServicios: number;   
   };
   propiedadesPorEstado: { estado: string; total: number }[];
   proyectosPorEstado: { estadoProyectoID: number ; total: number}[];
+  solicitudesServiciosPorEstado: { estadoReparacionID: number | null; estado: string; total: number }[];
 };
 
 let resumen: ResumenDashboard | null = null;
@@ -54,6 +57,15 @@ const iconoEstadoProy = (id: number) => {
   if (id === 2) return "bi-hammer";
   return "bi-clipboard2-pulse";
 };
+
+const iconoEstadoSolicitud = (estado: string) => {
+    const e = estado.toLowerCase();
+    if (e.includes("final")) return "bi-check-circle";
+    if (e.includes("proceso")) return "bi-gear";
+    if (e.includes("aceptada") && !e.includes("no")) return "bi-hand-thumbs-up";
+    return "bi-hourglass-split";
+};
+
 ---
 <div class="panel-body">
     <div class="topbar-panel">
@@ -100,6 +112,13 @@ const iconoEstadoProy = (id: number) => {
                         <span class="stat-value">{resumen.totales.servicios}</span>
                     </div>
                 </div>
+                <div class="stat-card">
+    <i class="bi bi-inbox stat-icon" aria-hidden="true"></i>
+    <div class="stat-info">
+        <span class="stat-label">Solicitudes de servicios</span>
+        <span class="stat-value">{resumen.totales.solicitudesServicios ?? 0}</span>
+      </div>
+</div>
             </section>
 
             <!-- Accesos rápidos -->
@@ -117,6 +136,9 @@ const iconoEstadoProy = (id: number) => {
                     </a>
                     <a href="/admin/servicios" class="acceso-btn">
                         <i class="bi bi-briefcase" aria-hidden="true"></i> Servicios
+                    </a>
+                    <a href="/admin/solicitudes" class="acceso-btn">
+                        <i class="bi bi-inbox" aria-hidden="true"></i> Solicitudes
                     </a>
                 </div>
             </section>
@@ -153,6 +175,25 @@ const iconoEstadoProy = (id: number) => {
                     </div>
                 </section>
             </div>
+                <!-- Solicitudes de servicios por estado -->
+            <section class="card">
+                <h2><i class="bi bi-inbox" aria-hidden="true"></i> Solicitudes de servicios por estado</h2>
+                <div class="breakdown-list">
+                    {(resumen.solicitudesServiciosPorEstado ?? []).length === 0 ? (
+                        <p class="breakdown-label">Aún no hay solicitudes.</p>
+                    ) : (
+                        resumen.solicitudesServiciosPorEstado.map((s) => (
+                            <div class="breakdown-row">
+                                <span class="breakdown-dot">
+                                    <i class={`bi ${iconoEstadoSolicitud(s.estado)}`} aria-hidden="true"></i>
+                                </span>
+                                <span class="breakdown-label">{s.estado}</span>
+                                <span class="breakdown-value">{s.total}</span>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </section>
         </>
     )}
 </div>
