@@ -232,10 +232,13 @@ import "./usuarios.css";
     function renderPicker(filtro) {
         filtro = (filtro || "").toLowerCase();
         var fuente = usuList.filter(function(u) {
-            if (!filtro) return true;
-            return (u.nombre||"").toLowerCase().indexOf(filtro) >= 0 ||
-                   (u.correo||"").toLowerCase().indexOf(filtro) >= 0 ||
-                   (u.nombreRol||"").toLowerCase().indexOf(filtro) >= 0;
+        var enOtra = u.inmobiliariaID !== null && asigNuevos.indexOf(u.usuarioID) < 0;
+        if (enOtra) return false;
+
+        if (!filtro) return true;
+        return (u.nombre || "").toLowerCase().indexOf(filtro) >= 0 ||
+               (u.correo || "").toLowerCase().indexOf(filtro) >= 0 ||
+               (u.nombreRol || "").toLowerCase().indexOf(filtro) >= 0;
         });
 
         if (!fuente.length) {
@@ -251,15 +254,14 @@ import "./usuarios.css";
         });
 
         el("si-picker-list").innerHTML = fuente.map(function(u) {
-            var marcado = asigNuevos.indexOf(u.usuarioID) >= 0;
-            var enOtra  = u.inmobiliariaID !== null && !marcado;
-            return '<label class="user-picker-item'+(marcado?" up-selected":"")+'">' +
-                '<input type="checkbox" class="up-chk" data-uid="'+u.usuarioID+'"'+(marcado?" checked":"")+' />' +
-                '<span class="up-info">' +
-                  '<span class="up-name">'+(u.nombre||"")+"</span>" +
-                  '<span class="up-meta">'+(u.correo||"")+" · "+(u.nombreRol||"")+(enOtra?'<span class="tag-otra">(en otra inmobiliaria)</span>':"")+"</span>" +
-                "</span></label>";
-        }).join("");
+    var marcado = asigNuevos.indexOf(u.usuarioID) >= 0;
+    return '<label class="user-picker-item'+(marcado?" up-selected":"")+'">' +
+        '<input type="checkbox" class="up-chk" data-uid="'+u.usuarioID+'"'+(marcado?" checked":"")+' />' +
+        '<span class="up-info">' +
+          '<span class="up-name">'+(u.nombre||"")+"</span>" +
+          '<span class="up-meta">'+(u.correo||"")+" · "+(u.nombreRol||"")+"</span>" +
+        "</span></label>";
+}).join("");
     }
 
     /* ── chips de asignados ─────────────────────────── */
