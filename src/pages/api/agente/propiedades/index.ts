@@ -27,4 +27,3 @@ async function reenviar(request: Request, method: string, body?: string): Promis
 }
 
 export const GET: APIRoute = ({ request }) => reenviar(request, "GET");
-export const POST: APIRoute = async ({ request }) => reenviar(request, "POST", await request.text());
