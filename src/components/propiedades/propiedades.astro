@@ -1,5 +1,6 @@
 ---
 import Navbar from "../menu/Navbar.astro";
+import FooterMenu from "../menu/FooterMenu.astro";
 import "./propiedades.css";
 
 interface Propiedad {
@@ -175,6 +176,7 @@ const { propiedades, filtros } = Astro.props;
         </div>
     </div>
 </div>
+<FooterMenu />
 
 <script>
     const BACKEND_URL = "http://localhost:8001";
