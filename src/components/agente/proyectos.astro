@@ -7,9 +7,14 @@ import PanelAgente from "./PanelAgente.astro";
   titulo="Mis proyectos"
   subtitulo="Consulta y actualiza los proyectos de tu inmobiliaria."
   stats={[
-    { id: "statTotal",        titulo: "Total",           valor: 0 },
-    { id: "statActivos",      titulo: "En construcción", valor: 0, variante: "ok" },
-    { id: "statPlanificados", titulo: "Planificados",    valor: 0, variante: "warn" },
+    { id: "statTotal", titulo: "Total", valor: 0 },
+    { id: "statActivos", titulo: "En construcción", valor: 0, variante: "ok" },
+    {
+      id: "statPlanificados",
+      titulo: "Planificados",
+      valor: 0,
+      variante: "warn",
+    },
   ]}
 >
   <div slot="filtros" class="filter-bar mb-4">
@@ -19,7 +24,12 @@ import PanelAgente from "./PanelAgente.astro";
           <span class="input-group-text bg-white border-end-0">
             <i class="bi bi-search text-muted"></i>
           </span>
-          <input type="text" id="input-buscar" class="form-control border-start-0" placeholder="Buscar por nombre o ubicación…" />
+          <input
+            type="text"
+            id="input-buscar"
+            class="form-control border-start-0"
+            placeholder="Buscar por nombre o ubicación…"
+          />
         </div>
       </div>
       <div class="col-md-4">
@@ -41,10 +51,15 @@ import PanelAgente from "./PanelAgente.astro";
     </div>
   </div>
 
-  <div id="estado-vacio" class="text-center py-5 bg-white rounded border d-none">
+  <div
+    id="estado-vacio"
+    class="text-center py-5 bg-white rounded border d-none"
+  >
     <i class="bi bi-buildings display-4 text-muted"></i>
     <h3 class="mt-3 text-secondary">Sin proyectos</h3>
-    <p class="text-muted">No se encontraron proyectos con los filtros seleccionados.</p>
+    <p class="text-muted">
+      No se encontraron proyectos con los filtros seleccionados.
+    </p>
   </div>
 
   <div id="estado-error" class="alert alert-danger d-none" role="alert">
@@ -55,66 +70,80 @@ import PanelAgente from "./PanelAgente.astro";
   <div id="proy-grid" class="proy-grid d-none"></div>
 </PanelAgente>
 
-<!-- MODAL EDITAR (sin campo avance) -->
-<div id="modal-editar" class="sky-modal" hidden>
-  <div class="sky-modal-backdrop" data-cerrar="editar"></div>
-  <div class="sky-modal-card">
-    <h3><i class="bi bi-pencil"></i> Editar proyecto</h3>
-    <div id="edit-error" class="alert-error" hidden></div>
-    <div class="form-grid">
-      <label class="full">Nombre <span class="req">*</span>
-        <input type="text" id="edit-nombre" maxlength="150" />
-      </label>
-      <label>Estado <span class="req">*</span>
-        <select id="edit-estado">
-          <option value="1">Planificado</option>
-          <option value="2">En construcción</option>
-          <option value="3">Finalizado</option>
-        </select>
-      </label>
-      <label>Fecha inicio
-        <input type="date" id="edit-fecha-inicio" />
-      </label>
-      <label>Fecha fin
-        <input type="date" id="edit-fecha-fin" />
-      </label>
-      <label class="full">Ubicación
-        <input type="text" id="edit-ubicacion" maxlength="255" />
-      </label>
-      <label class="full">Descripción
-        <textarea id="edit-descripcion" rows="3" maxlength="500"></textarea>
-      </label>
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn-outline" data-cerrar="editar">Cancelar</button>
-      <button type="button" class="btn-primary" id="btn-guardar-editar">
-        <i class="bi bi-check-lg"></i> Guardar cambios
-      </button>
-    </div>
-  </div>
-</div>
+<style is:global>
+  .proy-meta {
+    margin: 0.5rem 0 0;
+    padding-top: 0.6rem;
+    border-top: 1px solid #e5e7eb;
+  }
+  .proy-meta dt {
+    font-size: 0.72rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0;
+  }
+  .proy-meta dd {
+    margin: 0.1rem 0 0;
+    font-size: 0.9rem;
+    color: #111827;
+    font-weight: 600;
+  }
+  .proy-body {
+    padding-bottom: 1rem;
+  }
+  .proy-desc {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.3rem 0 0.5rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>
 
 <script is:inline>
-(function () {
-    var BACKEND_PUBLIC = (window.__ENV__ && window.__ENV__.PUBLIC_BACKEND_URL) || "http://localhost:8001";
-    var proyectoActivo = null;
+  (function () {
+    var BACKEND_PUBLIC =
+      (window.__ENV__ && window.__ENV__.PUBLIC_BACKEND_URL) ||
+      "http://localhost:8001";
     var todosLosProyectos = [];
-    var avanceActual = 0;
-    var inmobiliariaIDActual = null;
+
+    function esc(v) {
+      return String(v == null ? "" : v)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function norm(s) {
+      return String(s || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
 
     function urlImg(path) {
-        if (!path) return null;
-        if (String(path).startsWith("http")) return path;
-        return BACKEND_PUBLIC + (String(path).startsWith("/") ? path : "/" + path);
+      if (!path) return null;
+      if (String(path).startsWith("http")) return path;
+      return (
+        BACKEND_PUBLIC + (String(path).startsWith("/") ? path : "/" + path)
+      );
     }
 
-    function fmtFecha(f) {
-        if (!f) return "-";
-        return new Date(f).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
+      function fmtFecha(f) {
+        if (!f) return "—";
+        var p = String(f).slice(0, 10).split("-");
+        return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : "—";
     }
 
-    function estadoLabel(id) {
-        return id === 3 ? "Finalizado" : id === 2 ? "En construcción" : "Planificado";
+    function estadoLabel(p) {
+        return p.estadoProyecto ||
+            (p.estadoProyectoID === 3 ? "Finalizado" : p.estadoProyectoID === 2 ? "En construcción" : "Planificado");
     }
 
     function estadoClase(id) {
@@ -123,15 +152,6 @@ import PanelAgente from "./PanelAgente.astro";
 
     function mostrar(id) { var el = document.getElementById(id); if (el) { el.hidden = false; el.classList.remove("d-none"); } }
     function ocultar(id) { var el = document.getElementById(id); if (el) { el.hidden = true; el.classList.add("d-none"); } }
-    function abrirModal(cual) { mostrar("modal-" + cual); }
-    function cerrarModal(cual) { ocultar("modal-" + cual); }
-
-    function setError(id, msg) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        if (msg) { el.textContent = msg; el.hidden = false; }
-        else el.hidden = true;
-    }
 
     // ── Cargar listado ────────────────────────────────────────────
     function cargar() {
@@ -141,7 +161,18 @@ import PanelAgente from "./PanelAgente.astro";
         ocultar("contador");
         mostrar("estado-cargando");
 
-        fetch("/api/agente/proyectos", { credentials: "same-origin" })
+        // fetch(BACKEND_PUBLIC + "/api/agente/panel/proyectos", { credentials: "same-origin" })
+        function getCookie(name) {
+  var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+fetch(BACKEND_PUBLIC + "/api/agente/panel/proyectos", {
+  credentials: "include",   // ← cambia same-origin por include
+  headers: {
+    "Authorization": "Bearer " + getCookie("token"), // ← nombre real de  cookie JWT
+  }
+})
             .then(function (res) { return res.json(); })
             .then(function (json) {
                 ocultar("estado-cargando");
@@ -162,11 +193,12 @@ import PanelAgente from "./PanelAgente.astro";
         var elTotal   = document.getElementById("statTotal");
         var elActivos = document.getElementById("statActivos");
         var elPlan    = document.getElementById("statPlanificados");
-        if (elTotal)   elTotal.textContent  = lista.length;
+        if (elTotal)   elTotal.textContent   = lista.length;
         if (elActivos) elActivos.textContent = lista.filter(function (p) { return p.estadoProyectoID === 2; }).length;
         if (elPlan)    elPlan.textContent    = lista.filter(function (p) { return p.estadoProyectoID === 1; }).length;
     }
 
+    // ── Tarjeta (misma información que en admin, sin acciones) ────
     function renderizar(lista) {
         var grid = document.getElementById("proy-grid");
         if (!grid) return;
@@ -184,31 +216,32 @@ import PanelAgente from "./PanelAgente.astro";
 
         lista.forEach(function (p) {
             var img = urlImg(p.imagenPrincipal);
-            var pct = Number(p.porcentajeAvance || 0);
-            var card = document.createElement("div");
+            var pct = Math.max(0, Math.min(100, Math.round(Number(p.porcentajeAvance) || 0)));
+            var card = document.createElement("article");
             card.className = "proy-card";
             card.innerHTML =
                 '<div class="proy-img">' +
                     (img
-                        ? '<img src="' + img + '" alt="' + p.nombre + '" loading="lazy" />'
+                        ? '<img src="' + esc(img) + '" alt="Imagen de ' + esc(p.nombre) + '" loading="lazy" />'
                         : '<div class="proy-img-vacia"><i class="bi bi-buildings"></i><span>Sin imagen</span></div>') +
-                    '<span class="proy-badge ' + estadoClase(p.estadoProyectoID) + '">' + estadoLabel(p.estadoProyectoID) + '</span>' +
+                    '<span class="proy-badge ' + estadoClase(p.estadoProyectoID) + '">' + esc(estadoLabel(p)) + '</span>' +
                 '</div>' +
                 '<div class="proy-body">' +
-                    '<h2 class="proy-title">' + p.nombre + '</h2>' +
-                    (p.ubicacion ? '<p class="proy-loc"><i class="bi bi-geo-alt"></i> ' + p.ubicacion + '</p>' : '') +
+                    '<h2 class="proy-title">' + esc(p.nombre) + '</h2>' +
+                    (p.descripcion ? '<p class="proy-desc">' + esc(p.descripcion) + '</p>' : '') +
+                    '<p class="proy-loc"><i class="bi bi-geo-alt"></i> ' + esc(p.ubicacion || "Sin ubicación") + '</p>' +
                     '<div class="proy-avance-wrap">' +
                         '<div class="proy-avance-label"><span>Avance</span><strong>' + pct + '%</strong></div>' +
                         '<div class="proy-avance-bar"><div class="proy-avance-fill" style="width:' + pct + '%"></div></div>' +
                     '</div>' +
                     '<div class="proy-chips">' +
-                        (p.fechaInicio       ? '<span class="chip"><i class="bi bi-calendar-event"></i> ' + fmtFecha(p.fechaInicio)   + '</span>' : '') +
-                        (p.fechaFin          ? '<span class="chip"><i class="bi bi-flag"></i> '           + fmtFecha(p.fechaFin)      + '</span>' : '') +
-                        (p.constructoraNombre ? '<span class="chip"><i class="bi bi-building"></i> '      + p.constructoraNombre      + '</span>' : '') +
+                        '<span class="chip"><i class="bi bi-calendar-event"></i> ' + fmtFecha(p.fechaInicio) + '</span>' +
+                        '<span class="chip"><i class="bi bi-flag"></i> ' + fmtFecha(p.fechaFin) + '</span>' +
                     '</div>' +
-                '</div>' +
-                '<div class="proy-actions">' +
-                    '<button type="button" class="btn-sm btn-primary" data-accion="editar" data-id="' + p.proyectoID + '"><i class="bi bi-pencil"></i> Editar</button>' +
+                    '<dl class="proy-meta">' +
+                        '<dt>Constructora</dt>' +
+                        '<dd>' + esc(p.constructoraNombre || "Sin asignar") + '</dd>' +
+                    '</dl>' +
                 '</div>';
             grid.appendChild(card);
         });
@@ -216,103 +249,18 @@ import PanelAgente from "./PanelAgente.astro";
 
     // ── Filtros ───────────────────────────────────────────────────
     function filtrar() {
-        var buscar = (document.getElementById("input-buscar").value || "").toLowerCase();
+        var buscar = norm(document.getElementById("input-buscar").value.trim());
         var estado = document.getElementById("sel-estado").value;
         var filtrados = todosLosProyectos.filter(function (p) {
-            var coincideTexto  = !buscar || (p.nombre || "").toLowerCase().includes(buscar) || (p.ubicacion || "").toLowerCase().includes(buscar);
-            var coincideEstado = !estado || String(p.estadoProyectoID) === estado;
-            return coincideTexto && coincideEstado;
+            var texto = norm([p.nombre, p.ubicacion, p.constructoraNombre].filter(Boolean).join(" "));
+            return (!buscar || texto.includes(buscar)) &&
+                   (!estado || String(p.estadoProyectoID) === estado);
         });
         renderizar(filtrados);
     }
 
     document.getElementById("input-buscar").addEventListener("input", filtrar);
     document.getElementById("sel-estado").addEventListener("change", filtrar);
-
-    // ── Click global ──────────────────────────────────────────────
-    document.addEventListener("click", function (e) {
-        var cerrar = e.target.closest("[data-cerrar]");
-        if (cerrar) { cerrarModal(cerrar.getAttribute("data-cerrar")); return; }
-
-        var btn = e.target.closest("[data-accion]");
-        if (!btn) return;
-        var id     = Number(btn.getAttribute("data-id"));
-        var accion = btn.getAttribute("data-accion");
-        proyectoActivo = id;
-        if (accion === "editar") abrirEditar(id);
-    });
-
-    // ── Modal editar ──────────────────────────────────────────────
-    function abrirEditar(id) {
-        setError("edit-error", null);
-        fetch("/api/agente/proyectos/" + id, { credentials: "same-origin" })
-            .then(function (r) { return r.json(); })
-            .then(function (j) {
-                if (!j.success) throw new Error(j.error || "No se pudo cargar");
-                var p = j.data;
-                document.getElementById("edit-nombre").value       = p.nombre       || "";
-                document.getElementById("edit-estado").value       = p.estadoProyectoID || 1;
-                document.getElementById("edit-fecha-inicio").value = p.fechaInicio  ? p.fechaInicio.split("T")[0] : "";
-                document.getElementById("edit-fecha-fin").value    = p.fechaFin     ? p.fechaFin.split("T")[0]    : "";
-                document.getElementById("edit-ubicacion").value    = p.ubicacion    || "";
-                document.getElementById("edit-descripcion").value  = p.descripcion  || "";
-                avanceActual = Number(p.porcentajeAvance || 0);
-                inmobiliariaIDActual = p.inmobiliariaID ?? null;
-                abrirModal("editar");
-            })
-            .catch(function (err) {
-                setError("edit-error", err.message);
-                abrirModal("editar");
-            });
-    }
-
-    document.getElementById("btn-guardar-editar").addEventListener("click", function () {
-        if (!proyectoActivo) return;
-        setError("edit-error", null);
-
-        var nombre           = document.getElementById("edit-nombre").value.trim();
-        var estadoProyectoID = Number(document.getElementById("edit-estado").value);
-        var fechaInicio      = document.getElementById("edit-fecha-inicio").value || null;
-        var fechaFin         = document.getElementById("edit-fecha-fin").value    || null;
-        var ubicacion        = document.getElementById("edit-ubicacion").value.trim()   || null;
-        var descripcion      = document.getElementById("edit-descripcion").value.trim() || null;
-
-        if (!nombre) { setError("edit-error", "El nombre es obligatorio"); return; }
-        if (fechaInicio && fechaFin && fechaInicio > fechaFin) { setError("edit-error", "La fecha de inicio no puede ser posterior a la de fin"); return; }
-
-        var btn = document.getElementById("btn-guardar-editar");
-        btn.disabled = true;
-        btn.textContent = "Guardando…";
-
-        fetch("/api/agente/proyectos/" + proyectoActivo, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            credentials: "same-origin",
-            body: JSON.stringify({
-                nombre:           nombre,
-                estadoProyectoID: estadoProyectoID,
-                porcentajeAvance: avanceActual,
-                inmobiliariaID: inmobiliariaIDActual,
-                fechaInicio:      fechaInicio,
-                fechaFin:         fechaFin,
-                ubicacion:        ubicacion,
-                descripcion:      descripcion,
-            }),
-        })
-            .then(function (r) { return r.json(); })
-            .then(function (j) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-check-lg"></i> Guardar cambios';
-                if (!j.success) throw new Error(j.error || "Error al guardar");
-                cerrarModal("editar");
-                cargar();
-            })
-            .catch(function (err) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-check-lg"></i> Guardar cambios';
-                setError("edit-error", err.message);
-            });
-    });
 
     // ── Arrancar ──────────────────────────────────────────────────
     if (document.readyState === "loading") {

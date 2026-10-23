@@ -5,7 +5,7 @@ const BACKEND = "http://localhost:8001/api/agente/panel/propiedades";
 export const DELETE: APIRoute = async ({ request, params }) => {
   try {
     const res = await fetch(`${BACKEND}/${params.id}/imagenes/${params.imagenId}`, {
-      method: "DELETE",
+      method: "DELETE", 
       headers: {
         Cookie: request.headers.get("cookie") || "",
         Accept: "application/json",
