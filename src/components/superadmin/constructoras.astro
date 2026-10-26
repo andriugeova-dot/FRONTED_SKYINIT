@@ -182,15 +182,32 @@ import "./constructoras.css";
           : '<span class="acceso-off">Sin cuenta</span>';
         return (
           "<tr>" +
-          "<td>" + id + "</td>" +
-          "<td><strong>" + (c.nombre || "") + "</strong></td>" +
-          "<td>" + (c.ciudad || "—") + "</td>" +
-          "<td>" + badgeEstado(c.estado) + "</td>" +
-          "<td class='inmo-cell'>" + inmos + "</td>" +
-          "<td>" + acceso + "</td>" +
-          '<td><button type="button" class="btn-sm" data-edit="' +
+          "<td>" +
           id +
-          '">Editar</button></td>' +
+          "</td>" +
+          "<td><strong>" +
+          (c.nombre || "") +
+          "</strong></td>" +
+          "<td>" +
+          (c.ciudad || "—") +
+          "</td>" +
+          "<td>" +
+          badgeEstado(c.estado) +
+          "</td>" +
+          "<td class='inmo-cell'>" +
+          inmos +
+          "</td>" +
+          "<td>" +
+          acceso +
+          "</td>" +
+          "<td>" +
+          '<button type="button" class="btn-sm" data-edit="' +
+          id +
+          '">Editar</button> ' +
+          '<button type="button" class="btn-sm btn-del" data-del="' +
+          id +
+          '">Eliminar</button>' +
+          "</td>" +
           "</tr>"
         );
       })
@@ -270,6 +287,24 @@ import "./constructoras.css";
       });
   }
 
+  function cargarUsuariosConstructora() {
+    return fetch("/api/superadmin/usuarios", { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        var todos = json.data || [];
+        usuariosConstructora = todos.filter(function (u) {
+          var rol = String(u.nombreRol || u.rol || "").toLowerCase();
+          return rol.indexOf("constructora") >= 0;
+        });
+        pintarSelectUsuarios();
+      })
+      .catch(function () {
+        usuariosConstructora = [];
+      });
+  }
+
   function pintarSelectUsuarios() {
     var sel = document.getElementById("f-user-existente");
     if (!sel) return;
@@ -281,51 +316,33 @@ import "./constructoras.css";
           var nom = u.nombre || "";
           var cor = u.correo || "";
           return (
-            '<option value="' + id + '">' + nom + " · " + cor + "</option>"
+            '<option value="' +
+            id +
+            '">' +
+            nom +
+            (cor ? " · " + cor : "") +
+            "</option>"
           );
         })
         .join("");
   }
 
-  function cargarUsuariosConstructora() {
-    return fetch("/api/superadmin/usuarios", { credentials: "same-origin" })
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (json) {
-        var all = json.data || [];
-        usuariosConstructora = all.filter(function (u) {
-          var rol = String(u.nombreRol || u.rol || "").toLowerCase();
-          var rolId = Number(u.rolID || 0);
-          return rol.indexOf("constructora") >= 0 || rolId === 5;
-        });
-        pintarSelectUsuarios();
-      })
-      .catch(function (e) {
-        console.error(e);
-      });
-  }
-
   function getInmoSeleccionadas() {
-    var ids = [];
-    document
-      .querySelectorAll('#inmo-checks input[name="inmo"]:checked')
-      .forEach(function (el) {
-        ids.push(Number(el.value));
+    return Array.prototype.slice
+      .call(document.querySelectorAll('#inmo-checks input[name="inmo"]:checked'))
+      .map(function (el) {
+        return Number(el.value);
       });
-    return ids;
   }
 
   function setInmoSeleccionadas(ids) {
     var set = {};
     (ids || []).forEach(function (id) {
-      set[String(id)] = true;
+      set[Number(id)] = true;
     });
-    document
-      .querySelectorAll('#inmo-checks input[name="inmo"]')
-      .forEach(function (el) {
-        el.checked = !!set[el.value];
-      });
+    document.querySelectorAll('#inmo-checks input[name="inmo"]').forEach(function (el) {
+      el.checked = !!set[Number(el.value)];
+    });
   }
 
   function abrirModal() {
@@ -349,8 +366,7 @@ import "./constructoras.css";
     document.getElementById("f-correo").value = "";
     document.getElementById("f-contacto").value = "";
     setInmoSeleccionadas([]);
-    document.getElementById("cuenta-actual").textContent =
-      "Sin cuenta asignada";
+    document.getElementById("cuenta-actual").textContent = "Sin cuenta asignada";
     document.getElementById("f-crear-cuenta").checked = false;
     document.getElementById("cuenta-fields").hidden = true;
     document.getElementById("f-user-correo").value = "";
@@ -384,8 +400,7 @@ import "./constructoras.css";
         (c.usuarioNombre ? " (" + c.usuarioNombre + ")" : "");
       document.getElementById("lbl-quitar").hidden = false;
     } else {
-      document.getElementById("cuenta-actual").textContent =
-        "Sin cuenta asignada";
+      document.getElementById("cuenta-actual").textContent = "Sin cuenta asignada";
       document.getElementById("lbl-quitar").hidden = true;
     }
     document.getElementById("f-crear-cuenta").checked = false;
@@ -399,23 +414,9 @@ import "./constructoras.css";
   var elCrear = document.getElementById("f-crear-cuenta");
   if (elCrear) {
     elCrear.addEventListener("change", function () {
-      document.getElementById("cuenta-fields").hidden = !this.checked;
-      if (this.checked) {
+      document.getElementById("cuenta-fields").hidden = !elCrear.checked;
+      if (elCrear.checked) {
         document.getElementById("f-quitar-cuenta").checked = false;
-        var s = document.getElementById("f-user-existente");
-        if (s) s.value = "";
-      }
-    });
-  }
-
-  var elQuitar = document.getElementById("f-quitar-cuenta");
-  if (elQuitar) {
-    elQuitar.addEventListener("change", function () {
-      if (this.checked) {
-        document.getElementById("f-crear-cuenta").checked = false;
-        document.getElementById("cuenta-fields").hidden = true;
-        var s = document.getElementById("f-user-existente");
-        if (s) s.value = "";
       }
     });
   }
@@ -434,10 +435,42 @@ import "./constructoras.css";
     .getElementById("filtro-estado")
     .addEventListener("change", aplicarFiltro);
 
+  // Editar + Eliminar
   document.getElementById("tbody").addEventListener("click", function (e) {
-    var btn = e.target.closest("[data-edit]");
-    if (!btn) return;
-    var id = Number(btn.getAttribute("data-edit"));
+    var btnDel = e.target.closest("[data-del]");
+    if (btnDel) {
+      var idDel = Number(btnDel.getAttribute("data-del"));
+      if (!idDel) return;
+      if (
+        !confirm(
+          "¿Eliminar esta constructora? Esta acción no se puede deshacer.",
+        )
+      ) {
+        return;
+      }
+      fetch("/api/superadmin/constructoras?id=" + idDel, {
+        method: "DELETE",
+        credentials: "same-origin",
+      })
+        .then(function (r) {
+          return r.json().then(function (data) {
+            if (!r.ok) {
+              throw new Error(
+                data.message || data.mensaje || data.error || "Error al eliminar",
+              );
+            }
+            return cargar();
+          });
+        })
+        .catch(function (err) {
+          alert(err.message || "Error al eliminar");
+        });
+      return;
+    }
+
+    var btnEdit = e.target.closest("[data-edit]");
+    if (!btnEdit) return;
+    var id = Number(btnEdit.getAttribute("data-edit"));
     var c = lista.find(function (x) {
       return Number(x.constructoraID) === id;
     });
