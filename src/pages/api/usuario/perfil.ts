@@ -39,7 +39,7 @@ export const PUT: APIRoute = async ({ cookies, request }) => {
     }
 
     try {
-        const res = await fetch(`${BACKEND}/auth/perfil`, {
+        const res = await fetch(`${BACKEND}/usuario/perfil`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
