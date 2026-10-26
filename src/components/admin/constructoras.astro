@@ -1,5 +1,6 @@
 ---
 import "./constructoras.css";
+import "./propiedades.css"
 ---
 
 <div class="page" id="page-constructoras">
@@ -38,9 +39,9 @@ import "./constructoras.css";
 
 
 
-  <div id="grid-cards" class="cards-grid">
-    <p class="empty">Cargando…</p>
-  </div>
+  <div id="grid-cards" class="prop-grid">
+  <p class="empty">Cargando…</p>
+</div>
 </div>
 
 <!-- Modal -->
@@ -97,73 +98,100 @@ import "./constructoras.css";
 (function () {
   var lista = [];
 
-  function badgeClass(e) {
+  function urlLogo(logo) {
+    if (!logo) return "";
+    if (String(logo).indexOf("http") === 0) return logo;
+    return (
+      "http://localhost:8001" +
+      (logo.charAt(0) === "/" ? logo : "/" + logo)
+    );
+  }
+
+  function claseEstado(e) {
     var s = String(e || "").toLowerCase();
-    if (s.indexOf("activ") >= 0) return "badge-ok";
-    if (s.indexOf("pend") >= 0) return "badge-warn";
-    if (s.indexOf("inactiv") >= 0) return "badge-off";
-    return "badge-off";
+    if (s.indexOf("activ") >= 0) return "est-disponible";
+    if (s.indexOf("pend") >= 0) return "est-reservada";
+    return "est-fuera";
   }
 
   function pintarStats() {
-  var total = lista.length;
-  var activas = lista.filter(function (c) {
-    return String(c.estado || "").toLowerCase().indexOf("activ") >= 0;
-  }).length;
-  var pendientes = lista.filter(function (c) {
-    return String(c.estado || "").toLowerCase().indexOf("pend") >= 0;
-  }).length;
-  // No cuentes Inactivo como Activa
-  document.getElementById("stat-total").textContent = String(total);
-  document.getElementById("stat-activas").textContent = String(activas);
-  document.getElementById("stat-pendientes").textContent = String(pendientes);
-}
-
-  function urlLogo(logo) {
-  if (!logo) return "";
-  if (String(logo).indexOf("http") === 0) return logo;
-  return "http://localhost:8001" + (logo.charAt(0) === "/" ? logo : "/" + logo);
-}
-
-function pintarCards(items) {
-  var grid = document.getElementById("grid-cards");
-  if (!items.length) {
-    grid.innerHTML = '<p class="empty">No hay constructoras para mostrar</p>';
-    return;
+    var total = lista.length;
+    var activas = lista.filter(function (c) {
+      return String(c.estado || "").toLowerCase().indexOf("activ") >= 0;
+    }).length;
+    var pendientes = lista.filter(function (c) {
+      return String(c.estado || "").toLowerCase().indexOf("pend") >= 0;
+    }).length;
+    document.getElementById("stat-total").textContent = String(total);
+    document.getElementById("stat-activas").textContent = String(activas);
+    document.getElementById("stat-pendientes").textContent = String(pendientes);
   }
-  grid.innerHTML = items
-    .map(function (c) {
-      var id = c.constructoraID;
-      var desc = String(c.descripcion || "");
-      if (desc.length > 110) desc = desc.slice(0, 110) + "…";
 
-      var src = urlLogo(c.logo);
-      var logoHtml = src
-        ? '<img class="card-c-logo" src="' + src + '" alt="" />'
-        : '<div class="card-c-logo placeholder">' +
-          String(c.nombre || "?").charAt(0).toUpperCase() +
-          "</div>";
+  function pintarCards(items) {
+    var grid = document.getElementById("grid-cards");
+    if (!items.length) {
+      grid.innerHTML =
+        '<p class="empty">No hay constructoras para mostrar</p>';
+      return;
+    }
 
-      return (
-        '<article class="card-c">' +
-        '<div class="card-c-top">' +
-        logoHtml +
-        '<div class="card-c-info">' +
-        "<h3>" + (c.nombre || "") + "</h3>" +
-        '<span class="badge ' + badgeClass(c.estado) + '">' +
-        (c.estado || "—") +
-        "</span>" +
-        "</div></div>" +
-        '<p class="card-c-city">' + (c.ciudad || "Sin ciudad") + "</p>" +
-        '<p class="card-c-mail">' + (c.correo || "—") + "</p>" +
-        '<p class="card-c-desc">' + desc + "</p>" +
-        '<div class="card-c-actions">' +
-        '<button type="button" class="btn-sm" data-edit="' + id + '">Editar</button>' +
-        "</div></article>"
-      );
-    })
-    .join("");
-}
+    grid.innerHTML = items
+      .map(function (c) {
+        var id = c.constructoraID;
+        var desc = String(c.descripcion || "");
+        if (desc.length > 100) desc = desc.slice(0, 100) + "…";
+        var src = urlLogo(c.logo);
+        var img = src
+          ? '<img src="' +
+            src +
+            '" alt="' +
+            (c.nombre || "") +
+            '" loading="lazy" />'
+          : '<div class="prop-img-vacia"><i class="bi bi-buildings" aria-hidden="true"></i><span>Sin logo</span></div>';
+
+        return (
+          '<article class="prop-card" data-id="' +
+          id +
+          '">' +
+          '<div class="prop-img">' +
+          img +
+          '<span class="prop-badge ' +
+          claseEstado(c.estado) +
+          '">' +
+          (c.estado || "—") +
+          "</span>" +
+          "</div>" +
+          '<div class="prop-body">' +
+          '<h3 class="prop-title">' +
+          (c.nombre || "") +
+          "</h3>" +
+          '<p class="prop-loc"><i class="bi bi-geo-alt" aria-hidden="true"></i> ' +
+          (c.ciudad || "Sin ciudad") +
+          "</p>" +
+          '<p class="prop-loc"><i class="bi bi-envelope" aria-hidden="true"></i> ' +
+          (c.correo || "Sin correo") +
+          "</p>" +
+          (desc
+            ? '<p class="card-c-desc">' + desc + "</p>"
+            : "") +
+          '<dl class="prop-meta una-col">' +
+          "<div><dt>Contacto</dt><dd>" +
+          (c.contacto || "—") +
+          "</dd></div>" +
+          "</dl>" +
+          "</div>" +
+          '<div class="prop-actions">' +
+          '<button type="button" class="btn btn-sm btn-outline-primary flex-grow-1" data-edit="' +
+          id +
+          '">' +
+          '<i class="bi bi-pencil" aria-hidden="true"></i> Editar' +
+          "</button>" +
+          "</div>" +
+          "</article>"
+        );
+      })
+      .join("");
+  }
 
   function aplicarFiltro() {
     var q = (document.getElementById("filtro-q").value || "")
@@ -190,7 +218,6 @@ function pintarCards(items) {
       .then(function (json) {
         lista = json.data || [];
         pintarStats();
-        // Default: mostrar solo Activo (una sola vez al cargar)
         if (!document.getElementById("filtro-estado").dataset.init) {
           document.getElementById("filtro-estado").value = "Activo";
           document.getElementById("filtro-estado").dataset.init = "1";
@@ -299,7 +326,9 @@ function pintarCards(items) {
       .then(function (r) {
         return r.json().then(function (data) {
           if (!r.ok) {
-            throw new Error(data.message || data.mensaje || data.error || "Error");
+            throw new Error(
+              data.message || data.mensaje || data.error || "Error",
+            );
           }
           cerrarModal();
           return cargar();
