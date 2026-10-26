@@ -64,3 +64,38 @@ export const PUT: APIRoute = async ({ cookies, request, url }) => {
         headers: { "Content-Type": "application/json" },
   });
 };
+
+export const DELETE: APIRoute = async ({ cookies, url }) => {
+  const token = getTokenSSR(cookies);
+  if (!token) {
+    return new Response(JSON.stringify({ error: "No autorizado" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const id = url.searchParams.get("id");
+  if (!id) {
+    return new Response(JSON.stringify({ error: "ID requerido" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    const res = await fetch(`${BACKEND}/superadmin/constructoras/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(token),
+    });
+    const data = await res.json();
+    return new Response(JSON.stringify(data), {
+      status: res.status,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch {
+    return new Response(
+      JSON.stringify({ error: "Backend no disponible" }),
+      { status: 502, headers: { "Content-Type": "application/json" } },
+    );
+  }
+};

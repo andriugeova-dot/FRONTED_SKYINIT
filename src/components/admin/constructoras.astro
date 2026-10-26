@@ -9,7 +9,7 @@ import "./propiedades.css"
       <h1>Constructoras</h1>
       <p>Constructoras vinculadas a tu inmobiliaria</p>
     </div>
-    <button type="button" class="btn-nueva" id="btn-nueva">+ Nueva constructora</button>
+    
   </header>
 
   <div class="stats">
@@ -48,7 +48,7 @@ import "./propiedades.css"
 <div id="modal" class="modal" hidden>
   <div class="modal-backdrop" data-cerrar></div>
   <div class="modal-card">
-    <h3 id="modal-titulo">Nueva constructora</h3>
+    <h3 id="modal-titulo">Editar Constructora</h3>
     <p id="form-error" class="form-error" hidden></p>
     <input type="hidden" id="f-id" value="" />
 
@@ -171,9 +171,7 @@ import "./propiedades.css"
           '<p class="prop-loc"><i class="bi bi-envelope" aria-hidden="true"></i> ' +
           (c.correo || "Sin correo") +
           "</p>" +
-          (desc
-            ? '<p class="card-c-desc">' + desc + "</p>"
-            : "") +
+          (desc ? '<p class="card-c-desc">' + desc + "</p>" : "") +
           '<dl class="prop-meta una-col">' +
           "<div><dt>Contacto</dt><dd>" +
           (c.contacto || "—") +
@@ -241,18 +239,6 @@ import "./propiedades.css"
     document.getElementById("modal").hidden = true;
   }
 
-  function limpiar() {
-    document.getElementById("f-id").value = "";
-    document.getElementById("f-nombre").value = "";
-    document.getElementById("f-descripcion").value = "";
-    document.getElementById("f-ciudad").value = "";
-    document.getElementById("f-estado").value = "Activo";
-    document.getElementById("f-telefono").value = "";
-    document.getElementById("f-correo").value = "";
-    document.getElementById("f-contacto").value = "";
-    document.getElementById("modal-titulo").textContent = "Nueva constructora";
-  }
-
   function rellenar(c) {
     document.getElementById("f-id").value = c.constructoraID;
     document.getElementById("f-nombre").value = c.nombre || "";
@@ -264,11 +250,6 @@ import "./propiedades.css"
     document.getElementById("f-contacto").value = c.contacto || "";
     document.getElementById("modal-titulo").textContent = "Editar constructora";
   }
-
-  document.getElementById("btn-nueva").addEventListener("click", function () {
-    limpiar();
-    abrirModal();
-  });
 
   document.querySelectorAll("[data-cerrar]").forEach(function (el) {
     el.addEventListener("click", cerrarModal);
@@ -296,6 +277,12 @@ import "./propiedades.css"
     err.hidden = true;
 
     var id = document.getElementById("f-id").value;
+    if (!id) {
+      err.textContent = "Solo puedes editar constructoras existentes";
+      err.hidden = false;
+      return;
+    }
+
     var payload = {
       nombre: document.getElementById("f-nombre").value.trim(),
       descripcion: document.getElementById("f-descripcion").value.trim(),
@@ -312,13 +299,8 @@ import "./propiedades.css"
       return;
     }
 
-    var url = id
-      ? "/api/admin/constructoras?id=" + id
-      : "/api/admin/constructoras";
-    var method = id ? "PUT" : "POST";
-
-    fetch(url, {
-      method: method,
+    fetch("/api/admin/constructoras?id=" + id, {
+      method: "PUT",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
